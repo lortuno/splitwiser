@@ -39,7 +39,11 @@ export function TripScreen({
           <Text style={styles.heading}>{t("trip.expenses")}</Text>
         </>
       }
-      ListEmptyComponent={<Text style={styles.muted}>{t("trip.noExpenses")}</Text>}
+      ListEmptyComponent={
+        <Card>
+          <Text style={styles.state}>{t("trip.noExpenses")}</Text>
+        </Card>
+      }
       ItemSeparatorComponent={() => <View style={styles.separator} />}
       renderItem={({ item }) => <ExpenseRow expense={item} />}
     />
@@ -50,12 +54,14 @@ function Transfers({ summary, onShowAll }: { summary: TripSummary; onShowAll: ()
   const { transfers } = summary;
   return (
     <View style={styles.section}>
-      <Text style={styles.heading}>{t("balances.transfers")}</Text>
+      <Text style={styles.sectionHeading}>{t("balances.transfers")}</Text>
       {transfers.length === 0 ? (
-        <Text style={styles.settled}>{t("balances.settled")}</Text>
+        <Card>
+          <Text style={styles.state}>{t("balances.settled")}</Text>
+        </Card>
       ) : (
         transfers.slice(0, VISIBLE_TRANSFERS).map((transfer) => (
-          <Card key={`${transfer.from.id}-${transfer.to.id}`} style={styles.transferCard}>
+          <Card key={`${transfer.from.id}-${transfer.to.id}`}>
             <View style={styles.transferRow}>
               <Text style={styles.transfer}>{t("balances.pays", { from: transfer.from.name, to: transfer.to.name })}</Text>
               <Money cents={transfer.amount_cents} style={styles.amount} />
@@ -98,13 +104,13 @@ function ExpenseRow({ expense }: { expense: Expense }) {
 
 const styles = StyleSheet.create({
   content: { padding: space.lg, paddingBottom: space.xl },
-  total: { marginBottom: space.lg, alignItems: "flex-start" },
+  total: { marginBottom: space.xl, padding: space.xl, alignItems: "flex-start" },
   totalLabel: { fontSize: typeScale.body, color: colors.inkMuted },
   totalAmount: { fontSize: typeScale.hero, fontWeight: "700", marginVertical: space.xs },
-  section: { marginBottom: space.lg },
+  section: { marginBottom: space.xl, gap: space.sm },
   heading: { fontSize: typeScale.title, fontWeight: "700", color: colors.ink, marginBottom: space.md },
-  settled: { fontSize: typeScale.body, color: colors.ink },
-  transferCard: { marginBottom: space.sm },
+  sectionHeading: { fontSize: typeScale.title, fontWeight: "700", color: colors.ink, marginBottom: space.xs },
+  state: { fontSize: typeScale.body, color: colors.ink },
   transferRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
   transfer: { flex: 1, fontSize: typeScale.body, color: colors.ink },
   showAll: { minHeight: size.tapMin, justifyContent: "center", alignSelf: "flex-start" },

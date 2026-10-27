@@ -203,8 +203,7 @@ http://localhost:8081. Run check 15 last, because it adds an expense.
     split equally between Jon, Kim and Lea, and save. Back on Trip, the total shows `13,00 €`, "2 expenses", and "Who owes
     whom" shows "Lea pays Jon `4,33 €`" and "Kim pays Jon `1,33 €`". The page was not reloaded.
 
-The Playwright suite (`tests/e2e/trip-view.test.ts`) runs every check except 2–5. Those are covered by the PHP
-tests and the unchanged screens. It starts its own seeded API and a web export of the app, so it does not need
+The Playwright suite (`tests/e2e/trip-view.test.ts`) runs every check. It starts its own seeded API and a web export of the app, so it does not need
 `docker compose up`. Check 14 blocks the API inside the browser instead of stopping the Docker service. Screenshots
 go to `test-results/e2e/`, which is not committed.
 

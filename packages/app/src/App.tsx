@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Platform, Pressable, StatusBar, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 
 import { API_URL, ApiError } from "./api/client";
 import { listExpenses } from "./api/expenses";
@@ -39,6 +39,8 @@ export default function App() {
   const [data, setData] = useState<TripData | null>(null);
   const [problem, setProblem] = useState<Problem | null>(null);
   const [screen, setScreen] = useState<Screen>("trip");
+  // On screens wider than the app column, edge lines frame it as a panel on the paper.
+  const framed = useWindowDimensions().width > size.pageMaxWidth;
 
   const load = useCallback(async () => {
     setProblem(null);
@@ -75,7 +77,7 @@ export default function App() {
 
   return (
     <View style={styles.page}>
-      <View style={styles.app}>
+      <View style={[styles.app, framed && styles.framed]}>
         {data === null ? (
           <View style={styles.center}>
             {problem === "notFound" ? (
@@ -153,6 +155,7 @@ function insertByDate(expenses: Expense[], expense: Expense): Expense[] {
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.paper, alignItems: "center" },
   app: { flex: 1, width: "100%", maxWidth: size.pageMaxWidth, paddingTop: TOP_INSET, backgroundColor: colors.paper },
+  framed: { borderLeftWidth: StyleSheet.hairlineWidth, borderRightWidth: StyleSheet.hairlineWidth, borderColor: colors.line },
   header: {
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
@@ -163,7 +166,7 @@ const styles = StyleSheet.create({
   tripName: { fontSize: typeScale.title, fontWeight: "700", color: colors.ink },
   body: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: space.xl, gap: space.md },
-  message: { fontSize: typeScale.body, color: colors.inkMuted, textAlign: "center" },
+  message: { fontSize: typeScale.body, color: colors.ink, textAlign: "center" },
   retry: {
     minHeight: size.tapMin,
     paddingHorizontal: space.xl,
