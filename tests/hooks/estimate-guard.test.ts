@@ -1,24 +1,32 @@
 import { describe, expect, test } from "bun:test";
-import { checkLog, decide } from "../../.claude/hooks/estimate-rule";
+import { checkLog, decide, parse, type Specs } from "../../.claude/hooks/estimate-rule";
 
 const root = "/repo";
-const header = "# Estimates\n\n| Date | Feature | Estimate (h) | Actual (h) |\n|---|---|---|---|\n";
-const empty = header;
-const closed = `${header}| 2026-10-20 | Blue theme | 2 | 1.5 |\n`;
-const open = `${closed}| 2026-10-27 | Export CSV | 6 | |\n`;
+const intro = "# 03 Create a trip\n\nSource: `specs/roadmap.md`, epic 3.\n\n";
+const header = "## Estimate\n\n| Date | Task | Estimate (h) | Actual (h) |\n|---|---|---|---|\n";
+const goal = "\n## Goal\n\n| Field | Rule |\n|---|---|\n| Name | required |\n";
+const spec = (rows = "") => `${intro}${header}${rows}${goal}`;
+const empty = spec();
+const closed = spec("| 2026-10-20 | Blue theme | 2 | 1.5 |\n");
+const open = spec("| 2026-10-20 | Blue theme | 2 | 1.5 |\n| 2026-10-27 | Export CSV | 6 | |\n");
 
-const bash = (command: string, log: string, cwd = root) => decide({ tool_name: "Bash", tool_input: { command }, cwd }, root, log);
-const write = (file_path: string, log: string, cwd = root) => decide({ tool_name: "Write", tool_input: { file_path, content: "x" }, cwd }, root, log);
-const editLog = (old_string: string, new_string: string, log: string) =>
-  decide({ tool_name: "Edit", tool_input: { file_path: "/repo/docs/estimates.md", old_string, new_string }, cwd: root }, root, log);
+const SPEC = "specs/03-create-a-trip-specification.md";
+const OTHER = "specs/04-edit-expenses-specification.md";
+const only = (text: string): Specs => ({ [SPEC]: text });
+
+const bash = (command: string, specs: Specs, cwd = root) => decide({ tool_name: "Bash", tool_input: { command }, cwd }, root, specs);
+const write = (file_path: string, specs: Specs, cwd = root) =>
+  decide({ tool_name: "Write", tool_input: { file_path, content: "x" }, cwd }, root, specs);
+const editSpec = (old_string: string, new_string: string, specs: Specs, file = SPEC) =>
+  decide({ tool_name: "Edit", tool_input: { file_path: `/repo/${file}`, old_string, new_string }, cwd: root }, root, specs);
 
 describe("estimate guard blocks feature work without an open estimate", () => {
-  test.each([[empty], [closed]])("Write and Edit under packages/ and tests/", (log) => {
-    const decision = write("/repo/packages/app/src/theme.ts", log);
+  test.each([[{}], [only(empty)], [only(closed)]])("Write and Edit under packages/ and tests/", (specs) => {
+    const decision = write("/repo/packages/app/src/theme.ts", specs);
     expect(decision.block).toBe(true);
-    if (decision.block) expect(decision.reason).toContain("docs/estimates.md");
-    expect(write("tests/unit/format.test.ts", closed).block).toBe(true);
-    expect(write("src/App.tsx", closed, "/repo/packages/app").block).toBe(true);
+    if (decision.block) expect(decision.reason).toContain("## Estimate");
+    expect(write("tests/unit/format.test.ts", specs).block).toBe(true);
+    expect(write("src/App.tsx", specs, "/repo/packages/app").block).toBe(true);
   });
 
   test.each([
@@ -28,18 +36,27 @@ describe("estimate guard blocks feature work without an open estimate", () => {
     ["rm tests/unit/old.test.ts"],
     ["git checkout -- packages/api/src/Money.php"],
   ])("%s", (command) => {
-    expect(bash(command, closed).block).toBe(true);
+    expect(bash(command, only(closed)).block).toBe(true);
   });
 
   test("writing from inside packages/", () => {
-    expect(bash("touch new.ts", closed, "/repo/packages/app/src").block).toBe(true);
+    expect(bash("touch new.ts", only(closed), "/repo/packages/app/src").block).toBe(true);
+  });
+
+  test("an open row outside the Estimate section does not count", () => {
+    const stray = `${closed}\n## Notes\n\n| Date | Task | Estimate (h) | Actual (h) |\n|---|---|---|---|\n| 2026-10-27 | X | 4 | |\n`;
+    expect(write("/repo/packages/app/src/theme.ts", only(stray)).block).toBe(true);
   });
 });
 
 describe("estimate guard allows", () => {
   test("feature work while an estimate is open", () => {
-    expect(write("/repo/packages/app/src/theme.ts", open).block).toBe(false);
-    expect(bash("sed -i '' 's/a/b/' packages/app/src/theme.ts", open).block).toBe(false);
+    expect(write("/repo/packages/app/src/theme.ts", only(open)).block).toBe(false);
+    expect(bash("sed -i '' 's/a/b/' packages/app/src/theme.ts", only(open)).block).toBe(false);
+  });
+
+  test("feature work while an estimate is open in any spec", () => {
+    expect(write("/repo/packages/app/src/theme.ts", { [SPEC]: closed, [OTHER]: open }).block).toBe(false);
   });
 
   test.each([
@@ -48,36 +65,69 @@ describe("estimate guard allows", () => {
     ["cat packages/app/src/theme.ts"],
     ["git diff packages/"],
   ])("read-only command without an estimate: %s", (command) => {
-    expect(bash(command, closed).block).toBe(false);
+    expect(bash(command, only(closed)).block).toBe(false);
   });
 
   test("changes outside packages/ and tests/ without an estimate", () => {
-    expect(write("/repo/README.md", closed).block).toBe(false);
-    expect(write("/repo/.claude/hooks/x.ts", closed).block).toBe(false);
+    expect(write("/repo/README.md", only(closed)).block).toBe(false);
+    expect(write("/repo/.claude/hooks/x.ts", only(closed)).block).toBe(false);
   });
 });
 
-describe("estimates log", () => {
+describe("estimate table of a specification", () => {
+  test("only rows of the Estimate section are parsed", () => {
+    expect(parse(open).map((row) => row.task)).toEqual(["Blue theme", "Export CSV"]);
+    expect(parse("# Spec\n\n## Goal\n\n| A | B |\n|---|---|\n| 1 | 2 |\n")).toEqual([]);
+  });
+
   test("a new estimate after the previous one is closed", () => {
-    expect(editLog("| 1.5 |\n", "| 1.5 |\n| 2026-10-27 | Export CSV | 6 | |\n", closed).block).toBe(false);
+    expect(editSpec("| 1.5 |\n", "| 1.5 |\n| 2026-10-27 | Export CSV | 6 | |\n", only(closed)).block).toBe(false);
+  });
+
+  test("adding the Estimate section to a spec without one", () => {
+    const decision = editSpec("## Goal", `${header}| 2026-10-27 | Build the epic | 3 | |\n\n## Goal`, { [SPEC]: `${intro}${goal}` });
+    expect(decision.block).toBe(false);
+  });
+
+  test("a new estimate in one spec while another spec has an open row", () => {
+    const specs = { [SPEC]: open, [OTHER]: closed };
+    expect(editSpec("| 1.5 |\n", "| 1.5 |\n| 2026-10-27 | Dark mode | 3 | |\n", specs, OTHER).block).toBe(false);
   });
 
   test("recording the actual hours of the open row", () => {
-    expect(editLog("| 6 | |", "| 6 | 7.5 |", open).block).toBe(false);
+    expect(editSpec("| 6 | |", "| 6 | 7.5 |", only(open)).block).toBe(false);
   });
 
-  test("blocks a second open estimate", () => {
-    const decision = editLog("| 6 | |\n", "| 6 | |\n| 2026-10-28 | Dark mode | 3 | |\n", open);
+  test("rewriting an older 2-column table into the new layout", () => {
+    const old = `${intro}## Estimate\n\n| Estimated (h) | Actual (h) |\n|---|---|\n| 2 | 0.6 |\n${goal}`;
+    const decision = editSpec(
+      "| Estimated (h) | Actual (h) |\n|---|---|\n| 2 | 0.6 |",
+      "| Date | Task | Estimate (h) | Actual (h) |\n|---|---|---|---|\n| 2026-10-27 | Build the epic | 2 | 0.6 |",
+      only(old),
+    );
+    expect(decision.block).toBe(false);
+  });
+
+  test("blocks a second open estimate in the same spec", () => {
+    const decision = editSpec("| 6 | |\n", "| 6 | |\n| 2026-10-28 | Dark mode | 3 | |\n", only(open));
     expect(decision.block).toBe(true);
-    if (decision.block) expect(decision.reason).toContain("Export CSV");
+    if (decision.block) {
+      expect(decision.reason).toContain("Export CSV");
+      expect(decision.reason).toContain(SPEC);
+    }
   });
 
   test.each([
     ["changing an estimate", "| Blue theme | 2 |", "| Blue theme | 1 |"],
     ["changing recorded actual hours", "| 2 | 1.5 |", "| 2 | 3 |"],
     ["removing a row", "| 2026-10-20 | Blue theme | 2 | 1.5 |\n", ""],
+    ["removing the section", header, ""],
   ])("blocks %s", (_, from, to) => {
-    expect(editLog(from, to, open).block).toBe(true);
+    expect(editSpec(from, to, only(open)).block).toBe(true);
+  });
+
+  test("tables outside the Estimate section can change freely", () => {
+    expect(editSpec("| Name | required |", "| Name | optional |", only(open)).block).toBe(false);
   });
 
   test.each([
@@ -88,10 +138,11 @@ describe("estimates log", () => {
     ["| 2026-10-27 | X | 4 | -1 |"],
     ["| 2026-10-27 | X | 4 |"],
   ])("rejects malformed row %s", (row) => {
-    expect(checkLog(closed, `${closed}${row}\n`)).not.toBeNull();
+    expect(checkLog(closed, closed.replace("| 1.5 |\n", `| 1.5 |\n${row}\n`))).not.toBeNull();
   });
 
-  test("blocks shell writes to the log", () => {
-    expect(bash("echo '| 2026-10-27 | X | 4 | |' >> docs/estimates.md", closed).block).toBe(true);
+  test("blocks shell writes to a specification", () => {
+    expect(bash(`echo '| 2026-10-27 | X | 4 | |' >> ${SPEC}`, only(closed)).block).toBe(true);
+    expect(bash(`sed -i '' 's/| 6 | |/| 6 | 1 |/' ${SPEC}`, only(open)).block).toBe(true);
   });
 });

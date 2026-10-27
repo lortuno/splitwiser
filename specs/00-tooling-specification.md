@@ -11,4 +11,4 @@ Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-
 |---|---|---|---|
 | 2026-10-27 | Status line: epic progress + session tokens (.claude/statusline.ts) | 1.5 | 0.5 |
 | 2026-10-27 | Status line: progress for the session's own epic (.claude/statusline.ts) | 0.1 | 0.1 |
-| 2026-10-27 | Estimates per specification instead of docs/estimates.md (.claude/hooks/estimate-rule.ts) | 0.5 |  |
+| 2026-10-27 | Estimates per specification instead of docs/estimates.md (.claude/hooks/estimate-rule.ts) | 0.5 | 0.5 |
