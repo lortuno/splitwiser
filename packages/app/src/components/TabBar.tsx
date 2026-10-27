@@ -11,7 +11,7 @@ export function TabBar({ current, onChange }: { current: Screen; onChange: (scre
       key={screen}
       onPress={() => onChange(screen)}
       accessibilityRole="tab"
-      accessibilityState={{ selected: current === screen }}
+      aria-selected={current === screen}
       style={[styles.tab, current === screen && styles.activeTab]}
     >
       <Text style={[styles.tabLabel, current === screen && styles.activeLabel]}>{label}</Text>
@@ -32,6 +32,7 @@ export function TabBar({ current, onChange }: { current: Screen; onChange: (scre
 const styles = StyleSheet.create({
   bar: {
     flexDirection: "row",
+    alignItems: "flex-end",
     gap: space.sm,
     padding: space.sm,
     backgroundColor: colors.surface,

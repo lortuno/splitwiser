@@ -82,6 +82,18 @@ async function aboveTheFold(page: Page, text: string): Promise<boolean> {
   return box !== null && box.y + box.height <= VIEWPORT.height;
 }
 
+// True when the first `left` text shares a row (vertical overlap) with any `right` text.
+async function sameRow(page: Page, left: string, right: string): Promise<boolean> {
+  const a = await page.getByText(left, { exact: true }).first().boundingBox();
+  for (const match of await page.getByText(right, { exact: true }).all()) {
+    const b = await match.boundingBox();
+    if (a !== null && b !== null && a.y < b.y + b.height && b.y < a.y + a.height) return true;
+  }
+  return false;
+}
+
+const noSidewaysScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+
 describe("epic 1: trip at a glance (390x844)", () => {
   test("check 1: demo trip shows the total and who owes whom above the fold", async () => {
     const page = await open("/");
@@ -102,6 +114,78 @@ describe("epic 1: trip at a glance (390x844)", () => {
     expect(await page.getByText(/^Show all/).count()).toBe(0);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
     await shot(page, "01-demo-trip");
+    await page.close();
+  }, 30_000);
+
+  test("check 2: the demo trip lists 20 expenses, newest first", async () => {
+    const page = await open("/");
+    await visible(page, "Taxi to Porto airport");
+    // The list renders lazily: scroll the last row into view until all 20 are there.
+    const rows = page.getByText(/^Recorded by /);
+    for (let attempt = 0; attempt < 10 && (await rows.count()) < 20; attempt++) {
+      await rows.last().scrollIntoViewIfNeeded();
+      await page.mouse.wheel(0, VIEWPORT.height);
+      await Bun.sleep(200);
+    }
+    expect(await rows.count()).toBe(20);
+    expect(await sameRow(page, "Taxi to Porto airport", euro("31,50"))).toBe(true);
+    const details = await page.getByText(/ · Paid by /).allTextContents();
+    expect(details[0]).toBe("7 Jun 2026 · Paid by David");
+    const days = details.map((detail) => Number(detail.split(" ")[0]));
+    expect(days).toEqual([...days].sort((a, b) => b - a));
+    expect(await noSidewaysScroll(page)).toBe(true);
+    await page.close();
+  }, 30_000);
+
+  test("check 3: the tab bar", async () => {
+    const page = await open("/");
+    await visible(page, euro("1.915,57"));
+    const trip = page.getByRole("tab", { name: "Trip" });
+    const balances = page.getByRole("tab", { name: "Balances" });
+    const add = page.getByRole("button", { name: "+ Add expense" });
+    expect(await trip.getAttribute("aria-selected")).toBe("true");
+    expect(await balances.getAttribute("aria-selected")).toBe("false");
+    const [tripBox, balancesBox, addBox] = await Promise.all([trip.boundingBox(), balances.boundingBox(), add.boundingBox()]);
+    expect(addBox!.height).toBeGreaterThan(tripBox!.height);
+    expect(addBox!.height).toBeGreaterThan(balancesBox!.height);
+    // Only the bar's own padding lies between the button and the bottom of the screen.
+    expect(VIEWPORT.height - (addBox!.y + addBox!.height)).toBeLessThanOrEqual(8);
+    await page.close();
+  }, 30_000);
+
+  test("check 4: transfer rows are not buttons", async () => {
+    const page = await open("/");
+    await visible(page, "Ana pays Ben");
+    expect(await page.getByRole("button", { name: /Ana pays Ben/ }).count()).toBe(0);
+    await page.getByText("Ana pays Ben", { exact: true }).click();
+    await Bun.sleep(300);
+    expect(await page.getByRole("tab", { name: "Trip" }).getAttribute("aria-selected")).toBe("true");
+    await visible(page, "Total trip spend");
+    expect(new URL(page.url()).pathname + new URL(page.url()).search).toBe("/");
+    await page.close();
+  }, 30_000);
+
+  test("check 5: balances of the demo trip", async () => {
+    const page = await open("/");
+    await visible(page, euro("1.915,57"));
+    await page.getByRole("tab", { name: "Balances" }).click();
+    for (const [name, net] of [
+      ["Ana", "-63,75"],
+      ["Ben", "+91,40"],
+      ["Chloé", "+27,07"],
+      ["David", "-54,72"],
+    ]) {
+      await visible(page, euro(net));
+      expect(await sameRow(page, name, euro(net))).toBe(true);
+    }
+    for (const [who, amount] of [
+      ["Ana pays Ben", "63,75"],
+      ["David pays Ben", "27,65"],
+      ["David pays Chloé", "27,07"],
+    ]) {
+      expect(await sameRow(page, who, euro(amount))).toBe(true);
+    }
+    expect(await page.getByText(/ pays /).count()).toBe(3);
     await page.close();
   }, 30_000);
 
@@ -203,6 +287,17 @@ describe("epic 1: trip at a glance (390x844)", () => {
     await visible(page, "Kim pays Jon");
     await visible(page, "Lea pays Jon");
     expect(await page.getByText(euro("3,33"), { exact: true }).count()).toBe(2);
+    await page.getByRole("tab", { name: "Balances" }).click();
+    for (const [name, net] of [
+      ["Jon", "+6,66"],
+      ["Kim", "-3,33"],
+      ["Lea", "-3,33"],
+    ]) {
+      await visible(page, euro(net));
+      expect(await sameRow(page, name, euro(net))).toBe(true);
+    }
+    await page.getByRole("tab", { name: "Trip" }).click();
+    await visible(page, euro("10,00"));
 
     await page.getByText("+ Add expense", { exact: true }).click();
     // Person chips appear three times, in order: Recorded by, Paid by, Split between (all selected by default).

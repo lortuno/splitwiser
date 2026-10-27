@@ -8,4 +8,5 @@ Rows are append-only. Rules: "Estimates" in AGENTS.md; enforced by `.claude/hook
 | Date | Feature | Estimate (h) | Actual (h) |
 |---|---|---|---|
 | 2026-10-27 | Epic 1: Trip at a glance (specs/01-trip-at-a-glance-specification.md) | 2 | 0.6 |
-| 2026-10-27 | Status line: epic progress + session tokens (.claude/statusline.ts) | 1.5 | |
+| 2026-10-27 | Status line: epic progress + session tokens (.claude/statusline.ts) | 1.5 | 0.5 |
+| 2026-10-27 | Epic 1: remaining checks 2, 3, 4, 5, 8 (specs/01-trip-at-a-glance-progress.md) | 0.5 | 0.1 |
