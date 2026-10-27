@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docker",
+            "args": [
+              "run", "--rm", "-i",
+              "-e", "CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR}",
+              "-v", "${CLAUDE_PROJECT_DIR}/.claude/hooks:/hooks:ro",
+              "oven/bun:1.4.3-debian",
+              "bun", "/hooks/dependency-guard.ts"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
