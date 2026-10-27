@@ -12,7 +12,7 @@ final readonly class SummaryController
     {
     }
 
-    public function show(Request $request, array $params): JsonResponse
+    public function show(Request $request, array $params, int $personId): JsonResponse
     {
         return new JsonResponse(200, $this->summaries->forTrip((int) $params['tripId']));
     }

@@ -12,3 +12,4 @@ Rows are append-only. Rules: "Estimates" in AGENTS.md; enforced by `.claude/hook
 | 2026-10-27 | Epic 1: remaining checks 2, 3, 4, 5, 8 (specs/01-trip-at-a-glance-progress.md) | 0.5 | 0.1 |
 | 2026-10-27 | Epic 1: testplan, screenshots at 390/1440, design review fixes (specs/01-trip-at-a-glance-testplan.md) | 1 | 0.1 |
 | 2026-10-27 | Status line: progress for the session's own epic (.claude/statusline.ts) | 0.1 | 0.1 |
+| 2026-10-27 | Epic 2: Login and my trips (specs/02-login-and-my-trips-specification.md) | 1 |  |

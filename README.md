@@ -2,7 +2,7 @@
 
 A Splitwise-style travel expense app reduced to the thinnest end-to-end slice:
 **React Native (Expo, react-native-web) → plain PHP 8.4 API → SQLite**, with trips, people and expenses.
-No authentication, accounts, settle-up payments or currency conversion.
+Email + password login with bearer-token sessions; no settle-up payments or currency conversion.
 The design decisions behind it are in [docs/plan.md](docs/plan.md).
 
 ## Run it
@@ -14,12 +14,16 @@ docker compose up            # API on http://localhost:8080, web app on http://l
 ```
 
 The first start builds the image, creates the SQLite database in the `db-data` volume and seeds the demo
-trip ("Lisbon & Porto": 4 people, 20 expenses over 7 days). The seed only runs when the database has no trips.
+trip ("Lisbon & Porto": 4 people, 20 expenses over 7 days), the test trips and the demo accounts. The seed only runs
+when the database has no trips; after pulling a schema change, reset it with `docker compose down -v`.
+
+Log in as `ana@example.com` (or `ben@`, `chloe@`, `david@`, `eva@`, `hugo@`, `jon@`, `noah@`, `olga@example.com`)
+with the password `travel-demo-2026`, or create an account on the sign-up screen.
 
 | Task | Command |
 |---|---|
 | Run all tests (PHP + TypeScript) | `docker compose run --rm app bun test` |
-| Run one test group | `docker compose run --rm app bun test tests/unit` (or `tests/functional`, `tests/hooks`) |
+| Run one test group | `docker compose run --rm app bun test tests/unit` (or `tests/functional`, `tests/hooks`, `tests/e2e`) |
 | Start API and web app in one container | `docker compose run --rm --service-ports app bun dev` (stop `docker compose up` first: same ports) |
 | Build the iOS and Android JS bundles | `docker compose run --rm app bun run export:native` |
 | Type-check the app | `docker compose run --rm app bun run typecheck` |
@@ -39,7 +43,8 @@ package.json, bun.lock         all JS dependencies (exact versions); Expo projec
 docker/Dockerfile              one dev image: PHP 8.4.27 CLI + pdo_sqlite, Bun, Node
 docker-compose.yml             services api (php -S) and app (Expo), volumes db-data and node_modules
 scripts/dev.ts                 `bun dev`: starts both servers
-tests/unit/                    app unit tests (money formatting and parsing)
+tests/unit/                    app unit tests (money formatting and parsing, session token, API client)
+tests/e2e/                     Playwright at 390x844 (harness.ts starts a seeded API and a web export)
 tests/functional/php.test.ts   runs the PHP API suite from `bun test`
 tests/hooks/                   tests for the Claude Code hooks in .claude/hooks/
 packages/api/
@@ -48,16 +53,17 @@ packages/api/
   src/Api/                     Router, Request, JsonResponse, controllers (HTTP <-> DTO only)
   src/Dto/                     immutable data objects serialized to JSON
   src/Repository/              SQL only
-  src/Service/                 rules: validation, create/preview, summary, settlement
+  src/Service/                 rules: auth and trip access, validation, create/preview, summary, settlement
   src/Database/                connection, schema (tables, indexes, views), seeder
   tests/                       plain-PHP test runner and tests
 packages/app/
-  index.ts, src/App.tsx        entry point and screen switching
+  index.ts, src/App.tsx        entry point, session start-up and screen switching
+  src/TripView.tsx             one trip with its tabs
   src/api/                     fetch wrappers per resource
   src/dto/                     TypeScript types mirroring the API DTOs
   src/money/                   cent formatting and input parsing
-  src/screens/                 Trip, Balances, Add expense
-  src/components/              Card, Chip, FieldError, Money, TabBar
+  src/screens/                 Login, Sign-up, My trips, Trip, Balances, Add expense
+  src/components/              Card, Chip, FieldError, Money, StateMessage, TabBar, TextField
   src/i18n/                    UI strings (English); add a locale with the same keys
 ```
 

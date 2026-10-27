@@ -24,7 +24,6 @@ interface Props {
 }
 
 export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCancel }: Props) {
-  const [recordedBy, setRecordedBy] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [date, setDate] = useState(defaultDate);
   const [amountText, setAmountText] = useState("");
@@ -53,7 +52,6 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
     name,
     date,
     amount_cents: amountCents,
-    recorded_by: recordedBy,
     paid_by: paidBy,
     split: { type: splitType, between: splitEntries },
   };
@@ -69,7 +67,6 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
       name: "Preview",
       date: defaultDate,
       amount_cents: amountCents,
-      recorded_by: members[0].id,
       paid_by: [{ person_id: members[0].id, amount_cents: amountCents }],
       split: input.split,
     };
@@ -114,10 +111,6 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
       ),
     );
 
-  const chooseRecorder = (id: number) => {
-    setRecordedBy(id);
-    edited("recorded_by");
-  };
   const changeName = (text: string) => {
     setName(text);
     edited("name");
@@ -177,14 +170,6 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Section label={t("add.recordedBy")} error={errorFor("recorded_by")}>
-          <View style={styles.chips}>
-            {members.map((m) => (
-              <Chip key={m.id} label={m.name} selected={recordedBy === m.id} onPress={() => chooseRecorder(m.id)} />
-            ))}
-          </View>
-        </Section>
-
         <Section label={t("add.name")} error={errorFor("name")}>
           <TextInput
             style={[styles.input, errorFor("name") && styles.inputError]}

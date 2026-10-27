@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Service\ForbiddenException;
 use App\Service\NotFoundException;
+use App\Service\UnauthorizedException;
 use App\Service\ValidationException;
 
 final class Router
@@ -42,6 +44,10 @@ final class Router
                 : self::error(404, 'not_found', 'Not found.');
         } catch (ValidationException $e) {
             return new JsonResponse(422, ['errors' => $e->errors]);
+        } catch (UnauthorizedException $e) {
+            return self::error(401, $e->errorCode, $e->getMessage());
+        } catch (ForbiddenException $e) {
+            return self::error(403, 'not_a_member', $e->getMessage());
         } catch (NotFoundException $e) {
             return self::error(404, 'not_found', $e->getMessage());
         } catch (\JsonException) {

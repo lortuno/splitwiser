@@ -46,6 +46,47 @@ final readonly class TripRepository
         return array_map(fn (array $row): Trip => $this->toTrip($row), $rows);
     }
 
+    /** @return list<Trip> trips where one of the members is linked to $userId, newest first */
+    public function findForUser(int $userId): array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT t.*, v.total_cents
+             FROM trips t
+             JOIN v_trip_totals v ON v.trip_id = t.id
+             WHERE EXISTS (
+                 SELECT 1 FROM trip_members m JOIN people p ON p.id = m.person_id
+                 WHERE m.trip_id = t.id AND p.user_id = ?
+             )
+             ORDER BY t.start_date DESC, t.id DESC'
+        );
+        $stmt->execute([$userId]);
+
+        return array_map(fn (array $row): Trip => $this->toTrip($row), $stmt->fetchAll());
+    }
+
+    public function exists(int $tripId): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT 1 FROM trips WHERE id = ?');
+        $stmt->execute([$tripId]);
+
+        return $stmt->fetchColumn() !== false;
+    }
+
+    /** The person that represents $userId on the trip, or null when the user is not a member. */
+    public function personForUser(int $tripId, int $userId): ?int
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT p.id FROM trip_members m JOIN people p ON p.id = m.person_id
+             WHERE m.trip_id = ? AND p.user_id = ?
+             ORDER BY p.id
+             LIMIT 1'
+        );
+        $stmt->execute([$tripId, $userId]);
+        $id = $stmt->fetchColumn();
+
+        return $id === false ? null : (int) $id;
+    }
+
     public function find(int $tripId): ?Trip
     {
         $stmt = $this->pdo->prepare(

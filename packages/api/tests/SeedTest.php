@@ -66,5 +66,6 @@ test('seedIfEmpty only seeds an empty database', function (): void {
     assertTrue($app->seeder()->seedIfEmpty());
     assertTrue(!$app->seeder()->seedIfEmpty());
     assertSame(1 + count(Seeder::fixtures()), count($app->trips->findAll()));
-    assertSame(Seeder::TRIP_NAME, $app->trips->findAll()[0]->name, 'The demo trip stays first.');
+    assertSame(Seeder::TRIP_NAME, $app->trips->find(1)->name, 'The demo trip keeps id 1.');
+    assertSame(count(Seeder::ACCOUNTS), (int) $app->pdo->query('SELECT COUNT(*) FROM users')->fetchColumn());
 });

@@ -15,10 +15,10 @@ final readonly class JsonResponse
     public function send(): void
     {
         http_response_code($this->status);
-        // No authentication and no cookies: any origin may read the API (local dev skeleton).
+        // Bearer tokens, no cookies: any origin may call the API, and only a request carrying a token sees data.
         header('Access-Control-Allow-Origin: *');
         header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Content-Type: application/json; charset=utf-8');
         if ($this->status !== 204) {
             echo json_encode($this->data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);

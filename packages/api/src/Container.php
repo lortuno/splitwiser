@@ -8,11 +8,15 @@ use App\Database\Seeder;
 use App\Repository\BalanceRepository;
 use App\Repository\ExpenseRepository;
 use App\Repository\PersonRepository;
+use App\Repository\SessionRepository;
 use App\Repository\TripRepository;
+use App\Repository\UserRepository;
+use App\Service\AuthService;
 use App\Service\ExpenseService;
 use App\Service\ExpenseValidator;
 use App\Service\SettlementService;
 use App\Service\SummaryService;
+use App\Service\TripAccess;
 use PDO;
 
 /** Composition root: wires repositories and services around one PDO connection. */
@@ -22,6 +26,9 @@ final class Container
     public readonly PersonRepository $people;
     public readonly ExpenseRepository $expenseRepository;
     public readonly BalanceRepository $balances;
+    public readonly UserRepository $users;
+    public readonly AuthService $auth;
+    public readonly TripAccess $access;
     public readonly ExpenseService $expenses;
     public readonly SummaryService $summaries;
 
@@ -31,12 +38,15 @@ final class Container
         $this->people = new PersonRepository($pdo);
         $this->expenseRepository = new ExpenseRepository($pdo);
         $this->balances = new BalanceRepository($pdo);
+        $this->users = new UserRepository($pdo);
+        $this->auth = new AuthService($this->users, new SessionRepository($pdo));
+        $this->access = new TripAccess($this->trips);
         $this->expenses = new ExpenseService($pdo, $this->trips, $this->expenseRepository, new ExpenseValidator());
         $this->summaries = new SummaryService($this->trips, $this->balances, new SettlementService());
     }
 
     public function seeder(): Seeder
     {
-        return new Seeder($this->pdo, $this->trips, $this->people, $this->expenses);
+        return new Seeder($this->pdo, $this->trips, $this->people, $this->users, $this->expenses);
     }
 }

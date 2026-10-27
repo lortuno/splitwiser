@@ -1,102 +1,53 @@
 // Acceptance checks for epic 1 (specs/01-trip-at-a-glance-specification.md) in Chromium at 390x844.
-// Self-contained: a freshly seeded API on its own SQLite file, and a static web export of the app that points at it.
-// Screenshots are written to test-results/e2e/ (not committed).
+// Since epic 2 every trip needs a login: each check logs in as the trip's owner (see Seeder::ACCOUNTS).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { chromium, type Browser, type Page } from "playwright";
 
-const ROOT = join(import.meta.dir, "../..");
-const API_PORT = 18080;
-const WEB_PORT = 18081;
-const API_URL = `http://127.0.0.1:${API_PORT}`;
-const WEB_URL = `http://127.0.0.1:${WEB_PORT}`;
-const SHOTS = join(ROOT, "test-results/e2e");
-const NBSP = " ";
-const VIEWPORT = { width: 390, height: 844 };
+import {
+  API_URL,
+  NBSP,
+  VIEWPORT,
+  WEB_URL,
+  aboveTheFold,
+  browser,
+  euro,
+  noSidewaysScroll,
+  openAs,
+  sameRow,
+  shot,
+  startServers,
+  stopServers,
+  tokenFor,
+  visible,
+} from "./harness";
 
-const euro = (text: string) => `${text}${NBSP}€`;
+beforeAll(startServers);
+afterAll(stopServers);
 
-const work = mkdtempSync(join(tmpdir(), "e2e-"));
-const env = { ...process.env, DB_PATH: join(work, "app.sqlite"), EXPO_PUBLIC_API_URL: API_URL };
+/** The demo account that is a member of each seeded trip. */
+const OWNER: Record<string, string> = {
+  "1": "ana@example.com",
+  "2": "eva@example.com",
+  "3": "hugo@example.com",
+  "4": "jon@example.com",
+  "5": "noah@example.com",
+  "6": "olga@example.com",
+};
 
-function run(cmd: string[], cwd: string) {
-  const result = Bun.spawnSync(cmd, { cwd, env, stdout: "pipe", stderr: "pipe" });
-  if (result.exitCode !== 0) {
-    throw new Error(`${cmd.join(" ")} failed:\n${result.stdout}\n${result.stderr}`);
-  }
-}
+/** Opens `/?trip={id}` logged in as that trip's owner. */
+const open = (path: string) => openAs(OWNER[new URLSearchParams(path.split("?")[1]).get("trip") ?? "1"] ?? OWNER["1"], path);
 
-// Fresh seed, then a production web build with the test API URL baked in.
-run(["php", "bin/init-db.php"], join(ROOT, "packages/api"));
-run(["bunx", "expo", "export", "--platform", "web", "--output-dir", join(work, "web")], ROOT);
-
-let api: ReturnType<typeof Bun.spawn>;
-let web: ReturnType<typeof Bun.serve>;
-let browser: Browser;
-
-beforeAll(async () => {
-  api = Bun.spawn(["php", "-S", `127.0.0.1:${API_PORT}`, "-t", "public", "public/index.php"], {
-    cwd: join(ROOT, "packages/api"),
-    env,
-    stdout: "ignore",
-    stderr: "ignore",
-  });
-  web = Bun.serve({
-    port: WEB_PORT,
-    hostname: "127.0.0.1",
-    async fetch(request) {
-      const file = Bun.file(join(work, "web", new URL(request.url).pathname));
-      return new Response((await file.exists()) ? file : Bun.file(join(work, "web", "index.html")));
-    },
-  });
-  for (let attempt = 0; attempt < 50; attempt++) {
-    const ready = await fetch(`${API_URL}/trips`).then((r) => r.ok).catch(() => false);
-    if (ready) break;
-    await Bun.sleep(100);
-  }
-  mkdirSync(SHOTS, { recursive: true });
-  browser = await chromium.launch();
-});
-
-afterAll(async () => {
-  await browser?.close();
-  web?.stop(true);
-  api?.kill();
-  rmSync(work, { recursive: true, force: true });
-});
-
-async function open(path: string): Promise<Page> {
+/** A new page logged in as Ana, before the app has started. */
+async function pageAsAna() {
+  const token = await tokenFor(OWNER["1"]);
   const page = await browser.newPage({ viewport: VIEWPORT });
-  await page.goto(`${WEB_URL}${path}`);
+  await page.goto(`${WEB_URL}/favicon.ico`);
+  await page.evaluate((value) => localStorage.setItem("travel-expenses.token", value), token);
   return page;
 }
 
-const shot = (page: Page, name: string) => page.screenshot({ path: join(SHOTS, `${name}.png`) });
-
-const visible = (page: Page, text: string) => page.getByText(text, { exact: true }).first().waitFor({ timeout: 10_000 });
-
-async function aboveTheFold(page: Page, text: string): Promise<boolean> {
-  const box = await page.getByText(text, { exact: true }).first().boundingBox();
-  return box !== null && box.y + box.height <= VIEWPORT.height;
-}
-
-// True when the first `left` text shares a row (vertical overlap) with any `right` text.
-async function sameRow(page: Page, left: string, right: string): Promise<boolean> {
-  const a = await page.getByText(left, { exact: true }).first().boundingBox();
-  for (const match of await page.getByText(right, { exact: true }).all()) {
-    const b = await match.boundingBox();
-    if (a !== null && b !== null && a.y < b.y + b.height && b.y < a.y + a.height) return true;
-  }
-  return false;
-}
-
-const noSidewaysScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
-
 describe("epic 1: trip at a glance (390x844)", () => {
   test("check 1: demo trip shows the total and who owes whom above the fold", async () => {
-    const page = await open("/");
+    const page = await open("/?trip=1");
     await visible(page, euro("1.915,57"));
     for (const text of ["Lisbon & Porto", "Total trip spend", "1 Jun 2026 – 7 Jun 2026 · 20 expenses", "4 people", "Who owes whom"]) {
       await visible(page, text);
@@ -118,7 +69,7 @@ describe("epic 1: trip at a glance (390x844)", () => {
   }, 30_000);
 
   test("check 2: the demo trip lists 20 expenses, newest first", async () => {
-    const page = await open("/");
+    const page = await open("/?trip=1");
     await visible(page, "Taxi to Porto airport");
     // The list renders lazily: scroll the last row into view until all 20 are there.
     const rows = page.getByText(/^Recorded by /);
@@ -138,7 +89,7 @@ describe("epic 1: trip at a glance (390x844)", () => {
   }, 30_000);
 
   test("check 3: the tab bar", async () => {
-    const page = await open("/");
+    const page = await open("/?trip=1");
     await visible(page, euro("1.915,57"));
     const trip = page.getByRole("tab", { name: "Trip" });
     const balances = page.getByRole("tab", { name: "Balances" });
@@ -154,19 +105,19 @@ describe("epic 1: trip at a glance (390x844)", () => {
   }, 30_000);
 
   test("check 4: transfer rows are not buttons", async () => {
-    const page = await open("/");
+    const page = await open("/?trip=1");
     await visible(page, "Ana pays Ben");
     expect(await page.getByRole("button", { name: /Ana pays Ben/ }).count()).toBe(0);
     await page.getByText("Ana pays Ben", { exact: true }).click();
     await Bun.sleep(300);
     expect(await page.getByRole("tab", { name: "Trip" }).getAttribute("aria-selected")).toBe("true");
     await visible(page, "Total trip spend");
-    expect(new URL(page.url()).pathname + new URL(page.url()).search).toBe("/");
+    expect(new URL(page.url()).search).toBe("?trip=1");
     await page.close();
   }, 30_000);
 
   test("check 5: balances of the demo trip", async () => {
-    const page = await open("/");
+    const page = await open("/?trip=1");
     await visible(page, euro("1.915,57"));
     await page.getByRole("tab", { name: "Balances" }).click();
     for (const [name, net] of [
@@ -244,11 +195,12 @@ describe("epic 1: trip at a glance (390x844)", () => {
     await page.close();
   }, 30_000);
 
-  test("check 12: unknown trip, then open the demo trip", async () => {
+  test("check 12: unknown trip, then back to My trips", async () => {
     const page = await open("/?trip=999");
     await visible(page, "This trip does not exist.");
     await shot(page, "12-unknown-trip");
-    await page.getByText("Open the demo trip", { exact: true }).click();
+    await page.getByText("Go to My trips", { exact: true }).click();
+    await visible(page, "Lisbon & Porto");
     await visible(page, euro("1.915,57"));
     expect(new URL(page.url()).search).toBe("");
     await page.close();
@@ -256,22 +208,22 @@ describe("epic 1: trip at a glance (390x844)", () => {
 
   test("check 13: invalid trip ids never reach the API", async () => {
     for (const value of ["abc", "0"]) {
-      const page = await browser.newPage({ viewport: VIEWPORT });
-      const apiCalls: string[] = [];
+      const page = await pageAsAna();
+      const tripCalls: string[] = [];
       page.on("request", (request) => {
-        if (request.url().startsWith(API_URL)) apiCalls.push(request.url());
+        if (request.url().startsWith(`${API_URL}/trips`)) tripCalls.push(request.url());
       });
       await page.goto(`${WEB_URL}/?trip=${value}`);
       await visible(page, "This trip does not exist.");
-      expect(apiCalls).toEqual([]);
+      expect(tripCalls).toEqual([]);
       await page.close();
     }
   }, 30_000);
 
   test("check 14: API unreachable, then Try again", async () => {
-    const page = await browser.newPage({ viewport: VIEWPORT });
+    const page = await pageAsAna();
     await page.route(`${API_URL}/**`, (route) => route.abort());
-    await page.goto(WEB_URL);
+    await page.goto(`${WEB_URL}/?trip=1`);
     await visible(page, `Could not reach the API at ${API_URL}.`);
     await shot(page, "14-api-unreachable");
     await page.unroute(`${API_URL}/**`);
@@ -300,12 +252,11 @@ describe("epic 1: trip at a glance (390x844)", () => {
     await visible(page, euro("10,00"));
 
     await page.getByText("+ Add expense", { exact: true }).click();
-    // Person chips appear three times, in order: Recorded by, Paid by, Split between (all selected by default).
+    // Person chips appear twice, in order: Paid by, Split between (all selected by default). Jon records it.
     const kim = page.getByRole("checkbox", { name: "Kim" });
-    await kim.nth(0).click();
     await page.getByPlaceholder("Dinner at the harbour").fill("Coffee");
     await page.getByPlaceholder("0,00").first().fill("3,00");
-    await kim.nth(1).click();
+    await kim.nth(0).click();
     await page.getByText("Save expense", { exact: true }).click();
 
     await visible(page, euro("13,00"));

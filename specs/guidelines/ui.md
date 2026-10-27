@@ -13,9 +13,9 @@ Travel notebook: cool blue-grey paper, one blue accent (kept clear of the green/
 1. No raw hex outside `theme.ts`. Check: `grep -rnE "#[0-9A-Fa-f]{3,8}\b" packages/app/src --exclude=theme.ts` finds nothing.
 2. No raw pixel values in styles. Check: `margin*`, `padding*`, `gap`, `width`, `height`, `*Width`, `*Radius` and `fontSize` take only token references (`0`, `StyleSheet.hairlineWidth` and `flex` ratios allowed).
 3. No gradients and no purple. Check: no `gradient` in `packages/app/src`; no colour token with a hue between 250° and 320°.
-4. Left-aligned by default. Check: `textAlign: "center"`, and `alignItems: "center"` in a column, appear only in TabBar, buttons, loading/error states and the page wrapper that centres the app column on wide screens (`alignItems: "center"` in a row is vertical alignment and allowed).
+4. Left-aligned by default. Check: `textAlign: "center"`, and `alignItems: "center"` in a column, appear only in TabBar, buttons, loading/error states (`StateMessage`) and the page wrapper that centres the app column on wide screens (`alignItems: "center"` in a row is vertical alignment and allowed).
 5. Big tap targets. Check: every `Pressable` has `minHeight` of at least `size.tapMin`; the primary action (Save expense, + Add expense) uses `size.tapPrimary` and sits at the bottom of the screen.
 6. Balances never rely on colour alone. Check: net amounts use `formatSignedCents` (always + or −).
 
 ## Components (`packages/app/src/components`)
-`Card`, `Chip`, `FieldError`, `Money`, `TabBar`. Screens: `TripScreen`, `BalancesScreen`, `AddExpenseScreen`.
+`Card`, `Chip`, `FieldError`, `Money`, `StateMessage`, `TabBar`, `TextField`. Screens: `LoginScreen`, `SignUpScreen`, `MyTripsScreen`, `TripScreen`, `BalancesScreen`, `AddExpenseScreen` (the trip's tabs live in `TripView.tsx`).

@@ -18,7 +18,7 @@ services:
     ports:
       - "8080:8080"
     healthcheck:
-      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/trips') === false ? 1 : 0);"]
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/health') === false ? 1 : 0);"]
       interval: 30s
       timeout: 3s
       retries: 3

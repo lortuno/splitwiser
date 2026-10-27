@@ -6,23 +6,39 @@ namespace App\Database;
 
 use App\Repository\PersonRepository;
 use App\Repository\TripRepository;
+use App\Repository\UserRepository;
 use App\Service\ExpenseService;
 use PDO;
 
 /**
- * Deterministic demo data: one trip, four people, twenty expenses over seven days, followed by the
- * edge-case trips in fixtures().
+ * Deterministic demo data: the demo accounts in ACCOUNTS, one trip with four people and twenty expenses over
+ * seven days, followed by the edge-case trips in fixtures().
  * Expenses go through ExpenseService, so the seed obeys the same validation as the app.
+ * A seeded person whose name is in ACCOUNTS is linked to that account, on every trip they are on.
  */
 final readonly class Seeder
 {
     public const string TRIP_NAME = 'Lisbon & Porto';
     public const array PEOPLE = ['Ana', 'Ben', 'Chloé', 'David'];
+    public const string DEMO_PASSWORD = 'travel-demo-2026';
+    /** Demo accounts, person name => email. Everyone else in the seed has no account. */
+    public const array ACCOUNTS = [
+        'Ana' => 'ana@example.com',
+        'Ben' => 'ben@example.com',
+        'Chloé' => 'chloe@example.com',
+        'David' => 'david@example.com',
+        'Eva' => 'eva@example.com',
+        'Hugo' => 'hugo@example.com',
+        'Jon' => 'jon@example.com',
+        'Noah' => 'noah@example.com',
+        'Olga' => 'olga@example.com',
+    ];
 
     public function __construct(
         private PDO $pdo,
         private TripRepository $trips,
         private PersonRepository $people,
+        private UserRepository $users,
         private ExpenseService $expenses,
     ) {
     }
@@ -32,10 +48,18 @@ final readonly class Seeder
         if ($this->trips->count() > 0) {
             return false;
         }
+        $this->seedAccounts();
         $this->seed();
         $this->seedFixtures();
 
         return true;
+    }
+
+    public function seedAccounts(): void
+    {
+        foreach (self::ACCOUNTS as $name => $email) {
+            $this->users->create($name, $email, self::demoPasswordHash());
+        }
     }
 
     public function seed(): int
@@ -44,8 +68,8 @@ final readonly class Seeder
     }
 
     /**
-     * Edge-case trips for the acceptance checks in specs/01-trip-at-a-glance-specification.md,
-     * created after the demo trip so it stays first.
+     * Edge-case trips for the acceptance checks in specs/01-trip-at-a-glance-specification.md (trips 2–6) and
+     * specs/02-login-and-my-trips-specification.md (trip 7), created after the demo trip so it keeps id 1.
      * @return list<int> trip ids in fixtures() order
      */
     public function seedFixtures(): array
@@ -66,7 +90,8 @@ final readonly class Seeder
         $tripId = $this->trips->create($tripName, $startDate, $endDate);
         $ids = [];
         foreach ($people as $name) {
-            $ids[$name] = $this->people->create($name);
+            $userId = isset(self::ACCOUNTS[$name]) ? $this->users->idByEmail(self::ACCOUNTS[$name]) : null;
+            $ids[$name] = $this->people->create($name, $userId);
             $this->trips->addMember($tripId, $ids[$name]);
         }
         $this->pdo->commit();
@@ -152,6 +177,19 @@ final readonly class Seeder
                 ['2026-05-01', 'Group dinner', 6000, 'Olga', ['Olga' => 6000], 'equal', $group],
                 ['2026-05-02', 'Boat tickets', 3000, 'Paul', ['Paul' => 3000], 'equal', ['Paul' => null, 'Quinn' => null, 'Rosa' => null]],
             ]],
+            // Only Ana and Chloé: their lists show two trips, Ben's and David's only one.
+            ['Madrid weekend', '2026-09-12', '2026-09-14', ['Ana', 'Chloé'], [
+                ['2026-09-12', 'Tapas at Mercado de San Miguel', 4830, 'Chloé', ['Chloé' => 4830], 'equal', ['Ana' => null, 'Chloé' => null]],
+                ['2026-09-13', 'Prado Museum tickets', 3000, 'Ana', ['Ana' => 3000], 'equal', ['Ana' => null, 'Chloé' => null]],
+            ]],
         ];
+    }
+
+    /** Hashed once per process: bcrypt is slow on purpose, and every demo account shares the password. */
+    private static function demoPasswordHash(): string
+    {
+        static $hash = null;
+
+        return $hash ??= password_hash(self::DEMO_PASSWORD, PASSWORD_DEFAULT);
     }
 }

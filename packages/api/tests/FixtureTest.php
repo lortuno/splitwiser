@@ -6,7 +6,8 @@ use App\Api\Request;
 use App\Api\Routes;
 use App\Container;
 
-// Pins the numbers the acceptance checks in specs/01-trip-at-a-glance-specification.md rely on.
+// Pins the numbers the acceptance checks in specs/01-trip-at-a-glance-specification.md rely on,
+// plus trip 7 from specs/02-login-and-my-trips-specification.md.
 
 /** A fresh database seeded exactly like `docker compose up`. */
 function seededApp(): Container
@@ -23,17 +24,30 @@ function transfersOf(App\Dto\TripSummary $summary): array
     return array_map(fn ($t) => "{$t->from->name} pays {$t->to->name}: {$t->amountCents}", $summary->transfers);
 }
 
-function get(Container $app, string $path): App\Api\JsonResponse
+/** Sends a request through the router, with a bearer token when one is given. */
+function call(Container $app, string $method, string $path, array $body = [], ?string $token = null, array $query = []): App\Api\JsonResponse
 {
-    return Routes::build($app)->dispatch(new Request('GET', $path, [], ''));
+    $json = $body === [] ? '' : json_encode($body, JSON_THROW_ON_ERROR);
+
+    return Routes::build($app)->dispatch(new Request($method, $path, $query, $json, $token));
 }
 
-test('seeded trips have fixed ids, and the demo trip is listed first', function (): void {
+function get(Container $app, string $path, ?string $token = null): App\Api\JsonResponse
+{
+    return call($app, 'GET', $path, token: $token);
+}
+
+/** Logs in a seeded demo account and returns its token. */
+function tokenFor(Container $app, string $email): string
+{
+    return $app->auth->logIn(['email' => $email, 'password' => App\Database\Seeder::DEMO_PASSWORD])[0];
+}
+
+test('seeded trips have fixed ids', function (): void {
     $trips = seededApp()->trips->findAll();
     $names = array_map(fn ($t) => [$t->id, $t->name], $trips);
     sort($names);
 
-    assertSame(1, $trips[0]->id, 'The app opens the first listed trip by default.');
     assertSame([
         [1, 'Lisbon & Porto'],
         [2, 'Empty weekend'],
@@ -41,6 +55,7 @@ test('seeded trips have fixed ids, and the demo trip is listed first', function 
         [4, 'Three-way taxi'],
         [5, 'Great tour of every UNESCO world heritage site in southern Europe by sleeper train'],
         [6, 'Big group'],
+        [7, 'Madrid weekend'],
     ], $names);
 });
 
@@ -116,11 +131,35 @@ test('trip 6, more than three transfers', function (): void {
     );
 });
 
+test('trip 7, Madrid weekend: total and transfer', function (): void {
+    $app = seededApp();
+    $summary = $app->summaries->forTrip(7);
+
+    assertSame(7830, $summary->totalCents);
+    assertSame(2, $summary->expenseCount);
+    assertSame(['Ana pays Chloé: 915'], transfersOf($summary));
+    assertSame(['Ana', 'Chloé'], array_map(fn ($m) => $m->name, $app->trips->find(7)->members));
+});
+
+test('trip 7 after adding Churros 6,00 € paid by Ana', function (): void {
+    $app = seededApp();
+    $ids = array_column(array_map(fn ($m) => [$m->name, $m->id], $app->trips->find(7)->members), 1, 0);
+    $both = [$ids['Ana'] => null, $ids['Chloé'] => null];
+
+    $app->expenses->create(7, ['date' => '2026-09-14'] + expenseInput(600, $ids['Ana'], [$ids['Ana'] => 600], 'equal', $both, 'Churros'));
+    $summary = $app->summaries->forTrip(7);
+
+    assertSame(8430, $summary->totalCents);
+    assertSame(3, $summary->expenseCount);
+    assertSame(['Ana pays Chloé: 615'], transfersOf($summary));
+});
+
 test('unknown or non-numeric trip ids return 404 not_found', function (): void {
     $app = seededApp();
+    $token = tokenFor($app, 'ana@example.com');
 
     foreach (['/trips/999', '/trips/abc', '/trips/999/summary', '/trips/999/expenses'] as $path) {
-        $response = get($app, $path);
+        $response = get($app, $path, $token);
         assertSame(404, $response->status, $path);
         assertSame('not_found', $response->data['error']['code'], $path);
     }

@@ -23,10 +23,31 @@ final class Schema
             end_date   TEXT NOT NULL
         )
         SQL,
+        // Accounts. Emails are stored trimmed and lowercased; only a password_hash() is kept.
+        <<<'SQL'
+        CREATE TABLE IF NOT EXISTS users (
+            id            INTEGER PRIMARY KEY,
+            name          TEXT NOT NULL,
+            email         TEXT NOT NULL UNIQUE,
+            password_hash TEXT NOT NULL,
+            created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        SQL,
+        // One row per login. Only the SHA-256 of the bearer token is stored.
+        <<<'SQL'
+        CREATE TABLE IF NOT EXISTS sessions (
+            token_hash TEXT PRIMARY KEY,
+            user_id    INTEGER NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            expires_at TEXT NOT NULL
+        )
+        SQL,
+        // user_id links a trip member to an account; NULL for people without one.
         <<<'SQL'
         CREATE TABLE IF NOT EXISTS people (
-            id   INTEGER PRIMARY KEY,
-            name TEXT NOT NULL
+            id      INTEGER PRIMARY KEY,
+            name    TEXT NOT NULL,
+            user_id INTEGER REFERENCES users (id)
         )
         SQL,
         <<<'SQL'
@@ -71,6 +92,8 @@ final class Schema
     ];
 
     private const array INDEXES = [
+        'CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id)',
+        'CREATE INDEX IF NOT EXISTS idx_people_user_id ON people (user_id)',
         'CREATE INDEX IF NOT EXISTS idx_trip_members_trip_id ON trip_members (trip_id)',
         'CREATE INDEX IF NOT EXISTS idx_trip_members_person_id ON trip_members (person_id)',
         'CREATE INDEX IF NOT EXISTS idx_expenses_trip_id ON expenses (trip_id)',

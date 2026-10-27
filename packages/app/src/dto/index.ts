@@ -7,6 +7,18 @@ export interface Person {
   name: string;
 }
 
+export interface User {
+  id: number;
+  name: string;
+  email: string;
+}
+
+/** Response of POST /auth/signup and POST /auth/login. */
+export interface AuthResult {
+  token: string;
+  user: User;
+}
+
 export interface Trip {
   id: number;
   name: string;
@@ -70,7 +82,6 @@ export interface NewExpense {
   name: string;
   date: string;
   amount_cents: number | null;
-  recorded_by: number | null;
   paid_by: { person_id: number; amount_cents: number | null }[];
   split: { type: SplitType; between: { person_id: number; value: number | null }[] };
 }
@@ -80,5 +91,5 @@ export interface FieldError {
   message: string;
 }
 
-/** Keys: name, date, amount_cents, recorded_by, paid_by, paid_by.<id>, split, split.<id>. */
+/** Expense keys: name, date, amount_cents, paid_by, paid_by.<id>, split, split.<id>. Sign-up keys: name, email, password. */
 export type FieldErrors = Record<string, FieldError>;

@@ -12,9 +12,9 @@ final readonly class PersonRepository
     {
     }
 
-    public function create(string $name): int
+    public function create(string $name, ?int $userId = null): int
     {
-        $this->pdo->prepare('INSERT INTO people (name) VALUES (?)')->execute([$name]);
+        $this->pdo->prepare('INSERT INTO people (name, user_id) VALUES (?, ?)')->execute([$name, $userId]);
 
         return (int) $this->pdo->lastInsertId();
     }
