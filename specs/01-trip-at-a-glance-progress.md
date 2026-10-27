@@ -1,6 +1,16 @@
 # 01-trip-at-a-glance: progress
 
-Tick a check only after it passes in the browser and its test is green.
+Tick a step as soon as it is built. Tick a check only after it passes in the browser and its test is green.
+
+## Steps
+
+- [x] Screens
+- [x] Data
+- [x] API
+- [x] Seed data
+- [x] Tests
+
+## Acceptance checks
 
 - [x] 1. 📸 **Trip view, demo trip.** Open `/`. The header shows "Lisbon & Porto". The total card shows "Total trip spend", `1.915,57 €` in large bold type, "1 Jun 2026 – 7 Jun 2026 · 20 expenses" and "4 people". Below it "Who owes whom" lists exactly: "Ana pays Ben `63,75 €`", "David pays Ben `27,65 €`", "David pays Chloé `27,07 €`". There is no "Show all". The total and all three transfers are visible without scrolling.
 - [x] 2. **Trip view, demo trip, expenses.** Scroll down. "Expenses" lists 20 rows, newest first, starting with "Taxi to Porto airport `31,50 €`" (7 Jun 2026, paid by David). The page never scrolls sideways.
