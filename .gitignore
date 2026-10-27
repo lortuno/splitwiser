@@ -1,0 +1,9 @@
+node_modules/
+.expo/
+dist/
+dist-native/
+web-build/
+packages/api/var/
+.idea/
+.DS_Store
+*.log

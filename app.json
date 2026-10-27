@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "Travel Expenses",
+    "slug": "travel-expenses",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.example.travelexpenses"
+    },
+    "android": {
+      "package": "com.example.travelexpenses"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    }
+  }
+}

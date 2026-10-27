@@ -1,0 +1,44 @@
+name: travel-expenses
+
+x-dev-image: &dev-image
+  build:
+    context: .
+    dockerfile: docker/Dockerfile
+  image: travel-expenses-dev:local
+  volumes:
+    - .:/app
+    - node_modules:/app/node_modules
+    - db-data:/data
+
+services:
+  api:
+    <<: *dev-image
+    working_dir: /app/packages/api
+    command: sh -c "php bin/init-db.php && php -S 0.0.0.0:8080 -t public public/index.php"
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8080/trips') === false ? 1 : 0);"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
+      start_interval: 2s
+
+  app:
+    <<: *dev-image
+    working_dir: /app
+    command: bunx expo start --port 8081
+    tty: true
+    stdin_open: true
+    environment:
+      EXPO_PUBLIC_API_URL: http://localhost:8080
+    ports:
+      - "8081:8081"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  db-data:
+  node_modules:

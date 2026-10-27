@@ -1,0 +1,8 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "types": ["bun"]
+  },
+  "include": ["packages/app/**/*.ts", "packages/app/**/*.tsx", "scripts/**/*.ts", "tests/**/*.ts"]
+}
