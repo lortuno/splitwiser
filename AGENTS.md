@@ -17,8 +17,8 @@ Stack: Expo (React Native + react-native-web, TypeScript) → plain PHP 8.4 API 
 - In `specs/{nr}-{name}-progress.md`, tick a build step (Screens, Data, API, Seed data, Tests) as soon as it is built, so the status line bar moves during the build. Tick a check only after it passes in the browser and its test is green.
 
 ## Estimates
-Every feature starts with an estimate and ends with the real time spent, so estimates get better over time. Log: `docs/estimates.md`. Enforced by `.claude/hooks/estimate-guard.ts`.
+Every feature starts with an estimate and ends with the real time spent, so estimates get better over time. Each feature keeps its own log: the `## Estimate` table (`| Date | Task | Estimate (h) | Actual (h) |`) near the top of `specs/{nr}-{name}-specification.md`, so every task of an epic is logged against that epic and features can be estimated in parallel. Work outside an epic (status line, hooks, skills) goes in `specs/00-tooling-specification.md`. Enforced by `.claude/hooks/estimate-guard.ts`.
 - Unit: hours of development time only, while the ticket moves from To Do through Ready for Dev and In Progress to Ready to Deploy. Manual QA and deployment windows are not included.
-- Before starting: append a row with the date, the feature and the estimated hours, leaving Actual empty. Confirm the estimate with the user. Without an open row, nothing under `packages/` or `tests/` can be changed.
-- When the feature reaches Ready to Deploy: ask the user for the real development hours and fill in Actual. A new estimate cannot be added while another one is open.
+- Before starting: append a row to the feature's table with the date, the task and the estimated hours, leaving Actual empty. Add the `## Estimate` section (right after the source lines) if the spec has none yet. Confirm the estimate with the user. Without an open row in some spec, nothing under `packages/` or `tests/` can be changed.
+- When the task reaches Ready to Deploy: ask the user for the real development hours and fill in Actual. A spec cannot get a new estimate while one of its rows is open; other specs can.
 - Rows are append-only: an estimate or a recorded actual is never changed or removed. Hours are numbers greater than 0 (`0.5`, `3`, `12`).

@@ -3,6 +3,14 @@
 Source: `specs/roadmap.md`, epic 2. Brainstorming: `specs/02-login-and-my-trips-brainstorming.md` (rounds 1–3).
 Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
+## Estimate
+
+Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-only.
+
+| Date | Task | Estimate (h) | Actual (h) |
+|---|---|---|---|
+| 2026-10-27 | Build the epic | 1 |  |
+
 ## Goal
 
 Everyone logs in with their own account. They can sign up (name, email, password) or log in, and then they see "My trips":

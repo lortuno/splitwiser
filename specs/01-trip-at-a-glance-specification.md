@@ -5,14 +5,16 @@ Boundaries: `specs/guidelines/architecture.md` and `specs/guidelines/ui.md` appl
 
 ## Estimate
 
-Development hours only, as defined in AGENTS.md; logged in `docs/estimates.md`.
+Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-only.
 
-| Estimated (h) | Actual (h) |
-|---|---|
-| 2 | 0.6 |
+| Date | Task | Estimate (h) | Actual (h) |
+|---|---|---|---|
+| 2026-10-27 | Build the epic | 2 | 0.6 |
+| 2026-10-27 | Remaining checks 2, 3, 4, 5, 8 (specs/01-trip-at-a-glance-progress.md) | 0.5 | 0.1 |
+| 2026-10-27 | Testplan, screenshots at 390/1440, design review fixes (specs/01-trip-at-a-glance-testplan.md) | 1 | 0.1 |
 
-Actual taken from the Claude Code session log: from the build request (13:31 UTC) to Ready to Deploy (14:07 UTC),
-35 minutes. About 20 of them went into building the dev image with Chromium.
+Actual of "Build the epic" taken from the Claude Code session log: from the build request (13:31 UTC) to Ready to
+Deploy (14:07 UTC), 35 minutes. About 20 of them went into building the dev image with Chromium.
 
 ## Goal
 

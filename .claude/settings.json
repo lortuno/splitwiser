@@ -30,11 +30,11 @@
               "-e",
               "CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR}",
               "-e",
-              "ESTIMATES_PATH=/docs/estimates.md",
+              "SPECS_DIR=/specs",
               "-v",
               "${CLAUDE_PROJECT_DIR}/.claude/hooks:/hooks:ro",
               "-v",
-              "${CLAUDE_PROJECT_DIR}/docs:/docs:ro",
+              "${CLAUDE_PROJECT_DIR}/specs:/specs:ro",
               "oven/bun:1.4.3-debian",
               "bun",
               "/hooks/estimate-guard.ts"

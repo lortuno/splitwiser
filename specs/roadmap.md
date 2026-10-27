@@ -1,6 +1,6 @@
 # Roadmap: shared travel expenses
 
-Status: big picture only. Each epic is refined into its own spec (and gets its row in `docs/estimates.md`) before work starts.
+Status: big picture only. Each epic is refined into its own spec (with its estimates in that spec's `## Estimate` table) before work starts.
 
 ## Starting point
 

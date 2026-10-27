@@ -1,5 +1,7 @@
-// Estimates rule (AGENTS.md): no feature work without an open estimate in docs/estimates.md, and no
-// new estimate until the previous one has its actual hours. Pure decision logic for estimate-guard.ts.
+// Estimates rule (AGENTS.md): every feature keeps its estimates in the "## Estimate" table of its own
+// specification. No feature work without an open estimate in some specification, and no new estimate in a
+// specification until its previous one has its actual hours. Specifications are independent, so several
+// features can be estimated at the same time. Pure decision logic for estimate-guard.ts.
 import { posix as path } from "node:path";
 import type { Decision } from "./dependency-rule";
 
@@ -16,7 +18,12 @@ export type HookInput = {
   cwd: string;
 };
 
-export const ESTIMATES_FILE = "docs/estimates.md";
+// Specification files by path relative to the project ("specs/02-login-specification.md") and their text.
+export type Specs = Record<string, string>;
+
+export const SPEC_FILE = /^specs\/[^/]+-specification\.md$/;
+export const TOOLING_SPEC = "specs/00-tooling-specification.md";
+const HEADING = "## Estimate";
 const GUARDED = ["packages/", "tests/"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const HOURS = /^\d+(\.\d+)?$/;
@@ -24,47 +31,56 @@ const HOURS = /^\d+(\.\d+)?$/;
 const ALLOW: Decision = { block: false };
 const SEE = `See "Estimates" in AGENTS.md.`;
 
-type Row = { cells: string[]; date: string; feature: string; estimate: string; actual: string };
+type Row = { cells: string[]; date: string; task: string; estimate: string; actual: string };
 
-const parse = (text: string): Row[] =>
-  text
-    .split("\n")
-    .map((line) => line.trim())
+// The lines of the "## Estimate" section, up to the next heading of the same or a higher level.
+const section = (spec: string): string[] => {
+  const lines = spec.split("\n").map((line) => line.trim());
+  const start = lines.indexOf(HEADING);
+  if (start === -1) return [];
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => /^#{1,2}\s/.test(line));
+  return end === -1 ? rest : rest.slice(0, end);
+};
+
+export const parse = (spec: string): Row[] =>
+  section(spec)
     .filter((line) => line.startsWith("|"))
     .slice(2) // header and separator
     .map((line) => {
       const cells = line.replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim());
-      const [date = "", feature = "", estimate = "", actual = ""] = cells;
-      return { cells, date, feature, estimate, actual };
+      const [date = "", task = "", estimate = "", actual = ""] = cells;
+      return { cells, date, task, estimate, actual };
     });
 
 const isHours = (value: string): boolean => HOURS.test(value) && Number(value) > 0;
 
-const openRows = (text: string): Row[] => parse(text).filter((row) => row.actual === "");
+const hasOpenRow = (specs: Specs): boolean =>
+  Object.values(specs).some((spec) => parse(spec).some((row) => row.actual === ""));
 
-// Returns why the change from `before` to `after` breaks the log, or null if it is fine.
+// Returns why the change of a specification from `before` to `after` breaks its estimate table, or null.
 export const checkLog = (before: string, after: string): string | null => {
   const rows = parse(after);
   for (const row of rows) {
-    const label = row.feature || row.cells.join(" | ");
-    if (row.cells.length !== 4) return `"${label}" must have 4 columns: Date | Feature | Estimate (h) | Actual (h)`;
+    const label = row.task || row.cells.join(" | ");
+    if (row.cells.length !== 4) return `"${label}" must have 4 columns: Date | Task | Estimate (h) | Actual (h)`;
     if (!DATE.test(row.date)) return `"${label}" needs a date as YYYY-MM-DD`;
-    if (row.feature === "") return `a row has no feature name`;
+    if (row.task === "") return `a row has no task`;
     if (!isHours(row.estimate)) return `"${label}" needs an estimate in hours greater than 0`;
     if (row.actual !== "" && !isHours(row.actual)) return `"${label}" needs actual hours greater than 0, or empty while in progress`;
   }
   const open = rows.filter((row) => row.actual === "");
   if (open.length > 1) {
-    return `"${open[0].feature}" is still open; record its actual hours before estimating a new feature`;
+    return `"${open[0].task}" is still open; record its actual hours before estimating another task of this feature`;
   }
-  const previous = parse(before);
-  for (const [i, old] of previous.entries()) {
+  // Rows that were not 4 columns wide before (an older table layout) can be rewritten.
+  for (const [i, old] of parse(before).filter((row) => row.cells.length === 4).entries()) {
     const now = rows[i];
-    if (!now || now.date !== old.date || now.feature !== old.feature || now.estimate !== old.estimate) {
-      return `rows are append-only; the estimate for "${old.feature}" cannot be changed or removed`;
+    if (!now || now.date !== old.date || now.task !== old.task || now.estimate !== old.estimate) {
+      return `rows are append-only; the estimate for "${old.task}" cannot be changed or removed`;
     }
     if (old.actual !== "" && now.actual !== old.actual) {
-      return `the actual hours for "${old.feature}" are already recorded and cannot be changed`;
+      return `the actual hours for "${old.task}" are already recorded and cannot be changed`;
     }
   }
   return null;
@@ -78,14 +94,14 @@ const isGuarded = (rel: string): boolean => GUARDED.some((dir) => rel.startsWith
 const noEstimate = (what: string): Decision => ({
   block: true,
   reason:
-    `Blocked: ${what} is feature work and needs an open estimate first. Append a row to ` +
-    `${ESTIMATES_FILE} with the date, the feature and the estimated development hours, ` +
-    `leaving Actual empty. ${SEE}`,
+    `Blocked: ${what} is feature work and needs an open estimate first. Append a row to the ` +
+    `"${HEADING}" table of the feature's specs/{nr}-{name}-specification.md (work outside an epic: ` +
+    `${TOOLING_SPEC}) with the date, the task and the estimated development hours, leaving Actual empty. ${SEE}`,
 });
 
-const badLog = (problem: string): Decision => ({
+const badLog = (rel: string, problem: string): Decision => ({
   block: true,
-  reason: `Blocked: ${ESTIMATES_FILE} change rejected: ${problem}. ${SEE}`,
+  reason: `Blocked: estimate in ${rel} rejected: ${problem}. ${SEE}`,
 });
 
 // Best effort: does this shell command write files? Harmless redirects are removed first.
@@ -103,30 +119,31 @@ export const writes = (command: string): boolean => {
 const mentionsGuarded = (command: string): boolean =>
   GUARDED.some((dir) => new RegExp(`(^|[\\s'"=/])${dir}`).test(command));
 
-export const decide = (input: HookInput, projectDir: string, estimates: string): Decision => {
+export const decide = (input: HookInput, projectDir: string, specs: Specs): Decision => {
   const { tool_name, tool_input, cwd } = input;
-  const hasOpen = openRows(estimates).length > 0;
+  const hasOpen = hasOpenRow(specs);
 
   if ((tool_name === "Edit" || tool_name === "Write") && tool_input.file_path) {
     const rel = relative(projectDir, cwd, tool_input.file_path);
-    if (rel === ESTIMATES_FILE) {
+    if (SPEC_FILE.test(rel)) {
+      const before = specs[rel] ?? "";
       const { content = "", old_string = "", new_string = "", replace_all } = tool_input;
       const after =
         tool_name === "Write"
           ? content
           : replace_all
-            ? estimates.split(old_string).join(new_string)
-            : estimates.replace(old_string, () => new_string);
-      const problem = checkLog(estimates, after);
-      return problem ? badLog(problem) : ALLOW;
+            ? before.split(old_string).join(new_string)
+            : before.replace(old_string, () => new_string);
+      const problem = checkLog(before, after);
+      return problem ? badLog(rel, problem) : ALLOW;
     }
     return isGuarded(rel) && !hasOpen ? noEstimate(`changing ${rel}`) : ALLOW;
   }
 
   if (tool_name === "Bash" && tool_input.command && writes(tool_input.command)) {
     const { command } = tool_input;
-    if (command.includes(ESTIMATES_FILE) || command.includes("estimates.md")) {
-      return badLog("edit it with the Edit or Write tool so the change can be checked");
+    if (command.includes("-specification.md")) {
+      return badLog("a specification", "edit it with the Edit or Write tool so its estimates can be checked");
     }
     const insideGuarded = isGuarded(`${path.relative(projectDir, cwd)}/`);
     if (!hasOpen && (insideGuarded || mentionsGuarded(command))) {
