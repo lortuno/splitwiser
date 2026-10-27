@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { formatBasisPoints, formatCents, formatSignedCents } from "./format";
+import { formatBasisPoints, formatCents, formatSignedCents } from "../../../packages/app/src/money/format";
 
 const NBSP = " ";
 

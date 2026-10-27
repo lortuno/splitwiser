@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { formatCents } from "./format";
-import { parseEuroToCents, parsePercentToBasisPoints, parseWholeNumber } from "./parse";
+import { formatCents } from "../../../packages/app/src/money/format";
+import { parseEuroToCents, parsePercentToBasisPoints, parseWholeNumber } from "../../../packages/app/src/money/parse";
 
 describe("parseEuroToCents", () => {
   test.each([

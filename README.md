@@ -19,13 +19,15 @@ trip ("Lisbon & Porto": 4 people, 20 expenses over 7 days). The seed only runs w
 | Task | Command |
 |---|---|
 | Run all tests (PHP + TypeScript) | `docker compose run --rm app bun test` |
+| Run one test group | `docker compose run --rm app bun test tests/unit` (or `tests/functional`, `tests/hooks`) |
 | Start API and web app in one container | `docker compose run --rm --service-ports app bun dev` (stop `docker compose up` first: same ports) |
 | Build the iOS and Android JS bundles | `docker compose run --rm app bun run export:native` |
 | Type-check the app | `docker compose run --rm app bun run typecheck` |
 | Reset the database to the seed | `docker compose down -v && docker compose up` |
 
-`bun test` is Bun's built-in test runner: it runs `packages/app/**/*.test.ts` and `tests/php.test.ts`,
-which starts the PHP suite (`php packages/api/tests/run.php`). After changing dependencies, rebuild with
+`bun test` is Bun's built-in test runner. Tests live in three folders that are never mixed:
+`tests/unit/` (app TypeScript, pure functions), `tests/functional/` (`php.test.ts` starts the PHP API suite,
+`php packages/api/tests/run.php`, against a real SQLite database) and `tests/hooks/` (Claude Code hooks). After changing dependencies, rebuild with
 `docker compose build && docker compose up -V` so the `node_modules` volume is refreshed.
 
 On a phone (Expo Go), set `EXPO_PUBLIC_API_URL` to an address the phone can reach, e.g. `http://192.168.1.20:8080`.
@@ -37,7 +39,9 @@ package.json, bun.lock         all JS dependencies (exact versions); Expo projec
 docker/Dockerfile              one dev image: PHP 8.4.27 CLI + pdo_sqlite, Bun, Node
 docker-compose.yml             services api (php -S) and app (Expo), volumes db-data and node_modules
 scripts/dev.ts                 `bun dev`: starts both servers
-tests/php.test.ts              runs the PHP suite from `bun test`
+tests/unit/                    app unit tests (money formatting and parsing)
+tests/functional/php.test.ts   runs the PHP API suite from `bun test`
+tests/hooks/                   tests for the Claude Code hooks in .claude/hooks/
 packages/api/
   public/index.php             front controller
   bin/init-db.php              schema + seed-if-empty
@@ -51,7 +55,7 @@ packages/app/
   index.ts, src/App.tsx        entry point and screen switching
   src/api/                     fetch wrappers per resource
   src/dto/                     TypeScript types mirroring the API DTOs
-  src/money/                   cent formatting and input parsing (+ tests)
+  src/money/                   cent formatting and input parsing
   src/screens/                 Trip, Balances, Add expense
   src/components/              Card, Chip, FieldError, Money, TabBar
   src/i18n/                    UI strings (English); add a locale with the same keys

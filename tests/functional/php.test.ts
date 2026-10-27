@@ -3,7 +3,7 @@ import { expect, test } from "bun:test";
 
 test("PHP API test suite", () => {
   const result = Bun.spawnSync(["php", "packages/api/tests/run.php"], {
-    cwd: `${import.meta.dir}/..`,
+    cwd: `${import.meta.dir}/../..`,
     stdout: "pipe",
     stderr: "pipe",
   });

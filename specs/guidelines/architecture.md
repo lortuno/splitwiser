@@ -6,7 +6,7 @@
 ## Packages and what they own
 - `packages/app`: screens, components, UI text (`src/i18n`), parsing input to cents and formatting cents for display (`src/money`). Owns no data and no money maths.
 - `packages/api`: HTTP routes, validation, schema (input tables + `v_*` views), seed, settlement. The only package that opens the database.
-- Repo root: `package.json` + `bun.lock` (all JS deps), `app.json`, `docker/`, `docker-compose.yml`, `scripts/`, `tests/php.test.ts`.
+- Repo root: `package.json` + `bun.lock` (all JS deps), `app.json`, `docker/`, `docker-compose.yml`, `scripts/`, `tests/` (`unit/`, `functional/`, `hooks/`).
 
 ## Request flow
 1. A screen calls `src/api/*`, which sends JSON with integer cents to `EXPO_PUBLIC_API_URL`.

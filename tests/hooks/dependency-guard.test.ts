@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { decide } from "../.claude/hooks/dependency-rule";
+import { decide } from "../../.claude/hooks/dependency-rule";
 
 const root = "/repo";
 const bash = (command: string, cwd = root) => decide({ tool_name: "Bash", tool_input: { command }, cwd }, root);
