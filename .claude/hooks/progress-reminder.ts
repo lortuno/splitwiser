@@ -1,12 +1,12 @@
-// Stop hook: during an epic build, reminds Claude to tick the checks that passed in
-// specs/{nr}-{name}-progress.md. It only reminds; it never ticks a check. It creates the progress
+// Stop hook: during an epic build, reminds Claude to tick the build steps that are done and the checks that
+// passed in specs/{nr}-{name}-progress.md. It only reminds; it never ticks anything. It creates the progress
 // file (all unticked) from the specification when it is missing, and never edits the specification.
-// "During an epic build" means: there is an active epic, and this turn changed files under packages/ or
-// tests/ without touching the progress file. That way the reminder comes once per turn of work, not on
+// "During an epic build" means: this session works on an epic that is not done (see sessionEpic), and this
+// turn changed files under packages/ or tests/ without touching the progress file. That way the reminder comes once per turn of work, not on
 // every answer.
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { join, relative } from "node:path";
-import { activeEpic, progressFile } from "../statusline";
+import { epicProgress, progressFile, sessionEpic } from "../statusline";
 
 export type StopInput = { cwd?: string; transcript_path?: string; stop_hook_active?: boolean };
 
@@ -54,17 +54,21 @@ const readTurnStart = (path?: string): number => {
 // The reminder for Claude, or null when there is nothing to remind of.
 export const remind = (input: StopInput, root: string): string | null => {
   if (input.stop_hook_active) return null;
-  const epic = activeEpic(root);
+  const epic = sessionEpic(root, input.transcript_path);
   if (!epic) return null;
-  if (!epic.hasProgress) writeFileSync(epic.progressPath, progressFile(epic.label, epic.checks));
+  const { done, total } = epicProgress(epic);
+  if (done === total) return null;
+  if (!epic.hasProgress) writeFileSync(epic.progressPath, progressFile(epic.label, epic.steps, epic.checks));
   const changed = Math.max(0, ...WATCHED.map((dir) => join(root, dir)).filter(existsSync).map(newestChange));
   const since = Math.max(readTurnStart(input.transcript_path), statSync(epic.progressPath).mtimeMs);
   if (changed <= since) return null;
   return (
-    `Epic ${epic.label}: ${epic.done}/${epic.checks.length} acceptance checks are ticked in ` +
-    `${relative(root, epic.progressPath)}, and this turn changed code or tests. For each check that now ` +
-    `passes in the browser and whose test is green, change "- [ ] N." to "- [x] N." in that file. ` +
-    `Leave every other check unticked and do not edit the specification. If none passed, say so and stop.`
+    `Epic ${epic.label}: ${epic.stepsDone}/${epic.steps.length} build steps and ${epic.done}/${epic.checks.length} ` +
+    `acceptance checks are ticked in ${relative(root, epic.progressPath)}, and this turn changed code or tests. ` +
+    `For each step (${epic.steps.join(", ")}) that is now built, change "- [ ] Step" to "- [x] Step". For each ` +
+    `check that now passes in the browser and whose test is green, change "- [ ] N." to "- [x] N.". Add a missing ` +
+    `step line unticked. Leave everything else unticked and do not edit the specification. If nothing is done, ` +
+    `say so and stop.`
   );
 };
 

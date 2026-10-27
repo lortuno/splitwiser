@@ -2,6 +2,12 @@
 
 Tick a check only after it passes in the browser and its test is green.
 
+## Steps
+
+- [x] Tests
+
+## Acceptance checks
+
 - [x] 1. **Check 1.** Open `/?trip=1`. The screen shows trip 1.
 - [x] 2. **Check 2.** Open `/?trip=2`. The screen shows trip 2.
 - [x] 3. **Check 3.** Open `/?trip=3`. The screen shows trip 3.

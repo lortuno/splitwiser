@@ -132,8 +132,8 @@ When every topic is answered and the last round is ticked, go to step 4. Do not 
 10. ⛔ `## Check on iOS and Android`: a short list of what must be checked on a device and cannot be seen in the
     browser.
 
-The `## Acceptance checks` heading and its numbered items are also read by `.claude/statusline.ts`, so keep that exact
-heading.
+The `## Acceptance checks` heading and its numbered items, and the `## Screens`, `## Data`, `## API`, `## Seed data` and
+`## Tests` headings (one build step each), are also read by `.claude/statusline.ts`, so keep those exact headings.
 
 After the specification, you may append a closing section to the brainstorming file (no `## Round` heading) listing
 decisions you made while writing it. Anything that needs the user's decision goes into a new round instead.

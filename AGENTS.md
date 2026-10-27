@@ -14,7 +14,7 @@ Stack: Expo (React Native + react-native-web, TypeScript) → plain PHP 8.4 API 
 ## Before you change things
 - Read `specs/guidelines/architecture.md` before adding a package, service or dependency.
 - Read `specs/guidelines/ui.md` before building a screen.
-- Tick a check in `specs/{nr}-{name}-progress.md` only after it passes in the browser and its test is green.
+- In `specs/{nr}-{name}-progress.md`, tick a build step (Screens, Data, API, Seed data, Tests) as soon as it is built, so the status line bar moves during the build. Tick a check only after it passes in the browser and its test is green.
 
 ## Estimates
 Every feature starts with an estimate and ends with the real time spent, so estimates get better over time. Log: `docs/estimates.md`. Enforced by `.claude/hooks/estimate-guard.ts`.

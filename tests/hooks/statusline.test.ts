@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, utimesSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { parseChecks, renderLine } from "../../.claude/statusline";
+import { parseChecks, renderLine, sessionEpicNr } from "../../.claude/statusline";
 import { remind } from "../../.claude/hooks/progress-reminder";
 
 const script = resolve(import.meta.dir, "../../.claude/statusline.ts");
@@ -25,13 +25,37 @@ describe("status line per fixture", () => {
   test.each([
     ["no-spec", "no active spec · 48.2k tok · Opus"],
     ["no-progress", "no active spec · 48.2k tok · Opus"],
-    ["zero-done", "01-trip-view  [░░░░░░░░░░░░░░░░] 0/16 · 100% left · 48.2k tok · Opus"],
-    ["six-done", "01-trip-view  [██████░░░░░░░░░░] 6/16 · 62% left · 48.2k tok · Opus"],
-    ["all-done", "no active spec · 48.2k tok · Opus"],
-    ["malformed", "01-trip-view  [████░░░░░░░░░░░░] 4/16 · 75% left · 48.2k tok · Opus"],
-    ["older-epic-active", "01-trip-view  [██░░░░░░░░░░░░░░] 2/16 · 88% left · 48.2k tok · Opus"],
+    // Each fixture spec has one build step (## Tests) on top of its 16 checks.
+    ["zero-done", "01-trip-view  [░░░░░░░░░░░░░░░░] 0/17 · 100% left · 48.2k tok · Opus"],
+    ["six-done", "01-trip-view  [██████░░░░░░░░░░] 6/17 · 65% left · 48.2k tok · Opus"],
+    ["all-done", "01-trip-view  [████████████████] 17/17 · 0% left · 48.2k tok · Opus"],
+    ["malformed", "01-trip-view  [████░░░░░░░░░░░░] 4/17 · 76% left · 48.2k tok · Opus"],
+    ["older-epic-active", "01-trip-view  [██░░░░░░░░░░░░░░] 2/17 · 88% left · 48.2k tok · Opus"],
   ])("%s", (fixture, expected) => {
     expect(statusFor(fixture)).toBe(`${expected}\n`);
+  });
+
+  test("build steps count with the checks: only the spec's own sections, ticked by their exact name", () => {
+    // Screens and Data ticked; Seed data is not a section of this spec and "Screens and more" is not a step name.
+    const root = mkdtempSync(join(tmpdir(), "statusline-"));
+    const session = join(root, "session.jsonl");
+    writeFileSync(session, `${JSON.stringify({ type: "user", message: { content: "Build epic 3" } })}\n`);
+    expect(statusFor("steps", { transcript_path: session })).toBe("03-steps  [███████░░░░░░░░░] 3/7 · 57% left · 0 tok · Opus\n");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test("the bar moves as soon as a step is ticked", () => {
+    const root = mkdtempSync(join(tmpdir(), "statusline-"));
+    cpSync(join(fixtures, "steps"), root, { recursive: true });
+    const session = join(root, "session.jsonl");
+    writeFileSync(session, `${JSON.stringify({ type: "user", message: { content: "Build epic 3" } })}\n`);
+    const line = () =>
+      run(JSON.stringify({ workspace: { project_dir: root }, transcript_path: session })).out;
+    expect(line()).toStartWith("03-steps  [███████░░░░░░░░░] 3/7 · 57% left");
+    const progress = join(root, "specs/03-steps-progress.md");
+    writeFileSync(progress, readFileSync(progress, "utf8").replace("- [ ] API", "- [x] API"));
+    expect(line()).toStartWith("03-steps  [█████████░░░░░░░] 4/7 · 43% left");
+    rmSync(root, { recursive: true, force: true });
   });
 
   test("the checks are counted from the specification, not hardcoded", () => {
@@ -68,7 +92,7 @@ describe("tokens", () => {
 describe("share of the session limit and the context window", () => {
   test("both percentages, rounded", () => {
     expect(statusFor("six-done", percentFields)).toBe(
-      "01-trip-view  [██████░░░░░░░░░░] 6/16 · 62% left · 48.2k tok · 34% session · 41% ctx · Opus\n",
+      "01-trip-view  [██████░░░░░░░░░░] 6/17 · 65% left · 48.2k tok · 34% session · 41% ctx · Opus\n",
     );
   });
 
@@ -78,7 +102,7 @@ describe("share of the session limit and the context window", () => {
 
   test("left out when the input has none: API key accounts have no rate limits, the context is null at first", () => {
     const input = { context_window: { used_percentage: null }, rate_limits: { five_hour: {} } };
-    expect(statusFor("six-done", input)).toBe("01-trip-view  [██████░░░░░░░░░░] 6/16 · 62% left · 48.2k tok · Opus\n");
+    expect(statusFor("six-done", input)).toBe("01-trip-view  [██████░░░░░░░░░░] 6/17 · 65% left · 48.2k tok · Opus\n");
     expect(renderLine(null, { tokens: 5, contextPct: 0 })).toBe("no active spec · 5 tok · 0% ctx");
   });
 });
@@ -103,9 +127,9 @@ describe("Stop hook reminder", () => {
   const progress = () => join(root, "specs/01-trip-view-progress.md");
   const code = () => join(root, "packages/app/src/App.tsx");
   const at = (file: string, ms: number) => utimesSync(file, ms / 1000, ms / 1000);
-  const transcriptFrom = (ms: number) => {
+  const transcriptFrom = (ms: number, prompt = "Build epic 1") => {
     const path = join(root, "transcript.jsonl");
-    writeFileSync(path, `${JSON.stringify({ type: "user", timestamp: new Date(ms).toISOString(), message: { content: "go" } })}\n`);
+    writeFileSync(path, `${JSON.stringify({ type: "user", timestamp: new Date(ms).toISOString(), message: { content: prompt } })}\n`);
     return path;
   };
   const setup = (fixture: string) => {
@@ -118,9 +142,10 @@ describe("Stop hook reminder", () => {
 
   test("creates a missing progress file from the specification, all unticked", () => {
     setup("no-progress");
-    remind({}, root);
+    remind({ transcript_path: transcriptFrom(1_000_000) }, root);
     const text = readFileSync(progress(), "utf8");
     expect(text.match(/^- \[ \] \d+\. /gm)?.length).toBe(16);
+    expect(text).toContain("## Steps\n\n- [ ] Tests\n\n## Acceptance checks\n");
     expect(text).not.toContain("- [x]");
     expect(readFileSync(join(root, "specs/01-trip-view-specification.md"), "utf8")).toBe(
       readFileSync(join(fixtures, "no-progress/specs/01-trip-view-specification.md"), "utf8"),
@@ -157,9 +182,63 @@ describe("Stop hook reminder", () => {
     expect(remind({ stop_hook_active: true }, root)).toBeNull();
   });
 
-  test("stays quiet without an active epic", () => {
+  test("stays quiet when the session's epic is done", () => {
     setup("all-done");
     at(progress(), 1_000_000);
-    expect(remind({}, root)).toBeNull();
+    at(code(), 3_000_000);
+    expect(remind({ transcript_path: transcriptFrom(2_000_000) }, root)).toBeNull();
+  });
+
+  test("stays quiet when the session has not named an epic, e.g. right after /clear", () => {
+    setup("six-done");
+    at(progress(), 1_000_000);
+    at(code(), 3_000_000);
+    expect(remind({ transcript_path: transcriptFrom(2_000_000, "fix the README") }, root)).toBeNull();
+  });
+
+  test("reminds about the session's epic, not about another unfinished one", () => {
+    setup("older-epic-active");
+    at(join(root, "specs/02-export-progress.md"), 1_000_000);
+    at(progress(), 1_000_000);
+    at(code(), 3_000_000);
+    expect(remind({ transcript_path: transcriptFrom(2_000_000, "Build epic 2") }, root)).toBeNull();
+    expect(remind({ transcript_path: transcriptFrom(2_000_000, "Build epic 1") }, root)).toContain("01-trip-view");
+  });
+});
+
+describe("the epic belongs to the session", () => {
+  const user = (content: unknown, extra: object = {}) => JSON.stringify({ type: "user", message: { content }, ...extra });
+  const toolUse = (input: object) => JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", input }] } });
+  const toolResult = (content: string) => user([{ type: "tool_result", content }]);
+  const jsonl = (...lines: string[]) => `${lines.join("\n")}\n`;
+
+  test.each([
+    ["a fresh session, e.g. right after /clear", jsonl(user("<command-name>/clear</command-name>")), null],
+    ["epic N in a prompt", jsonl(user("Build epic 2")), 2],
+    ["feature N in a prompt", jsonl(user([{ type: "text", text: "continue with feature 3" }])), 3],
+    ["/spec N", jsonl(user("<command-message>spec</command-message>\n<command-name>/spec</command-name>\n<command-args>4</command-args>")), 4],
+    ["a spec file in a tool call", jsonl(toolUse({ file_path: "/p/specs/05-export-progress.md" })), 5],
+    ["the last reference wins", jsonl(user("Build epic 1"), toolUse({ command: "cat specs/02-export-specification.md" })), 2],
+    ["tool results do not count", jsonl(user("Build epic 1"), toolResult("02-export-specification.md specs/02-export-progress.md")), 1],
+    ["injected context does not count", jsonl(user("Build epic 1"), user("epic 2", { isMeta: true })), 1],
+    ["malformed lines are skipped", jsonl("{not json", user("epic 6"), "{\"type\":"), 6],
+  ])("%s", (_, transcript, expected) => {
+    expect(sessionEpicNr(transcript)).toBe(expected);
+  });
+
+  test("a new session shows no epic, even when another is unfinished", () => {
+    const root = mkdtempSync(join(tmpdir(), "statusline-"));
+    const fresh = join(root, "fresh.jsonl");
+    writeFileSync(fresh, jsonl(user("<command-name>/clear</command-name>")));
+    expect(statusFor("six-done", { transcript_path: fresh })).toBe("no active spec · 0 tok · Opus\n");
+    rmSync(root, { recursive: true, force: true });
+  });
+
+  test("switching epics switches the bar", () => {
+    const root = mkdtempSync(join(tmpdir(), "statusline-"));
+    const switched = join(root, "switched.jsonl");
+    writeFileSync(switched, jsonl(user("Build epic 1"), user("now epic 2")));
+    expect(statusFor("older-epic-active", { transcript_path: switched })).toStartWith("02-export  [");
+    rmSync(root, { recursive: true, force: true });
   });
 });

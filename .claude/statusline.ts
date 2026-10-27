@@ -1,6 +1,8 @@
-// Status line: progress of the active epic and the tokens this session has used, on one line.
+// Status line: progress of this session's epic (see sessionEpic) and the tokens this session has used, on one line.
+// Progress is the ticked build steps plus the ticked acceptance checks in specs/{nr}-{name}-progress.md, out of
+// the spec's build sections plus its acceptance checks. It is read again on every refresh, so each tick moves the bar.
 // Reads the status line JSON from stdin and prints e.g.
-//   01-trip-view  [██████░░░░░░░░░░] 6/16 · 62% left · 48.2k tok · 34% session · 41% ctx · Opus
+//   01-trip-view  [██████░░░░░░░░░░] 8/21 · 62% left · 48.2k tok · 34% session · 41% ctx · Opus
 // Never fails: on any error it still prints a short line and exits 0.
 // The pure parts are exported for tests and for .claude/hooks/progress-reminder.ts.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -11,6 +13,9 @@ const BAR_WIDTH = 16;
 const SPEC = /^(\d+)-(.+)-specification\.md$/;
 const CHECK = /^(\d+)\.\s+(.*)$/;
 const TICK = /^- \[([ xX])\] (\d+)\.(\s|$)/;
+const STEP_TICK = /^- \[[xX]\] (.+?)\s*$/;
+// The build sections of a specification, in the order the /spec skill writes them. Each one the spec has is a step.
+const STEPS = ["Screens", "Data", "API", "Seed data", "Tests"];
 
 export type Check = { nr: number; text: string };
 export type Epic = {
@@ -18,8 +23,31 @@ export type Epic = {
   specPath: string;
   progressPath: string;
   hasProgress: boolean;
+  steps: string[];
+  stepsDone: number;
   checks: Check[];
   done: number;
+};
+
+// Steps and checks together: what the bar shows.
+export const epicProgress = (epic: Epic): { done: number; total: number } => ({
+  done: epic.stepsDone + epic.done,
+  total: epic.steps.length + epic.checks.length,
+});
+
+export const parseSteps = (spec: string): string[] => {
+  const headings = new Set(spec.split("\n").map((line) => line.match(/^## (.+?)\s*$/)?.[1]));
+  return STEPS.filter((step) => headings.has(step));
+};
+
+// Number of distinct steps ticked "- [x] Screens" (the step's name and nothing else); anything else is ignored.
+export const countStepsDone = (progress: string, steps: string[]): number => {
+  const done = new Set<string>();
+  for (const line of progress.split("\n")) {
+    const tick = line.trim().match(STEP_TICK);
+    if (tick && steps.includes(tick[1])) done.add(tick[1]);
+  }
+  return done.size;
 };
 
 // The numbered items under "## Acceptance checks", each joined into one line.
@@ -58,11 +86,14 @@ export const countDone = (progress: string, checks: Check[]): number => {
   return done.size;
 };
 
-export const progressFile = (label: string, checks: Check[]): string =>
+export const progressFile = (label: string, steps: string[], checks: Check[]): string =>
   [
     `# ${label}: progress`,
     "",
-    "Tick a check only after it passes in the browser and its test is green.",
+    "Tick a step as soon as it is built. Tick a check only after it passes in the browser and its test is green.",
+    "",
+    ...(steps.length > 0 ? ["## Steps", "", ...steps.map((step) => `- [ ] ${step}`), ""] : []),
+    "## Acceptance checks",
     "",
     ...checks.map((check) => `- [ ] ${check.nr}. ${check.text}`),
     "",
@@ -79,19 +110,66 @@ const specs = (root: string): { label: string; nr: number; file: string }[] => {
     .sort((a, b) => b.nr - a.nr || b.label.localeCompare(a.label));
 };
 
-// The newest spec with acceptance checks that are not all ticked yet. A missing progress file counts as 0 done;
-// the Stop hook creates it, the status line only reads.
-export const activeEpic = (root: string): Epic | null => {
-  for (const spec of specs(root)) {
-    const specPath = join(root, "specs", spec.file);
-    const progressPath = join(root, "specs", `${spec.label}-progress.md`);
-    const checks = parseChecks(readFileSync(specPath, "utf8"));
-    if (checks.length === 0) continue;
-    const hasProgress = existsSync(progressPath);
-    const done = hasProgress ? countDone(readFileSync(progressPath, "utf8"), checks) : 0;
-    if (done < checks.length) return { label: spec.label, specPath, progressPath, hasProgress, checks, done };
+// The epic with number nr, if its specification has acceptance checks. A missing progress file counts as
+// 0 done; the Stop hook creates it, the status line only reads.
+export const epicByNr = (root: string, nr: number): Epic | null => {
+  const spec = specs(root).find((candidate) => candidate.nr === nr);
+  if (!spec) return null;
+  const specPath = join(root, "specs", spec.file);
+  const progressPath = join(root, "specs", `${spec.label}-progress.md`);
+  const text = readFileSync(specPath, "utf8");
+  const checks = parseChecks(text);
+  if (checks.length === 0) return null;
+  const steps = parseSteps(text);
+  const hasProgress = existsSync(progressPath);
+  const progress = hasProgress ? readFileSync(progressPath, "utf8") : "";
+  const done = countDone(progress, checks);
+  const stepsDone = countStepsDone(progress, steps);
+  return { label: spec.label, specPath, progressPath, hasProgress, steps, stepsDone, checks, done };
+};
+
+// "specs/02-export-progress.md", "/spec 2", "epic 2" or "feature 2".
+const EPIC_REF =
+  /specs\/(\d+)-[\w-]+-(?:brainstorming|specification|progress)\.md|<command-name>\/spec<\/command-name>\s*<command-args>\s*(\d+)|\b(?:epic|feature)\s+#?(\d+)\b/gi;
+
+const epicRefs = (text: string): number[] =>
+  [...text.matchAll(EPIC_REF)].map((match) => Number(match[1] ?? match[2] ?? match[3]));
+
+// The epic this session works on: the last one it referred to, in a prompt the user typed or in the input
+// of a tool call. Tool results are skipped, because a listing of specs/ names every epic. /clear starts a
+// new transcript, so a cleared session has no epic until it names one.
+export const sessionEpicNr = (jsonl: string): number | null => {
+  let nr: number | null = null;
+  for (const line of jsonl.split("\n")) {
+    try {
+      const entry = JSON.parse(line);
+      const content = entry?.message?.content;
+      const texts: string[] = [];
+      if (entry.type === "user" && !entry.isMeta) {
+        if (typeof content === "string") texts.push(content);
+        else if (Array.isArray(content))
+          texts.push(...content.filter((block) => block?.type === "text").map((block) => String(block.text)));
+      } else if (entry.type === "assistant" && Array.isArray(content)) {
+        texts.push(...content.filter((block) => block?.type === "tool_use").map((block) => JSON.stringify(block.input ?? {})));
+      }
+      for (const ref of texts.flatMap(epicRefs)) nr = ref;
+    } catch {
+      // Empty, partly written or malformed line: skip it.
+    }
   }
-  return null;
+  return nr;
+};
+
+// The epic of the session whose transcript is at transcriptPath, or null when it has not named one (yet).
+export const sessionEpic = (root: string, transcriptPath?: string): Epic | null => {
+  if (!transcriptPath) return null;
+  let nr: number | null;
+  try {
+    nr = sessionEpicNr(readFileSync(transcriptPath, "utf8"));
+  } catch {
+    return null;
+  }
+  return nr === null ? null : epicByNr(root, nr);
 };
 
 type Usage = {
@@ -213,9 +291,9 @@ export const statusLine = (raw: string, fallbackRoot: string): string => {
     model: input.model?.display_name,
   };
   try {
-    const epic = activeEpic(input.workspace?.project_dir ?? input.cwd ?? fallbackRoot);
+    const epic = sessionEpic(input.workspace?.project_dir ?? input.cwd ?? fallbackRoot, input.transcript_path);
     if (!epic?.hasProgress) return renderLine(null, usage);
-    return renderLine({ label: epic.label, done: epic.done, total: epic.checks.length }, usage);
+    return renderLine({ label: epic.label, ...epicProgress(epic) }, usage);
   } catch {
     return renderLine(null, usage);
   }
