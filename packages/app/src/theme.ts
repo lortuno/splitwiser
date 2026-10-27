@@ -2,14 +2,14 @@
 // never raw hex values or pixel numbers.
 
 export const colors = {
-  paper: "#FBF4E6",
-  surface: "#FFFDF8",
-  ink: "#2B2622",
-  inkMuted: "#6B6258",
-  line: "#E7DCC8",
-  accent: "#D9472B",
-  accentSoft: "#F8DDD3",
-  onAccent: "#FFFDF8",
+  paper: "#F3F6FA",
+  surface: "#FFFFFF",
+  ink: "#1F2933",
+  inkMuted: "#5B6B7B",
+  line: "#D9E2EC",
+  accent: "#1F5FBF",
+  accentSoft: "#DCE8F8",
+  onAccent: "#FFFFFF",
   owed: "#2E6B3E",
   owes: "#A6321C",
   owesSoft: "#FBE6E0",

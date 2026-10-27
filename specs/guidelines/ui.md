@@ -1,9 +1,9 @@
-Travel notebook: cream paper, one warm tomato-red accent, big tap targets, balances shown with a clear sign. Phone first: expenses are added on the go, at the restaurant table or the ticket counter, often by one person for others.
+Travel notebook: cool blue-grey paper, one blue accent (kept clear of the green/red used for money), big tap targets, balances shown with a clear sign. Phone first: expenses are added on the go, at the restaurant table or the ticket counter, often by one person for others.
 
 # UI guidelines
 
 ## Tokens (only in `packages/app/src/theme.ts`)
-- Colour: `paper #FBF4E6`, `surface #FFFDF8`, `ink #2B2622`, `inkMuted #6B6258`, `line #E7DCC8`, `accent #D9472B` (tomato), `accentSoft #F8DDD3`, `onAccent #FFFDF8`, `owed #2E6B3E`, `owes #A6321C`, `owesSoft #FBE6E0`. `owed`/`owes`/`owesSoft` are for amounts and errors only.
+- Colour: `paper #F3F6FA`, `surface #FFFFFF`, `ink #1F2933`, `inkMuted #5B6B7B`, `line #D9E2EC`, `accent #1F5FBF` (blue), `accentSoft #DCE8F8`, `onAccent #FFFFFF`, `owed #2E6B3E`, `owes #A6321C`, `owesSoft #FBE6E0`. `owed`/`owes`/`owesSoft` are for amounts and errors only.
 - Spacing (`space`): `xs 4`, `sm 8`, `md 12`, `lg 16`, `xl 24`, `xxl 32`.
 - Radius (`radius`): `sm 8`, `md 14`, `pill 999`.
 - Type scale (`typeScale`): `caption 13`, `body 16`, `title 20`, `display 28`, `hero 44`. The font is the platform default.
