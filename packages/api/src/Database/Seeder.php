@@ -10,7 +10,8 @@ use App\Service\ExpenseService;
 use PDO;
 
 /**
- * Deterministic demo data: one trip, four people, twenty expenses over seven days.
+ * Deterministic demo data: one trip, four people, twenty expenses over seven days, followed by the
+ * edge-case trips in fixtures().
  * Expenses go through ExpenseService, so the seed obeys the same validation as the app.
  */
 final readonly class Seeder
@@ -32,22 +33,45 @@ final readonly class Seeder
             return false;
         }
         $this->seed();
+        $this->seedFixtures();
 
         return true;
     }
 
     public function seed(): int
     {
+        return $this->seedTrip(self::TRIP_NAME, '2026-06-01', '2026-06-07', self::PEOPLE, self::expenses());
+    }
+
+    /**
+     * Edge-case trips for the acceptance checks in specs/01-trip-at-a-glance-specification.md,
+     * created after the demo trip so it stays first.
+     * @return list<int> trip ids in fixtures() order
+     */
+    public function seedFixtures(): array
+    {
+        return array_map(
+            fn (array $trip): int => $this->seedTrip(...$trip),
+            self::fixtures(),
+        );
+    }
+
+    /**
+     * @param list<string> $people
+     * @param list<array> $expenses rows shaped like expenses()
+     */
+    private function seedTrip(string $tripName, string $startDate, string $endDate, array $people, array $expenses): int
+    {
         $this->pdo->beginTransaction();
-        $tripId = $this->trips->create(self::TRIP_NAME, '2026-06-01', '2026-06-07');
+        $tripId = $this->trips->create($tripName, $startDate, $endDate);
         $ids = [];
-        foreach (self::PEOPLE as $name) {
+        foreach ($people as $name) {
             $ids[$name] = $this->people->create($name);
             $this->trips->addMember($tripId, $ids[$name]);
         }
         $this->pdo->commit();
 
-        foreach (self::expenses() as [$date, $name, $amount, $recordedBy, $paidBy, $type, $between]) {
+        foreach ($expenses as [$date, $name, $amount, $recordedBy, $paidBy, $type, $between]) {
             $this->expenses->create($tripId, [
                 'name' => $name,
                 'date' => $date,
@@ -101,6 +125,33 @@ final readonly class Seeder
             ['2026-06-06', 'Seafood dinner in Matosinhos', 18840, 'Ana', ['Ben' => 10000, 'Chloé' => 8840], 'equal', $all],
             ['2026-06-07', 'Metro day passes', 2640, 'Ben', ['Ana' => 2640], 'equal', $all],
             ['2026-06-07', 'Taxi to Porto airport', 3150, 'Chloé', ['David' => 3150], 'shares', ['Ana' => 1, 'Ben' => 1, 'Chloé' => 1, 'David' => 1]],
+        ];
+    }
+
+    /** [trip name, start date, end date, people, expenses shaped like expenses()] */
+    public static function fixtures(): array
+    {
+        $max = 'Maximiliane Alexandra von Hohenzollern-Sigmaringen';
+        $group = ['Olga' => null, 'Paul' => null, 'Quinn' => null, 'Rosa' => null, 'Sam' => null, 'Tara' => null];
+
+        return [
+            ['Empty weekend', '2026-01-10', '2026-01-12', ['Eva', 'Finn', 'Greta'], []],
+            ['Even split', '2026-02-01', '2026-02-02', ['Hugo', 'Iris'], [
+                ['2026-02-01', 'Lunch', 4000, 'Hugo', ['Hugo' => 4000], 'equal', ['Hugo' => null, 'Iris' => null]],
+                ['2026-02-02', 'Dinner', 4000, 'Iris', ['Iris' => 4000], 'equal', ['Hugo' => null, 'Iris' => null]],
+            ]],
+            ['Three-way taxi', '2026-03-05', '2026-03-05', ['Jon', 'Kim', 'Lea'], [
+                ['2026-03-05', 'Taxi', 1000, 'Jon', ['Jon' => 1000], 'equal', ['Jon' => null, 'Kim' => null, 'Lea' => null]],
+            ]],
+            ['Great tour of every UNESCO world heritage site in southern Europe by sleeper train', '2026-04-01', '2026-04-30', [$max, 'Noah'], [
+                ['2026-04-01', 'Private jet charter', 100_000_000, 'Noah', ['Noah' => 100_000_000], 'equal', [$max => null, 'Noah' => null]],
+                ['2026-04-02', 'Yacht week', 100_000_000, 'Noah', ['Noah' => 100_000_000], 'equal', [$max => null, 'Noah' => null]],
+                ['2026-04-03', 'Overnight sleeper train from Lisbon to Madrid with a private compartment, breakfast, late checkout, and luggage storage.', 34_567_891, 'Noah', ['Noah' => 34_567_891], 'equal', [$max => null, 'Noah' => null]],
+            ]],
+            ['Big group', '2026-05-01', '2026-05-03', array_keys($group), [
+                ['2026-05-01', 'Group dinner', 6000, 'Olga', ['Olga' => 6000], 'equal', $group],
+                ['2026-05-02', 'Boat tickets', 3000, 'Paul', ['Paul' => 3000], 'equal', ['Paul' => null, 'Quinn' => null, 'Rosa' => null]],
+            ]],
         ];
     }
 }

@@ -7,3 +7,4 @@ Rows are append-only. Rules: "Estimates" in AGENTS.md; enforced by `.claude/hook
 
 | Date | Feature | Estimate (h) | Actual (h) |
 |---|---|---|---|
+| 2026-10-27 | Epic 1: Trip at a glance (specs/01-trip-at-a-glance-specification.md) | 2 | 0.6 |

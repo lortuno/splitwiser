@@ -7,6 +7,13 @@ export function t(key: MessageKey, params: Record<string, string | number> = {})
   return messages[key].replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? `{${name}}`));
 }
 
+type CountKey = "trip.expenseCount" | "trip.peopleCount";
+
+/** "1 expense" / "3 expenses": uses the key's ".one" variant for a count of 1. */
+export function tCount(key: CountKey, count: number): string {
+  return count === 1 ? t(`${key}.one`) : t(key, { count });
+}
+
 /** "2026-06-01" -> "1 Jun 2026". */
 export function formatDate(isoDate: string): string {
   const [year, month, day] = isoDate.split("-").map((part) => Number.parseInt(part, 10));

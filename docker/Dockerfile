@@ -15,10 +15,15 @@ RUN ln -s /usr/local/bin/bun /usr/local/bin/bunx \
 WORKDIR /app
 
 ENV EXPO_NO_TELEMETRY=1 \
-    DB_PATH=/data/app.sqlite
+    DB_PATH=/data/app.sqlite \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
+
+# Chromium for the 390x844 screenshot tests in tests/e2e. Kept outside /app and node_modules,
+# which are mounted as volumes in docker-compose.yml.
+RUN bunx playwright install --with-deps chromium
 
 COPY . .
 

@@ -3,6 +3,17 @@
 Source: `specs/roadmap.md` (epic 1) and the decisions in `specs/01-trip-at-a-glance-brainstorming.md`.
 Boundaries: `specs/guidelines/architecture.md` and `specs/guidelines/ui.md` apply unchanged.
 
+## Estimate
+
+Development hours only, as defined in AGENTS.md; logged in `docs/estimates.md`.
+
+| Estimated (h) | Actual (h) |
+|---|---|
+| 2 | 0.6 |
+
+Actual taken from the Claude Code session log: from the build request (13:31 UTC) to Ready to Deploy (14:07 UTC),
+35 minutes. About 20 of them went into building the dev image with Chromium.
+
 ## Goal
 
 When someone opens the app, the first screen shows at a glance how much the group has spent and who has to pay whom.
@@ -120,17 +131,19 @@ The functional tests pin this contract for the seeded trips, so the hero cannot 
 ## Seed data
 
 The existing demo trip stays exactly as it is and is still created first. Five fixed test trips are added after it,
-through `ExpenseService` like the demo expenses, with no random values or dates (architecture rule 9). After a fresh
+through `ExpenseService` like the demo expenses, with no random values or dates (architecture rule 9). `GET /trips`
+lists trips by start date, newest first, so the test trips are dated before the demo trip (January to May 2026) to
+keep "Lisbon & Porto" first. After a fresh
 database (`docker compose down -v && docker compose up`) the ids are:
 
 | id | Trip | Dates | People | Expenses | Expected on the hero |
 |---|---|---|---|---|---|
 | 1 | Lisbon & Porto | 2026-06-01 – 06-07 | Ana, Ben, Chloé, David | the existing 20 | Total `1.915,57 €`; Ana pays Ben `63,75 €`, David pays Ben `27,65 €`, David pays Chloé `27,07 €` |
-| 2 | Empty weekend | 2026-07-10 – 07-12 | Eva, Finn, Greta | none | `0,00 €`, "0 expenses", no transfers section |
-| 3 | Even split | 2026-08-01 – 08-02 | Hugo, Iris | Lunch `40,00 €` paid by Hugo; Dinner `40,00 €` paid by Iris; both split equally between both | `80,00 €`, "Everyone is settled up." |
-| 4 | Three-way taxi | 2026-09-05 – 09-05 | Jon, Kim, Lea | Taxi `10,00 €` paid by Jon, split equally between all three (shares `3,34` / `3,33` / `3,33 €`) | `10,00 €`, "1 expense"; Kim pays Jon `3,33 €`, Lea pays Jon `3,33 €` |
-| 5 | Grand tour of every UNESCO world heritage site in southern Europe by sleeper train | 2026-10-01 – 10-31 | Maximiliane Alexandra von Hohenzollern-Sigmaringen, Noah | Private jet charter `1.000.000,00 €`; Yacht week `1.000.000,00 €`; "Overnight sleeper train from Lisbon to Madrid with a private compartment, breakfast, late checkout, and luggage storage." (exactly 120 characters) `345.678,91 €`; all paid by Noah, split equally between both | `2,34 M €` (exact total `2.345.678,91 €`); Maximiliane … pays Noah `1.172.839,46 €` |
-| 6 | Big group | 2026-11-01 – 11-03 | Olga, Paul, Quinn, Rosa, Sam, Tara | Group dinner `60,00 €` paid by Olga, split equally between all six; Boat tickets `30,00 €` paid by Paul, split equally between Paul, Quinn, Rosa | `90,00 €`; Quinn pays Olga `20,00 €`, Rosa pays Olga `20,00 €`, Sam pays Olga `10,00 €`, "Show all 4"; Balances also lists Tara pays Paul `10,00 €` |
+| 2 | Empty weekend | 2026-01-10 – 01-12 | Eva, Finn, Greta | none | `0,00 €`, "0 expenses", no transfers section |
+| 3 | Even split | 2026-02-01 – 02-02 | Hugo, Iris | Lunch `40,00 €` paid by Hugo; Dinner `40,00 €` paid by Iris; both split equally between both | `80,00 €`, "Everyone is settled up." |
+| 4 | Three-way taxi | 2026-03-05 – 03-05 | Jon, Kim, Lea | Taxi `10,00 €` paid by Jon, split equally between all three (shares `3,34` / `3,33` / `3,33 €`) | `10,00 €`, "1 expense"; Kim pays Jon `3,33 €`, Lea pays Jon `3,33 €` |
+| 5 | Great tour of every UNESCO world heritage site in southern Europe by sleeper train | 2026-04-01 – 04-30 | Maximiliane Alexandra von Hohenzollern-Sigmaringen, Noah | Private jet charter `1.000.000,00 €`; Yacht week `1.000.000,00 €`; "Overnight sleeper train from Lisbon to Madrid with a private compartment, breakfast, late checkout, and luggage storage." (exactly 120 characters) `345.678,91 €`; all paid by Noah, split equally between both | `2,34 M €` (exact total `2.345.678,91 €`); Maximiliane … pays Noah `1.172.839,46 €` |
+| 6 | Big group | 2026-05-01 – 05-03 | Olga, Paul, Quinn, Rosa, Sam, Tara | Group dinner `60,00 €` paid by Olga, split equally between all six; Boat tickets `30,00 €` paid by Paul, split equally between Paul, Quinn, Rosa | `90,00 €`; Quinn pays Olga `20,00 €`, Rosa pays Olga `20,00 €`, Sam pays Olga `10,00 €`, "Show all 4"; Balances also lists Tara pays Paul `10,00 €` |
 
 The figures above were calculated with the current API on an in-memory database. The seed test keeps checking that
 the demo trip has 4 people and 20 expenses; a new test pins the five test trips.
@@ -163,7 +176,7 @@ http://localhost:8081. Run check 15 last, because it adds an expense.
    Trip.
 5. **Balances unchanged.** Tap "Balances". It shows Ana `-63,75 €`, Ben `+91,40 €`, Chloé `+27,07 €`, David `-54,72 €`
    and the same three transfers as check 1.
-6. 📸 **Empty trip.** Open `/?trip=2`. The header shows "Empty weekend". The total shows `0,00 €`, "10 Jul 2026 – 12 Jul
+6. 📸 **Empty trip.** Open `/?trip=2`. The header shows "Empty weekend". The total shows `0,00 €`, "10 Jan 2026 – 12 Jan
    2026 · 0 expenses", "3 people". There is no "Who owes whom" heading. Under "Expenses": "No expenses yet. Tap + Add
    expense to record the first one."
 7. 📸 **Everyone even.** Open `/?trip=3`. The total shows `80,00 €`, "2 expenses". "Who owes whom" shows only "Everyone is
@@ -171,7 +184,7 @@ http://localhost:8081. Run check 15 last, because it adds an expense.
 8. **Uneven cents.** Open `/?trip=4`. The total shows `10,00 €` and "1 expense" (singular). "Who owes whom" shows "Kim
    pays Jon `3,33 €`" and "Lea pays Jon `3,33 €`". On Balances, Jon shows `+6,66 €`, Kim `-3,33 €`, Lea `-3,33 €` (`formatSignedCents` prints a plain hyphen-minus).
 9. 📸 **Very large amount and long names.** Open `/?trip=5`. The header shows the trip name on one line, ending in "…".
-   The total shows `2,34 M €` on one line, "1 Oct 2026 – 31 Oct 2026 · 3 expenses", "2 people". The transfer row reads
+   The total shows `2,34 M €` on one line, "1 Apr 2026 – 30 Apr 2026 · 3 expenses", "2 people". The transfer row reads
    "Maximiliane Alexandra von Hohenzollern-Sigmaringen pays Noah": the names wrap and `1.172.839,46 €` stays on one line,
    right-aligned. The 120-character expense name is cut off after two lines with "…", with `345.678,91 €` beside it. The
    two other expenses show `1.000.000,00 €` in full.
@@ -186,12 +199,14 @@ http://localhost:8081. Run check 15 last, because it adds an expense.
 14. 📸 **API unreachable.** Run `docker compose stop api`, then reload `/`. The screen shows "Could not reach the API at
     http://localhost:8080." and "Try again". Run `docker compose start api` and tap "Try again": the demo trip from
     check 1 is shown.
-15. **The hero updates after adding.** Open `/?trip=4` and tap "+ Add expense". Enter "Coffee", amount `3,00`, paid by Kim,
+15. **The hero updates after adding.** Open `/?trip=4` and tap "+ Add expense". Pick Kim under "Recorded by", enter "Coffee", amount `3,00`, paid by Kim,
     split equally between Jon, Kim and Lea, and save. Back on Trip, the total shows `13,00 €`, "2 expenses", and "Who owes
     whom" shows "Lea pays Jon `4,33 €`" and "Kim pays Jon `1,33 €`". The page was not reloaded.
 
-The Playwright suite runs checks 1, 6, 7, 9, 10, 12 and 14. Checks 12 and 14 use a stopped or mocked API inside the
-test, not a stopped Docker service.
+The Playwright suite (`tests/e2e/trip-view.test.ts`) runs every check except 2–5. Those are covered by the PHP
+tests and the unchanged screens. It starts its own seeded API and a web export of the app, so it does not need
+`docker compose up`. Check 14 blocks the API inside the browser instead of stopping the Docker service. Screenshots
+go to `test-results/e2e/`, which is not committed.
 
 ## Out of scope (from the roadmap)
 

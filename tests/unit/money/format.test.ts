@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { formatBasisPoints, formatCents, formatSignedCents } from "../../../packages/app/src/money/format";
+import { formatBasisPoints, formatCents, formatCentsCompact, formatSignedCents } from "../../../packages/app/src/money/format";
 
 const NBSP = " ";
 
@@ -39,5 +39,25 @@ describe("other formats", () => {
   test("percentages from basis points", () => {
     expect(formatBasisPoints(3333)).toBe(`33,33${NBSP}%`);
     expect(formatBasisPoints(10000)).toBe(`100,00${NBSP}%`);
+  });
+});
+
+describe("formatCentsCompact (hero total)", () => {
+  test.each([
+    [0, `0,00${NBSP}€`],
+    [191557, `1.915,57${NBSP}€`],
+    [99999999, `999.999,99${NBSP}€`],
+    [100000000, `1${NBSP}M${NBSP}€`],
+    [100999999, `1${NBSP}M${NBSP}€`],
+    [123456789, `1,23${NBSP}M${NBSP}€`],
+    [234567891, `2,34${NBSP}M${NBSP}€`],
+    [2000000000, `20${NBSP}M${NBSP}€`],
+    [125000000000, `1.250${NBSP}M${NBSP}€`],
+  ])("%p cents -> %p", (cents, text) => {
+    expect(formatCentsCompact(cents)).toBe(text);
+  });
+
+  test("cuts off instead of rounding up", () => {
+    expect(formatCentsCompact(199999999)).toBe(`1,99${NBSP}M${NBSP}€`);
   });
 });

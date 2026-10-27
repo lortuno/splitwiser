@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StatusBar, StyleSheet, Text, View } from "react-native";
 
-import { API_URL } from "./api/client";
+import { API_URL, ApiError } from "./api/client";
 import { listExpenses } from "./api/expenses";
 import { getSummary, getTrip, listTrips } from "./api/trips";
 import { TabBar, type Screen } from "./components/TabBar";
@@ -9,6 +9,7 @@ import type { Expense, Trip, TripSummary } from "./dto";
 import { t } from "./i18n";
 import { AddExpenseScreen } from "./screens/AddExpenseScreen";
 import { BalancesScreen } from "./screens/BalancesScreen";
+import { parseTripParam, type TripParam } from "./navigation/tripParam";
 import { TripScreen } from "./screens/TripScreen";
 import { colors, radius, size, space, typeScale } from "./theme";
 
@@ -16,6 +17,15 @@ interface TripData {
   trip: Trip;
   expenses: Expense[];
   summary: TripSummary;
+}
+
+type Problem = "unreachable" | "notFound";
+
+// Only the web has a URL; iOS and Android always open the default trip.
+const IS_WEB = Platform.OS === "web";
+
+function tripParam(): TripParam {
+  return IS_WEB ? parseTripParam(window.location.search) : { kind: "default" };
 }
 
 // Without a safe-area library, leave room for the iOS status bar / notch and the Android status bar.
@@ -27,19 +37,31 @@ const TOP_INSET = Platform.select({
 
 export default function App() {
   const [data, setData] = useState<TripData | null>(null);
-  const [failed, setFailed] = useState(false);
+  const [problem, setProblem] = useState<Problem | null>(null);
   const [screen, setScreen] = useState<Screen>("trip");
 
   const load = useCallback(async () => {
-    setFailed(false);
+    setProblem(null);
+    const param = tripParam();
+    if (param.kind === "invalid") {
+      setProblem("notFound");
+      return;
+    }
     try {
-      const [first] = await listTrips();
-      const [trip, expenses, summary] = await Promise.all([getTrip(first.id), listExpenses(first.id), getSummary(first.id)]);
+      const tripId = param.kind === "id" ? param.id : (await listTrips())[0].id;
+      const [trip, expenses, summary] = await Promise.all([getTrip(tripId), listExpenses(tripId), getSummary(tripId)]);
       setData({ trip, expenses, summary });
-    } catch {
-      setFailed(true);
+    } catch (error) {
+      setProblem(error instanceof ApiError && error.status === 404 ? "notFound" : "unreachable");
     }
   }, []);
+
+  const openDemoTrip = () => {
+    if (IS_WEB) {
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    void load();
+  };
 
   useEffect(() => {
     void load();
@@ -56,7 +78,14 @@ export default function App() {
       <View style={styles.app}>
         {data === null ? (
           <View style={styles.center}>
-            {failed ? (
+            {problem === "notFound" ? (
+              <>
+                <Text style={styles.message}>{t("app.notFound")}</Text>
+                <Pressable onPress={openDemoTrip} accessibilityRole="button" style={styles.retry}>
+                  <Text style={styles.retryLabel}>{t("app.openDemo")}</Text>
+                </Pressable>
+              </>
+            ) : problem === "unreachable" ? (
               <>
                 <Text style={styles.message}>{t("app.loadFailed", { url: API_URL })}</Text>
                 <Pressable onPress={load} accessibilityRole="button" style={styles.retry}>
@@ -87,7 +116,12 @@ export default function App() {
             </View>
             <View style={styles.body}>
               {screen === "trip" ? (
-                <TripScreen trip={data.trip} expenses={data.expenses} summary={data.summary} />
+                <TripScreen
+                  trip={data.trip}
+                  expenses={data.expenses}
+                  summary={data.summary}
+                  onShowAllTransfers={() => setScreen("balances")}
+                />
               ) : (
                 <BalancesScreen summary={data.summary} />
               )}

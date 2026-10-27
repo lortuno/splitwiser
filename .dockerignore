@@ -5,3 +5,4 @@ dist-native
 .git
 .idea
 packages/api/var
+test-results

@@ -65,5 +65,6 @@ test('seedIfEmpty only seeds an empty database', function (): void {
 
     assertTrue($app->seeder()->seedIfEmpty());
     assertTrue(!$app->seeder()->seedIfEmpty());
-    assertSame(1, count($app->trips->findAll()));
+    assertSame(1 + count(Seeder::fixtures()), count($app->trips->findAll()));
+    assertSame(Seeder::TRIP_NAME, $app->trips->findAll()[0]->name, 'The demo trip stays first.');
 });

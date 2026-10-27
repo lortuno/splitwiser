@@ -26,6 +26,22 @@ export function formatCents(cents: number): string {
   return `${formatHundredths(cents)}${NBSP}${CURRENCY_SYMBOL}`;
 }
 
+const CENTS_PER_MILLION = 100_000_000;
+const CENTS_PER_HUNDREDTH_MILLION = CENTS_PER_MILLION / 100;
+
+/**
+ * Like formatCents, but from 1.000.000,00 € up in millions with two decimals, cut off (never rounded up)
+ * and without a trailing ",00": 234567891 -> "2,34 M €", 100000000 -> "1 M €". Used for the hero total only.
+ */
+export function formatCentsCompact(cents: number): string {
+  if (Math.abs(cents) < CENTS_PER_MILLION) {
+    return formatCents(cents);
+  }
+  const hundredths = Math.trunc(cents / CENTS_PER_HUNDREDTH_MILLION);
+  const millions = formatHundredths(hundredths).replace(/,00$/, "");
+  return `${millions}${NBSP}M${NBSP}${CURRENCY_SYMBOL}`;
+}
+
 /** Like formatCents but with an explicit "+" for positive amounts (used for balances). */
 export function formatSignedCents(cents: number): string {
   return cents > 0 ? `+${formatCents(cents)}` : formatCents(cents);
