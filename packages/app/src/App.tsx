@@ -10,7 +10,7 @@ import { t } from "./i18n";
 import { AddExpenseScreen } from "./screens/AddExpenseScreen";
 import { BalancesScreen } from "./screens/BalancesScreen";
 import { TripScreen } from "./screens/TripScreen";
-import { colors, font, radius, space, touchTarget } from "./theme";
+import { colors, radius, size, space, typeScale } from "./theme";
 
 interface TripData {
   trip: Trip;
@@ -19,7 +19,11 @@ interface TripData {
 }
 
 // Without a safe-area library, leave room for the iOS status bar / notch and the Android status bar.
-const TOP_INSET = Platform.select({ ios: 50, android: StatusBar.currentHeight ?? 24, default: 0 });
+const TOP_INSET = Platform.select({
+  ios: size.statusBarInsetIos,
+  android: StatusBar.currentHeight ?? size.statusBarInsetAndroid,
+  default: 0,
+});
 
 export default function App() {
   const [data, setData] = useState<TripData | null>(null);
@@ -61,7 +65,7 @@ export default function App() {
               </>
             ) : (
               <>
-                <ActivityIndicator color={colors.primary} />
+                <ActivityIndicator color={colors.accent} />
                 <Text style={styles.message}>{t("app.loading")}</Text>
               </>
             )}
@@ -113,25 +117,25 @@ function insertByDate(expenses: Expense[], expense: Expense): Expense[] {
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background, alignItems: "center" },
-  app: { flex: 1, width: "100%", maxWidth: 520, paddingTop: TOP_INSET, backgroundColor: colors.background },
+  page: { flex: 1, backgroundColor: colors.paper, alignItems: "center" },
+  app: { flex: 1, width: "100%", maxWidth: size.pageMaxWidth, paddingTop: TOP_INSET, backgroundColor: colors.paper },
   header: {
     paddingHorizontal: space.lg,
     paddingVertical: space.md,
     backgroundColor: colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.line,
   },
-  tripName: { fontSize: font.title, fontWeight: "700", color: colors.text },
+  tripName: { fontSize: typeScale.title, fontWeight: "700", color: colors.ink },
   body: { flex: 1 },
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: space.xl, gap: space.md },
-  message: { fontSize: font.body, color: colors.muted, textAlign: "center" },
+  message: { fontSize: typeScale.body, color: colors.inkMuted, textAlign: "center" },
   retry: {
-    minHeight: touchTarget,
+    minHeight: size.tapMin,
     paddingHorizontal: space.xl,
     justifyContent: "center",
     borderRadius: radius.sm,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
-  retryLabel: { color: colors.primaryText, fontSize: font.body, fontWeight: "700" },
+  retryLabel: { color: colors.onAccent, fontSize: typeScale.body, fontWeight: "700" },
 });

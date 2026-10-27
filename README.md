@@ -3,6 +3,7 @@
 A Splitwise-style travel expense app reduced to the thinnest end-to-end slice:
 **React Native (Expo, react-native-web) → plain PHP 8.4 API → SQLite**, with trips, people and expenses.
 No authentication, accounts, settle-up payments or currency conversion.
+The design decisions behind it are in [docs/plan.md](docs/plan.md).
 
 ## Run it
 

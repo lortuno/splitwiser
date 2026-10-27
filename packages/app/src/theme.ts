@@ -1,27 +1,39 @@
+// The only place for design values (see specs/guidelines/ui.md). Components reference these tokens,
+// never raw hex values or pixel numbers.
+
 export const colors = {
-  background: "#F4F1EC",
-  surface: "#FFFFFF",
-  text: "#1F2328",
-  muted: "#5F6670",
-  border: "#DDD7CE",
-  primary: "#0F6E66",
-  primaryText: "#FFFFFF",
-  primarySoft: "#DDEFEC",
-  positive: "#1B7A3A",
-  negative: "#B42318",
-  errorSoft: "#FDECEA",
+  paper: "#FBF4E6",
+  surface: "#FFFDF8",
+  ink: "#2B2622",
+  inkMuted: "#6B6258",
+  line: "#E7DCC8",
+  accent: "#D9472B",
+  accentSoft: "#F8DDD3",
+  onAccent: "#FFFDF8",
+  owed: "#2E6B3E",
+  owes: "#A6321C",
+  owesSoft: "#FBE6E0",
 };
 
-export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 };
+export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };
 
-export const radius = { sm: 8, md: 12, pill: 999 };
+export const radius = { sm: 8, md: 14, pill: 999 };
 
-/** Minimum touch target for one-thumb use. */
-export const touchTarget = 48;
+export const typeScale = { caption: 13, body: 16, title: 20, display: 28, hero: 44 };
 
-export const font = {
-  small: 13,
-  body: 16,
-  title: 20,
-  hero: 32,
+export const size = {
+  /** Minimum height of anything pressable. */
+  tapMin: 48,
+  /** Height of the primary action on a screen. */
+  tapPrimary: 56,
+  border: 1,
+  /** Width of the per-person amount / percentage / shares field. */
+  fieldWidth: 120,
+  /** Width of the currency / "%" / "×" suffix after a field. */
+  suffixWidth: 16,
+  /** The app column is centred on screens wider than this (web). */
+  pageMaxWidth: 520,
+  /** Space for the status bar / notch; no safe-area library is used. */
+  statusBarInsetIos: 50,
+  statusBarInsetAndroid: 24,
 };

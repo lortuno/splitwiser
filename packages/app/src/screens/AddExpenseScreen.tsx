@@ -9,9 +9,9 @@ import { FieldError } from "../components/FieldError";
 import { Money } from "../components/Money";
 import type { Expense, FieldErrors, NewExpense, Person, SplitShare, SplitType, TripSummary } from "../dto";
 import { t } from "../i18n";
-import { formatBasisPoints } from "../money/format";
+import { CURRENCY_SYMBOL, formatBasisPoints } from "../money/format";
 import { parseEuroToCents, parsePercentToBasisPoints, parseWholeNumber } from "../money/parse";
-import { colors, font, radius, space, touchTarget } from "../theme";
+import { colors, radius, size, space, typeScale } from "../theme";
 
 const SPLIT_TYPES: SplitType[] = ["equal", "exact", "percentage", "shares"];
 
@@ -191,7 +191,7 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
             value={name}
             onChangeText={changeName}
             placeholder={t("add.namePlaceholder")}
-            placeholderTextColor={colors.muted}
+            placeholderTextColor={colors.inkMuted}
             maxLength={120}
           />
         </Section>
@@ -204,19 +204,19 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
                 value={date}
                 onChangeText={changeDate}
                 placeholder="2026-06-01"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={colors.inkMuted}
                 maxLength={10}
               />
             </Section>
           </View>
           <View style={styles.column}>
-            <Section label={t("add.amount")} error={localAmountError ?? errorFor("amount_cents")}>
+            <Section label={t("add.amount", { currency: CURRENCY_SYMBOL })} error={localAmountError ?? errorFor("amount_cents")}>
               <TextInput
                 style={[styles.input, (localAmountError || errorFor("amount_cents")) && styles.inputError]}
                 value={amountText}
                 onChangeText={changeAmount}
                 placeholder="0,00"
-                placeholderTextColor={colors.muted}
+                placeholderTextColor={colors.inkMuted}
                 keyboardType="decimal-pad"
                 inputMode="decimal"
               />
@@ -238,7 +238,7 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
                 value={payerAmounts[m.id] ?? ""}
                 onChange={(text) => changePayerAmount(m.id, text)}
                 placeholder="0,00"
-                suffix="€"
+                suffix={CURRENCY_SYMBOL}
                 error={
                   payerAmounts[m.id] && parseEuroToCents(payerAmounts[m.id]) === null
                     ? t("add.invalidAmount")
@@ -278,7 +278,7 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
                 value={splitValues[m.id] ?? ""}
                 onChange={(text) => changeSplitValue(m.id, text)}
                 placeholder={splitType === "shares" ? "1" : "0,00"}
-                suffix={splitType === "exact" ? "€" : splitType === "percentage" ? "%" : "×"}
+                suffix={splitType === "exact" ? CURRENCY_SYMBOL : splitType === "percentage" ? "%" : "×"}
                 numeric={splitType === "shares"}
                 error={splitValueError(splitType, splitValues[m.id] ?? "") ?? errorFor(`split.${m.id}`)}
               />
@@ -312,7 +312,7 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
           accessibilityRole="button"
           style={({ pressed }) => [styles.save, (pressed || saving) && styles.savePressed]}
         >
-          {saving ? <ActivityIndicator color={colors.primaryText} /> : <Text style={styles.saveLabel}>{t("add.save")}</Text>}
+          {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.saveLabel}>{t("add.save")}</Text>}
         </Pressable>
       </View>
     </View>
@@ -368,7 +368,7 @@ function PersonInput(props: {
           value={props.value}
           onChangeText={props.onChange}
           placeholder={props.placeholder}
-          placeholderTextColor={colors.muted}
+          placeholderTextColor={colors.inkMuted}
           keyboardType={props.numeric ? "number-pad" : "decimal-pad"}
           inputMode={props.numeric ? "numeric" : "decimal"}
           accessibilityLabel={props.person.name}
@@ -390,51 +390,51 @@ const styles = StyleSheet.create({
     paddingVertical: space.sm,
     backgroundColor: colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.border,
+    borderBottomColor: colors.line,
   },
-  title: { fontSize: font.title, fontWeight: "700", color: colors.text },
-  cancel: { minHeight: touchTarget, justifyContent: "center", paddingHorizontal: space.sm },
-  cancelLabel: { fontSize: font.body, color: colors.primary, fontWeight: "600" },
+  title: { fontSize: typeScale.title, fontWeight: "700", color: colors.ink },
+  cancel: { minHeight: size.tapMin, justifyContent: "center", paddingHorizontal: space.sm },
+  cancelLabel: { fontSize: typeScale.body, color: colors.accent, fontWeight: "600" },
   content: { padding: space.lg, paddingBottom: space.xl },
   section: { marginBottom: space.lg },
-  label: { fontSize: font.body, fontWeight: "700", color: colors.text, marginBottom: space.sm },
-  hint: { fontSize: font.small, color: colors.muted, marginTop: -space.xs, marginBottom: space.sm },
+  label: { fontSize: typeScale.body, fontWeight: "700", color: colors.ink, marginBottom: space.sm },
+  hint: { fontSize: typeScale.caption, color: colors.inkMuted, marginTop: -space.xs, marginBottom: space.sm },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   input: {
-    minHeight: touchTarget,
-    borderWidth: 1,
-    borderColor: colors.border,
+    minHeight: size.tapMin,
+    borderWidth: size.border,
+    borderColor: colors.line,
     borderRadius: radius.sm,
     paddingHorizontal: space.md,
-    fontSize: font.body,
-    color: colors.text,
+    fontSize: typeScale.body,
+    color: colors.ink,
     backgroundColor: colors.surface,
   },
-  inputError: { borderColor: colors.negative, backgroundColor: colors.errorSoft },
+  inputError: { borderColor: colors.owes, backgroundColor: colors.owesSoft },
   twoColumns: { flexDirection: "row", gap: space.md },
   column: { flex: 1 },
-  segments: { flexDirection: "row", borderRadius: radius.sm, borderWidth: 1, borderColor: colors.border, overflow: "hidden" },
-  segment: { flex: 1, minHeight: touchTarget, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface },
-  segmentActive: { backgroundColor: colors.primary },
-  segmentLabel: { fontSize: font.small, color: colors.text },
-  segmentLabelActive: { color: colors.primaryText, fontWeight: "700" },
+  segments: { flexDirection: "row", borderRadius: radius.sm, borderWidth: size.border, borderColor: colors.line, overflow: "hidden" },
+  segment: { flex: 1, minHeight: size.tapMin, alignItems: "center", justifyContent: "center", backgroundColor: colors.surface },
+  segmentActive: { backgroundColor: colors.accent },
+  segmentLabel: { fontSize: typeScale.caption, color: colors.ink },
+  segmentLabelActive: { color: colors.onAccent, fontWeight: "700" },
   personInput: { marginTop: space.sm },
   personRow: { flexDirection: "row", alignItems: "center", gap: space.sm },
-  personName: { flex: 1, fontSize: font.body, color: colors.text },
-  personField: { width: 120, textAlign: "right" },
-  suffix: { width: 16, fontSize: font.body, color: colors.muted },
+  personName: { flex: 1, fontSize: typeScale.body, color: colors.ink },
+  personField: { width: size.fieldWidth, textAlign: "right" },
+  suffix: { width: size.suffixWidth, fontSize: typeScale.body, color: colors.inkMuted },
   preview: { marginBottom: space.md },
   previewRow: { flexDirection: "row", justifyContent: "space-between", paddingVertical: space.xs },
-  previewName: { fontSize: font.body, color: colors.text },
-  previewAmount: { fontSize: font.body, fontWeight: "600" },
+  previewName: { fontSize: typeScale.body, color: colors.ink },
+  previewAmount: { fontSize: typeScale.body, fontWeight: "600" },
   footer: {
     padding: space.sm,
     backgroundColor: colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: colors.line,
   },
-  footerError: { color: colors.negative, fontSize: font.small, marginBottom: space.xs, textAlign: "center" },
-  save: { minHeight: touchTarget, borderRadius: radius.sm, backgroundColor: colors.primary, alignItems: "center", justifyContent: "center" },
+  footerError: { color: colors.owes, fontSize: typeScale.caption, marginBottom: space.xs },
+  save: { minHeight: size.tapPrimary, borderRadius: radius.sm, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" },
   savePressed: { opacity: 0.7 },
-  saveLabel: { color: colors.primaryText, fontSize: font.body, fontWeight: "700" },
+  saveLabel: { color: colors.onAccent, fontSize: typeScale.body, fontWeight: "700" },
 });

@@ -26,7 +26,7 @@ export const en = {
   "add.name": "What was it?",
   "add.namePlaceholder": "Dinner at the harbour",
   "add.date": "Date (YYYY-MM-DD)",
-  "add.amount": "Amount (€)",
+  "add.amount": "Amount ({currency})",
   "add.paidBy": "Paid by",
   "add.paidByHint": "Who handed over the money. Pick several people if you shared the bill.",
   "add.splitBetween": "Split between",

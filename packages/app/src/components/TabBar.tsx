@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { t } from "../i18n";
-import { colors, font, radius, space, touchTarget } from "../theme";
+import { colors, radius, size, space, typeScale } from "../theme";
 
 export type Screen = "trip" | "balances" | "add";
 
@@ -36,25 +36,25 @@ const styles = StyleSheet.create({
     padding: space.sm,
     backgroundColor: colors.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
+    borderTopColor: colors.line,
   },
   tab: {
     flex: 1,
-    minHeight: touchTarget,
+    minHeight: size.tapMin,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.sm,
   },
-  activeTab: { backgroundColor: colors.primarySoft },
-  tabLabel: { fontSize: font.body, color: colors.muted },
-  activeLabel: { color: colors.primary, fontWeight: "700" },
+  activeTab: { backgroundColor: colors.accentSoft },
+  tabLabel: { fontSize: typeScale.body, color: colors.inkMuted },
+  activeLabel: { color: colors.accent, fontWeight: "700" },
   add: {
     flex: 1.4,
-    minHeight: touchTarget,
+    minHeight: size.tapPrimary,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: radius.sm,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent,
   },
-  addLabel: { fontSize: font.body, color: colors.primaryText, fontWeight: "700" },
+  addLabel: { fontSize: typeScale.body, color: colors.onAccent, fontWeight: "700" },
 });

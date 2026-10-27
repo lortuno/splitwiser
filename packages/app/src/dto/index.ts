@@ -58,7 +58,8 @@ export interface Transfer {
 
 export interface TripSummary {
   trip_id: number;
-  currency: "EUR";
+  /** Currency code from the API; the app formats cents with money/format.ts. */
+  currency: string;
   total_cents: number;
   expense_count: number;
   balances: Balance[];

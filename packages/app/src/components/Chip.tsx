@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text } from "react-native";
 
-import { colors, font, radius, space, touchTarget } from "../theme";
+import { colors, radius, size, space, typeScale } from "../theme";
 
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   return (
@@ -20,16 +20,16 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
 
 const styles = StyleSheet.create({
   chip: {
-    minHeight: touchTarget,
+    minHeight: size.tapMin,
     paddingHorizontal: space.lg,
     justifyContent: "center",
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: size.border,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
   },
-  selected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  selected: { backgroundColor: colors.accent, borderColor: colors.accent },
   pressed: { opacity: 0.7 },
-  label: { fontSize: font.body, color: colors.text },
-  selectedLabel: { color: colors.primaryText, fontWeight: "600" },
+  label: { fontSize: typeScale.body, color: colors.ink },
+  selectedLabel: { color: colors.onAccent, fontWeight: "600" },
 });

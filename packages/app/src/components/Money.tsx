@@ -10,7 +10,7 @@ export function Money({ cents, signed = false, style }: { cents: number; signed?
 }
 
 const styles = StyleSheet.create({
-  money: { fontVariant: ["tabular-nums"], color: colors.text },
-  positive: { color: colors.positive },
-  negative: { color: colors.negative },
+  money: { fontVariant: ["tabular-nums"], color: colors.ink },
+  positive: { color: colors.owed },
+  negative: { color: colors.owes },
 });

@@ -1,6 +1,6 @@
 import { StyleSheet, Text } from "react-native";
 
-import { colors, font, space } from "../theme";
+import { colors, space, typeScale } from "../theme";
 
 export function FieldError({ message }: { message?: string }) {
   if (!message) {
@@ -14,5 +14,5 @@ export function FieldError({ message }: { message?: string }) {
 }
 
 const styles = StyleSheet.create({
-  error: { color: colors.negative, fontSize: font.small, marginTop: space.xs },
+  error: { color: colors.owes, fontSize: typeScale.caption, marginTop: space.xs },
 });

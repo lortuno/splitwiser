@@ -4,7 +4,7 @@ import { Card } from "../components/Card";
 import { Money } from "../components/Money";
 import type { Expense, Trip, TripSummary } from "../dto";
 import { formatDate, joinNames, t } from "../i18n";
-import { colors, font, space } from "../theme";
+import { colors, space, typeScale } from "../theme";
 
 export function TripScreen({ trip, expenses, summary }: { trip: Trip; expenses: Expense[]; summary: TripSummary }) {
   return (
@@ -55,12 +55,12 @@ function ExpenseRow({ expense }: { expense: Expense }) {
 const styles = StyleSheet.create({
   content: { padding: space.lg, paddingBottom: space.xl },
   total: { marginBottom: space.lg, alignItems: "flex-start" },
-  totalLabel: { fontSize: font.body, color: colors.muted },
-  totalAmount: { fontSize: font.hero, fontWeight: "700", marginVertical: space.xs },
+  totalLabel: { fontSize: typeScale.body, color: colors.inkMuted },
+  totalAmount: { fontSize: typeScale.hero, fontWeight: "700", marginVertical: space.xs },
   separator: { height: space.sm },
   rowTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: space.md },
-  name: { flex: 1, fontSize: font.body, fontWeight: "600", color: colors.text },
-  amount: { fontSize: font.body, fontWeight: "700" },
-  detail: { fontSize: font.small, color: colors.text, marginTop: space.xs },
-  muted: { fontSize: font.small, color: colors.muted, marginTop: space.xs },
+  name: { flex: 1, fontSize: typeScale.body, fontWeight: "600", color: colors.ink },
+  amount: { fontSize: typeScale.body, fontWeight: "700" },
+  detail: { fontSize: typeScale.caption, color: colors.ink, marginTop: space.xs },
+  muted: { fontSize: typeScale.caption, color: colors.inkMuted, marginTop: space.xs },
 });

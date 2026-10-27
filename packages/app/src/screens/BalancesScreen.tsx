@@ -4,7 +4,7 @@ import { Card } from "../components/Card";
 import { Money } from "../components/Money";
 import type { TripSummary } from "../dto";
 import { t } from "../i18n";
-import { colors, font, space } from "../theme";
+import { colors, space, typeScale } from "../theme";
 
 export function BalancesScreen({ summary }: { summary: TripSummary }) {
   return (
@@ -46,11 +46,11 @@ export function BalancesScreen({ summary }: { summary: TripSummary }) {
 
 const styles = StyleSheet.create({
   content: { padding: space.lg, paddingBottom: space.xl },
-  heading: { fontSize: font.title, fontWeight: "700", color: colors.text, marginBottom: space.md, marginTop: space.sm },
+  heading: { fontSize: typeScale.title, fontWeight: "700", color: colors.ink, marginBottom: space.md, marginTop: space.sm },
   card: { marginBottom: space.sm },
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
-  name: { fontSize: font.body, fontWeight: "600", color: colors.text },
-  net: { fontSize: font.body, fontWeight: "700" },
-  muted: { fontSize: font.small, color: colors.muted, marginTop: space.xs },
-  transfer: { flex: 1, fontSize: font.body, color: colors.text },
+  name: { fontSize: typeScale.body, fontWeight: "600", color: colors.ink },
+  net: { fontSize: typeScale.body, fontWeight: "700" },
+  muted: { fontSize: typeScale.caption, color: colors.inkMuted, marginTop: space.xs },
+  transfer: { flex: 1, fontSize: typeScale.body, color: colors.ink },
 });

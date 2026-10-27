@@ -13,6 +13,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: space.lg,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    borderColor: colors.line,
   },
 });

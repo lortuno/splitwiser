@@ -1,11 +1,13 @@
 // Parses user input into integers without ever going through floating point.
-// Accepts "12", "12,5", "12,50", "12.50" (and an optional "€"); rejects thousands separators,
+// Accepts "12", "12,5", "12,50", "12.50" (and an optional currency symbol); rejects thousands separators,
 // more than two decimals, negatives and anything else by returning null.
+
+import { CURRENCY_SYMBOL } from "./format";
 
 const DECIMAL = /^(\d{1,9})(?:[.,](\d{1,2}))?$/;
 
 function parseHundredths(input: string): number | null {
-  const match = DECIMAL.exec(input.replace(/€|%|\s/g, ""));
+  const match = DECIMAL.exec(input.split(CURRENCY_SYMBOL).join("").replace(/%|\s/g, ""));
   if (!match) {
     return null;
   }

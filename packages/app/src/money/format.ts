@@ -1,7 +1,10 @@
 // Money is always integer cents. Display rule: "," as decimal separator, exactly two decimals,
-// "." between thousands, a non-breaking space before the symbol: 123456 -> "1.234,56 €".
+// "." between thousands, a non-breaking space before the currency symbol: 123456 -> "1.234,56 €".
 
-const NBSP = " ";
+const NBSP = "\u00A0";
+
+/** The only place the app names the currency: euros are the only currency. */
+export const CURRENCY_SYMBOL = "€";
 
 function groupThousands(digits: string): string {
   return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -20,7 +23,7 @@ function formatHundredths(value: number): string {
 }
 
 export function formatCents(cents: number): string {
-  return `${formatHundredths(cents)}${NBSP}€`;
+  return `${formatHundredths(cents)}${NBSP}${CURRENCY_SYMBOL}`;
 }
 
 /** Like formatCents but with an explicit "+" for positive amounts (used for balances). */
