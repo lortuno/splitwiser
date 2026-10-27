@@ -8,11 +8,36 @@
             "type": "command",
             "command": "docker",
             "args": [
-              "run", "--rm", "-i",
-              "-e", "CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR}",
-              "-v", "${CLAUDE_PROJECT_DIR}/.claude/hooks:/hooks:ro",
+              "run",
+              "--rm",
+              "-i",
+              "-e",
+              "CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR}",
+              "-v",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks:/hooks:ro",
               "oven/bun:1.4.3-debian",
-              "bun", "/hooks/dependency-guard.ts"
+              "bun",
+              "/hooks/dependency-guard.ts"
+            ]
+          },
+          {
+            "type": "command",
+            "command": "docker",
+            "args": [
+              "run",
+              "--rm",
+              "-i",
+              "-e",
+              "CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR}",
+              "-e",
+              "ESTIMATES_PATH=/docs/estimates.md",
+              "-v",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks:/hooks:ro",
+              "-v",
+              "${CLAUDE_PROJECT_DIR}/docs:/docs:ro",
+              "oven/bun:1.4.3-debian",
+              "bun",
+              "/hooks/estimate-guard.ts"
             ]
           }
         ]

@@ -1,0 +1,9 @@
+# Estimates
+
+Development hours only: from To Do through Ready for Dev and In Progress until Ready to Deploy.
+Manual QA and deployment windows are not included. Append a row before starting a feature, leave
+Actual empty while it is in progress, and fill it in when the feature reaches Ready to Deploy.
+Rows are append-only. Rules: "Estimates" in AGENTS.md; enforced by `.claude/hooks/estimate-guard.ts`.
+
+| Date | Feature | Estimate (h) | Actual (h) |
+|---|---|---|---|
