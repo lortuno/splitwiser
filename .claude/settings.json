@@ -42,6 +42,21 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docker run --rm -i --network none -e CLAUDE_PROJECT_DIR=\"$CLAUDE_PROJECT_DIR\" -v \"$CLAUDE_PROJECT_DIR:$CLAUDE_PROJECT_DIR:ro\" -v \"$CLAUDE_PROJECT_DIR/specs:$CLAUDE_PROJECT_DIR/specs\" -v \"$HOME/.claude/projects:$HOME/.claude/projects:ro\" oven/bun:1.4.3-debian bun \"$CLAUDE_PROJECT_DIR/.claude/hooks/progress-reminder.ts\"",
+            "timeout": 30
+          }
+        ]
+      }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "P=\"${CLAUDE_PROJECT_DIR:-$PWD}\"; docker run --rm -i --network none -v \"$P/.claude:/statusline:ro\" -v \"$P/specs:$P/specs:ro\" -v \"$HOME/.claude/projects:$HOME/.claude/projects:ro\" -w \"$P\" oven/bun:1.4.3-debian bun /statusline/statusline.ts 2>/dev/null || echo 'status line unavailable: is Docker running?'"
   }
 }
