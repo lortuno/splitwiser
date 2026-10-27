@@ -8,6 +8,9 @@ Stack: Expo (React Native + react-native-web, TypeScript) → plain PHP 8.4 API 
 - All tests (PHP + TypeScript): `docker compose run --rm app bun test`
 - One group: `docker compose run --rm app bun test tests/unit` (app, pure TS), `tests/functional` (PHP API + SQLite), `tests/hooks` (Claude Code hooks) or `tests/e2e` (Playwright in Chromium at 390x844; starts its own seeded API and web export, screenshots in `test-results/e2e/`). Each kind of test lives only in its own folder.
 
+## Specs
+- Specify an epic or a new feature with `/spec {epic number or feature}` (`.claude/skills/spec/SKILL.md`). It writes `specs/{nr}-{name}-brainstorming.md` one round at a time, waits for the user's answers in that file, then writes `specs/{nr}-{name}-specification.md`. Enforced by `.claude/hooks/spec-loop-guard.ts`.
+
 ## Before you change things
 - Read `specs/guidelines/architecture.md` before adding a package, service or dependency.
 - Read `specs/guidelines/ui.md` before building a screen.

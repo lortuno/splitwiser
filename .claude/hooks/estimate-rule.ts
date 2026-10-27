@@ -89,7 +89,7 @@ const badLog = (problem: string): Decision => ({
 });
 
 // Best effort: does this shell command write files? Harmless redirects are removed first.
-const writes = (command: string): boolean => {
+export const writes = (command: string): boolean => {
   const stripped = command.replace(/\d*>&\d+|\d*>\s*\/dev\/null|=>|->/g, "");
   return (
     stripped.includes(">") ||
