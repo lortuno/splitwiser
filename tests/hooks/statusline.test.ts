@@ -9,6 +9,10 @@ const script = resolve(import.meta.dir, "../../.claude/statusline.ts");
 const fixtures = resolve(import.meta.dir, "fixtures/statusline");
 const transcript = join(fixtures, "transcript.jsonl");
 const tokenFields = { context_window: { total_input_tokens: 30000, total_output_tokens: 1200 } };
+const percentFields = {
+  context_window: { total_input_tokens: 30000, total_output_tokens: 1200, used_percentage: 40.6 },
+  rate_limits: { five_hour: { used_percentage: 33.5, resets_at: 1793000000 } },
+};
 
 const run = (stdin: string, cwd = fixtures) => {
   const result = Bun.spawnSync(["bun", script], { stdin: new TextEncoder().encode(stdin), cwd });
@@ -19,13 +23,13 @@ const statusFor = (fixture: string, extra: object = {}) =>
 
 describe("status line per fixture", () => {
   test.each([
-    ["no-spec", "no active spec · 48.2k tokens · Opus"],
-    ["no-progress", "no active spec · 48.2k tokens · Opus"],
-    ["zero-done", "01-trip-view  [░░░░░░░░░░░░░░░░] 0/16 checks · 100% left · 48.2k tokens · Opus"],
-    ["six-done", "01-trip-view  [██████░░░░░░░░░░] 6/16 checks · 62% left · 48.2k tokens · Opus"],
-    ["all-done", "no active spec · 48.2k tokens · Opus"],
-    ["malformed", "01-trip-view  [████░░░░░░░░░░░░] 4/16 checks · 75% left · 48.2k tokens · Opus"],
-    ["older-epic-active", "01-trip-view  [██░░░░░░░░░░░░░░] 2/16 checks · 88% left · 48.2k tokens · Opus"],
+    ["no-spec", "no active spec · 48.2k tok · Opus"],
+    ["no-progress", "no active spec · 48.2k tok · Opus"],
+    ["zero-done", "01-trip-view  [░░░░░░░░░░░░░░░░] 0/16 · 100% left · 48.2k tok · Opus"],
+    ["six-done", "01-trip-view  [██████░░░░░░░░░░] 6/16 · 62% left · 48.2k tok · Opus"],
+    ["all-done", "no active spec · 48.2k tok · Opus"],
+    ["malformed", "01-trip-view  [████░░░░░░░░░░░░] 4/16 · 75% left · 48.2k tok · Opus"],
+    ["older-epic-active", "01-trip-view  [██░░░░░░░░░░░░░░] 2/16 · 88% left · 48.2k tok · Opus"],
   ])("%s", (fixture, expected) => {
     expect(statusFor(fixture)).toBe(`${expected}\n`);
   });
@@ -40,24 +44,42 @@ describe("status line per fixture", () => {
 
 describe("tokens", () => {
   test("stdin with token fields: the transcript total wins, because context_window is only the current context", () => {
-    expect(statusFor("six-done", tokenFields)).toContain("· 48.2k tokens ·");
+    expect(statusFor("six-done", tokenFields)).toContain("· 48.2k tok ·");
   });
 
   test("stdin with token fields and no readable transcript: falls back to context_window", () => {
-    expect(statusFor("six-done", { ...tokenFields, transcript_path: join(fixtures, "missing.jsonl") })).toContain("· 31.2k tokens ·");
+    expect(statusFor("six-done", { ...tokenFields, transcript_path: join(fixtures, "missing.jsonl") })).toContain("· 31.2k tok ·");
   });
 
   test("stdin without token fields: sums the transcript", () => {
-    expect(statusFor("six-done")).toContain("· 48.2k tokens ·");
+    expect(statusFor("six-done")).toContain("· 48.2k tok ·");
   });
 
   test("stdin without token fields or transcript", () => {
-    expect(run(JSON.stringify({ workspace: { project_dir: join(fixtures, "no-spec") } })).out).toBe("no active spec · 0 tokens\n");
+    expect(run(JSON.stringify({ workspace: { project_dir: join(fixtures, "no-spec") } })).out).toBe("no active spec · 0 tok\n");
   });
 
   test("large counts", () => {
-    expect(renderLine(null, 999, "Opus")).toBe("no active spec · 999 tokens · Opus");
-    expect(renderLine(null, 1_234_567, "Opus")).toBe("no active spec · 1.23M tokens · Opus");
+    expect(renderLine(null, { tokens: 999, model: "Opus" })).toBe("no active spec · 999 tok · Opus");
+    expect(renderLine(null, { tokens: 1_234_567, model: "Opus" })).toBe("no active spec · 1.23M tok · Opus");
+  });
+});
+
+describe("share of the session limit and the context window", () => {
+  test("both percentages, rounded", () => {
+    expect(statusFor("six-done", percentFields)).toBe(
+      "01-trip-view  [██████░░░░░░░░░░] 6/16 · 62% left · 48.2k tok · 34% session · 41% ctx · Opus\n",
+    );
+  });
+
+  test("without an active spec", () => {
+    expect(statusFor("no-spec", percentFields)).toBe("no active spec · 48.2k tok · 34% session · 41% ctx · Opus\n");
+  });
+
+  test("left out when the input has none: API key accounts have no rate limits, the context is null at first", () => {
+    const input = { context_window: { used_percentage: null }, rate_limits: { five_hour: {} } };
+    expect(statusFor("six-done", input)).toBe("01-trip-view  [██████░░░░░░░░░░] 6/16 · 62% left · 48.2k tok · Opus\n");
+    expect(renderLine(null, { tokens: 5, contextPct: 0 })).toBe("no active spec · 5 tok · 0% ctx");
   });
 });
 
@@ -65,13 +87,14 @@ describe("never breaks the terminal", () => {
   test.each([[""], ["not json"], ["null"], ['{"workspace":{"project_dir":"/does/not/exist"}}']])("stdin %p", (stdin) => {
     const { out, code } = run(stdin, join(fixtures, "no-spec"));
     expect(code).toBe(0);
-    expect(out).toBe("no active spec · 0 tokens\n");
+    expect(out).toBe("no active spec · 0 tok\n");
   });
 
   test("never wider than 100 characters", () => {
-    const line = renderLine({ label: `07-${"a-very-long-epic-name-".repeat(5)}`, done: 3, total: 16 }, 123_456_789, "Opus 5.5 (1M context)");
+    const usage = { tokens: 123_456_789, sessionPct: 100, contextPct: 100, model: "Opus 5.5 (1M context)" };
+    const line = renderLine({ label: `07-${"a-very-long-epic-name-".repeat(5)}`, done: 3, total: 16 }, usage);
     expect([...line].length).toBeLessThanOrEqual(100);
-    expect(line).toContain("[███░░░░░░░░░░░░░] 3/16 checks");
+    expect(line).toContain("[███░░░░░░░░░░░░░] 3/16 · 81% left · 123.46M tok · 100% session · 100% ctx");
   });
 });
 

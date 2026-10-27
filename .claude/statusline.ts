@@ -1,6 +1,6 @@
 // Status line: progress of the active epic and the tokens this session has used, on one line.
 // Reads the status line JSON from stdin and prints e.g.
-//   01-trip-view  [██████░░░░░░░░░░] 6/16 checks · 62% left · 48.2k tokens · Opus
+//   01-trip-view  [██████░░░░░░░░░░] 6/16 · 62% left · 48.2k tok · 34% session · 41% ctx · Opus
 // Never fails: on any error it still prints a short line and exits 0.
 // The pure parts are exported for tests and for .claude/hooks/progress-reminder.ts.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
@@ -136,7 +136,8 @@ export type StatusInput = {
   workspace?: { project_dir?: string };
   cwd?: string;
   transcript_path?: string;
-  context_window?: { total_input_tokens?: number; total_output_tokens?: number };
+  context_window?: { total_input_tokens?: number; total_output_tokens?: number; used_percentage?: number | null };
+  rate_limits?: { five_hour?: { used_percentage?: number | null } };
 };
 
 // The status line JSON has no session total (context_window.* is only what is in the context right now),
@@ -175,13 +176,25 @@ const fit = (text: string, width: number): string => {
 
 type Shown = { label: string; done: number; total: number };
 
-export const renderLine = (epic: Shown | null, tokens: number, model?: string): string => {
-  const tail = [`${formatTokens(tokens)} tokens`, ...(model ? [model] : [])].join(" · ");
+// Session tokens, the share of the 5-hour session limit and of the context window used, and the model.
+// A percentage the input does not have (yet) is left out.
+export type Consumption = { tokens: number; sessionPct?: number | null; contextPct?: number | null; model?: string };
+
+const percent = (value: number | null | undefined, name: string): string[] =>
+  typeof value === "number" && Number.isFinite(value) ? [`${Math.round(value)}% ${name}`] : [];
+
+export const renderLine = (epic: Shown | null, usage: Consumption): string => {
+  const tail = [
+    `${formatTokens(usage.tokens)} tok`,
+    ...percent(usage.sessionPct, "session"),
+    ...percent(usage.contextPct, "ctx"),
+    ...(usage.model ? [usage.model] : []),
+  ].join(" · ");
   if (!epic) return fit(`no active spec · ${tail}`, MAX_WIDTH);
   const filled = roundHalfEven(epic.done * BAR_WIDTH, epic.total);
   const bar = "█".repeat(filled) + "░".repeat(BAR_WIDTH - filled);
   const left = roundHalfEven((epic.total - epic.done) * 100, epic.total);
-  const rest = `  [${bar}] ${epic.done}/${epic.total} checks · ${left}% left · ${tail}`;
+  const rest = `  [${bar}] ${epic.done}/${epic.total} · ${left}% left · ${tail}`;
   const label = fit(epic.label, Math.max(8, MAX_WIDTH - [...rest].length));
   return fit(label + rest, MAX_WIDTH);
 };
@@ -193,14 +206,18 @@ export const statusLine = (raw: string, fallbackRoot: string): string => {
   } catch {
     // No or broken JSON: show what the files say.
   }
-  const tokens = sessionTokens(input);
-  const model = input.model?.display_name;
+  const usage: Consumption = {
+    tokens: sessionTokens(input),
+    sessionPct: input.rate_limits?.five_hour?.used_percentage,
+    contextPct: input.context_window?.used_percentage,
+    model: input.model?.display_name,
+  };
   try {
     const epic = activeEpic(input.workspace?.project_dir ?? input.cwd ?? fallbackRoot);
-    if (!epic?.hasProgress) return renderLine(null, tokens, model);
-    return renderLine({ label: epic.label, done: epic.done, total: epic.checks.length }, tokens, model);
+    if (!epic?.hasProgress) return renderLine(null, usage);
+    return renderLine({ label: epic.label, done: epic.done, total: epic.checks.length }, usage);
   } catch {
-    return renderLine(null, tokens, model);
+    return renderLine(null, usage);
   }
 };
 
