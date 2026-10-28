@@ -8,6 +8,7 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
       onPress={onPress}
       accessibilityRole="checkbox"
       accessibilityState={{ checked: selected }}
+      aria-checked={selected}
       style={({ pressed }) => [styles.chip, selected && styles.selected, pressed && styles.pressed]}
     >
       <Text style={[styles.label, selected && styles.selectedLabel]}>

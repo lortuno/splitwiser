@@ -21,7 +21,7 @@ export function setUnauthenticatedHandler(handler: () => void): void {
   onUnauthenticated = handler;
 }
 
-export async function request<T>(path: string, init: { method?: "GET" | "POST" | "PATCH"; body?: unknown } = {}): Promise<T> {
+export async function request<T>(path: string, init: { method?: "GET" | "POST" | "PUT" | "PATCH"; body?: unknown } = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {};
   if (init.body !== undefined) {

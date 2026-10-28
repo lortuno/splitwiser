@@ -18,6 +18,7 @@ final readonly class TripSummary implements \JsonSerializable
         public int $expenseCount,
         public array $balances,
         public array $transfers,
+        public ?TripPaid $paid = null,
     ) {
     }
 
@@ -30,6 +31,7 @@ final readonly class TripSummary implements \JsonSerializable
             'expense_count' => $this->expenseCount,
             'balances' => $this->balances,
             'transfers' => $this->transfers,
+            'paid' => $this->paid,
         ];
     }
 }

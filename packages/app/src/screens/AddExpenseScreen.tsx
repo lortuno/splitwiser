@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ApiError } from "../api/client";
-import { createExpense, previewSplit } from "../api/expenses";
+import { createExpense, previewSplit, updateExpense } from "../api/expenses";
 import { Card } from "../components/Card";
 import { Chip } from "../components/Chip";
 import { FieldError } from "../components/FieldError";
 import { Money } from "../components/Money";
 import type { Expense, FieldErrors, NewExpense, Person, SplitShare, SplitType, TripSummary } from "../dto";
+import { emptyForm, formFromExpense } from "../expenses/expenseForm";
 import { t } from "../i18n";
 import { CURRENCY_SYMBOL, formatBasisPoints } from "../money/format";
 import { parseEuroToCents, parsePercentToBasisPoints, parseWholeNumber } from "../money/parse";
@@ -19,23 +20,28 @@ interface Props {
   tripId: number;
   members: Person[];
   defaultDate: string;
+  /** Set to edit this saved expense: the form opens prefilled and saves with PUT. */
+  expense?: Expense;
   onSaved: (expense: Expense, summary: TripSummary) => void;
-  onCancel: () => void;
+  /** tripPaid: a save was refused because someone marked the trip as paid meanwhile. */
+  onCancel: (tripPaid: boolean) => void;
 }
 
-export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCancel }: Props) {
-  const [name, setName] = useState("");
-  const [date, setDate] = useState(defaultDate);
-  const [amountText, setAmountText] = useState("");
-  const [payers, setPayers] = useState<number[]>([]);
-  const [payerAmounts, setPayerAmounts] = useState<Record<number, string>>({});
-  const [splitType, setSplitType] = useState<SplitType>("equal");
-  const [between, setBetween] = useState<number[]>(members.map((m) => m.id));
-  const [splitValues, setSplitValues] = useState<Record<number, string>>({});
+export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSaved, onCancel }: Props) {
+  const [initial] = useState(() => (expense ? formFromExpense(expense) : emptyForm(members, defaultDate)));
+  const [name, setName] = useState(initial.name);
+  const [date, setDate] = useState(initial.date);
+  const [amountText, setAmountText] = useState(initial.amountText);
+  const [payers, setPayers] = useState<number[]>(initial.payers);
+  const [payerAmounts, setPayerAmounts] = useState<Record<number, string>>(initial.payerAmounts);
+  const [splitType, setSplitType] = useState<SplitType>(initial.splitType);
+  const [between, setBetween] = useState<number[]>(initial.between);
+  const [splitValues, setSplitValues] = useState<Record<number, string>>(initial.splitValues);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [preview, setPreview] = useState<SplitShare[] | null>(null);
   const [previewErrors, setPreviewErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
+  const [tripPaid, setTripPaid] = useState(false);
 
   const amountCents = parseEuroToCents(amountText);
   const sortedPayers = members.filter((m) => payers.includes(m.id));
@@ -147,10 +153,15 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
   async function save() {
     setSaving(true);
     try {
-      const result = await createExpense(tripId, input);
+      const result = expense ? await updateExpense(tripId, expense.id, input) : await createExpense(tripId, input);
       onSaved(result.expense, result.summary);
     } catch (error) {
-      setErrors(error instanceof ApiError ? error.fieldErrors : { form: { code: "network", message: String(error) } });
+      if (error instanceof ApiError && error.code === "trip_paid") {
+        setTripPaid(true);
+        setErrors({});
+      } else {
+        setErrors(error instanceof ApiError ? error.fieldErrors : { form: { code: "network", message: String(error) } });
+      }
     } finally {
       setSaving(false);
     }
@@ -163,8 +174,8 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t("add.title")}</Text>
-        <Pressable onPress={onCancel} accessibilityRole="button" style={styles.cancel}>
+        <Text style={styles.title}>{t(expense ? "edit.title" : "add.title")}</Text>
+        <Pressable onPress={() => onCancel(tripPaid)} accessibilityRole="button" style={styles.cancel}>
           <Text style={styles.cancelLabel}>{t("add.cancel")}</Text>
         </Pressable>
       </View>
@@ -249,6 +260,7 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
                 onPress={() => chooseSplitType(type)}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: splitType === type }}
+                aria-checked={splitType === type}
                 style={[styles.segment, splitType === type && styles.segmentActive]}
               >
                 <Text style={[styles.segmentLabel, splitType === type && styles.segmentLabelActive]}>{t(`split.${type}`)}</Text>
@@ -290,6 +302,11 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
       </ScrollView>
 
       <View style={styles.footer}>
+        {tripPaid && (
+          <View style={styles.tripPaid}>
+            <Text style={styles.tripPaidLabel}>{t("add.tripPaid")}</Text>
+          </View>
+        )}
         {Object.keys(errors).length > 0 && <Text style={styles.footerError}>{errors.form?.message ?? t("add.fixErrors")}</Text>}
         <Pressable
           onPress={save}
@@ -297,7 +314,7 @@ export function AddExpenseScreen({ tripId, members, defaultDate, onSaved, onCanc
           accessibilityRole="button"
           style={({ pressed }) => [styles.save, (pressed || saving) && styles.savePressed]}
         >
-          {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.saveLabel}>{t("add.save")}</Text>}
+          <Text style={styles.saveLabel}>{t(saving ? "add.saving" : expense ? "edit.save" : "add.save")}</Text>
         </Pressable>
       </View>
     </View>
@@ -419,6 +436,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.line,
   },
   footerError: { color: colors.owes, fontSize: typeScale.caption, marginBottom: space.xs },
+  tripPaid: { backgroundColor: colors.owesSoft, borderRadius: radius.sm, padding: space.md, marginBottom: space.sm },
+  tripPaidLabel: { color: colors.owes, fontSize: typeScale.body },
   save: { minHeight: size.tapPrimary, borderRadius: radius.sm, backgroundColor: colors.accent, alignItems: "center", justifyContent: "center" },
   savePressed: { opacity: 0.7 },
   saveLabel: { color: colors.onAccent, fontSize: typeScale.body, fontWeight: "700" },

@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import { updateMe } from "../../../packages/app/src/api/auth";
-import { createTrip } from "../../../packages/app/src/api/trips";
+import { updateExpense } from "../../../packages/app/src/api/expenses";
+import { createTrip, markPaid, reopenTrip } from "../../../packages/app/src/api/trips";
 import { clearToken, setToken } from "../../../packages/app/src/api/session";
 
 type Call = { url: string; method: string; body: unknown };
@@ -47,5 +48,37 @@ describe("epic 3 requests", () => {
     expect(calls[0].url.endsWith("/me")).toBe(true);
     expect(calls[0].method).toBe("PATCH");
     expect(calls[0].body).toEqual({ display_name: "Ana María" });
+  });
+});
+
+describe("epic 4 requests", () => {
+  test("updateExpense sends PUT /trips/{id}/expenses/{expenseId} with the form body", async () => {
+    answer(200, { expense: { id: 21, edited: true }, summary: { total_cents: 8001 } });
+    const input = {
+      name: "Tapas",
+      date: "2026-09-12",
+      amount_cents: 5001,
+      paid_by: [{ person_id: 3, amount_cents: 5001 }],
+      split: { type: "equal" as const, between: [{ person_id: 1, value: null }] },
+    };
+
+    const result = await updateExpense(7, 21, input);
+
+    expect(result.summary.total_cents).toBe(8001);
+    expect(calls[0].url.endsWith("/trips/7/expenses/21")).toBe(true);
+    expect(calls[0].method).toBe("PUT");
+    expect(calls[0].body).toEqual(input);
+  });
+
+  test("markPaid and reopenTrip post without a body", async () => {
+    answer(200, { summary: { paid: null } });
+
+    await markPaid(7);
+    await reopenTrip(7);
+
+    expect(calls.map((c) => [c.method, c.url.replace(/^.*\/trips/, "/trips"), c.body])).toEqual([
+      ["POST", "/trips/7/paid", undefined],
+      ["POST", "/trips/7/reopen", undefined],
+    ]);
   });
 });

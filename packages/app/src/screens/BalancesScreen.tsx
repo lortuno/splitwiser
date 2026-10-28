@@ -6,7 +6,9 @@ import type { TripSummary } from "../dto";
 import { t } from "../i18n";
 import { colors, space, typeScale } from "../theme";
 
+/** On a paid trip every net amount reads "Settled" and no transfers are shown (the API still sends them). */
 export function BalancesScreen({ summary }: { summary: TripSummary }) {
+  const paid = summary.paid !== null;
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Text style={styles.heading}>{t("balances.title")}</Text>
@@ -14,7 +16,11 @@ export function BalancesScreen({ summary }: { summary: TripSummary }) {
         <Card key={balance.person_id} style={styles.card}>
           <View style={styles.row}>
             <Text style={styles.name}>{balance.name}</Text>
-            <Money cents={balance.net_cents} signed style={styles.net} />
+            {paid ? (
+              <Text style={styles.settled}>{t("balances.settledNet")}</Text>
+            ) : (
+              <Money cents={balance.net_cents} signed style={styles.net} />
+            )}
           </View>
           <View style={styles.row}>
             <Text style={styles.muted}>
@@ -28,7 +34,7 @@ export function BalancesScreen({ summary }: { summary: TripSummary }) {
       ))}
 
       <Text style={styles.heading}>{t("balances.transfers")}</Text>
-      {summary.transfers.length === 0 ? (
+      {paid || summary.transfers.length === 0 ? (
         <Text style={styles.muted}>{t("balances.settled")}</Text>
       ) : (
         summary.transfers.map((transfer) => (
@@ -51,6 +57,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
   name: { fontSize: typeScale.body, fontWeight: "600", color: colors.ink },
   net: { fontSize: typeScale.body, fontWeight: "700" },
+  settled: { fontSize: typeScale.body, color: colors.inkMuted },
   muted: { fontSize: typeScale.caption, color: colors.inkMuted, marginTop: space.xs },
   transfer: { flex: 1, fontSize: typeScale.body, color: colors.ink },
 });

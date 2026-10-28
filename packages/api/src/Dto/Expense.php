@@ -20,6 +20,7 @@ final readonly class Expense implements \JsonSerializable
         public Person $recordedBy,
         public array $paidBy,
         public array $splitBetween,
+        public bool $edited = false,
     ) {
     }
 
@@ -35,6 +36,7 @@ final readonly class Expense implements \JsonSerializable
             'recorded_by' => $this->recordedBy,
             'paid_by' => $this->paidBy,
             'split_between' => $this->splitBetween,
+            'edited' => $this->edited,
         ];
     }
 }

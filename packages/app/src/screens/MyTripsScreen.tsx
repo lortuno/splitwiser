@@ -96,9 +96,12 @@ export function MyTripsScreen({
 function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
-      <Text style={styles.name} numberOfLines={2}>
-        {trip.name}
-      </Text>
+      <View style={styles.nameRow}>
+        <Text style={styles.name} numberOfLines={2}>
+          {trip.name}
+        </Text>
+        {trip.paid && <Text style={styles.paid}>{t("trips.paid")}</Text>}
+      </View>
       <Text style={styles.dates}>
         {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
       </Text>
@@ -142,7 +145,19 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
   },
   cardPressed: { backgroundColor: colors.accentSoft },
-  name: { fontSize: typeScale.body, fontWeight: "700", color: colors.ink },
+  nameRow: { flexDirection: "row", alignItems: "flex-start", gap: space.sm },
+  name: { flex: 1, fontSize: typeScale.body, fontWeight: "700", color: colors.ink },
+  paid: {
+    flexShrink: 0,
+    fontSize: typeScale.caption,
+    fontWeight: "700",
+    color: colors.accent,
+    backgroundColor: colors.accentSoft,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.sm,
+    paddingVertical: space.xs,
+    overflow: "hidden",
+  },
   dates: { fontSize: typeScale.caption, color: colors.inkMuted },
   totalRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: space.md },
   totalLabel: { fontSize: typeScale.body, color: colors.inkMuted },

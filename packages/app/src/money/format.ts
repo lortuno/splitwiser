@@ -47,6 +47,19 @@ export function formatSignedCents(cents: number): string {
   return cents > 0 ? `+${formatCents(cents)}` : formatCents(cents);
 }
 
+/**
+ * Cents as a form would take them: no thousands separators, no symbol. 3150 -> "31,50", 100000000 -> "1000000,00".
+ * Reads back with parseEuroToCents.
+ */
+export function formatCentsInput(cents: number): string {
+  return formatHundredths(cents).split(".").join("");
+}
+
+/** Basis points as a form would take them: 3333 -> "33,33". Reads back with parsePercentToBasisPoints. */
+export function formatBasisPointsInput(basisPoints: number): string {
+  return formatCentsInput(basisPoints);
+}
+
 /** 3333 basis points -> "33,33 %". */
 export function formatBasisPoints(basisPoints: number): string {
   return `${formatHundredths(basisPoints)}${NBSP}%`;

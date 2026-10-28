@@ -4,6 +4,14 @@ Source: `specs/roadmap.md`, epic 4. Brainstorming: `specs/04-edit-expenses-and-m
 1–3; the answers to rounds 1 and 2 were given in the chat and are recorded at the top of rounds 2 and 3).
 Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
+## Estimate
+
+Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-only.
+
+| Date | Task | Estimate (h) | Actual (h) |
+|---|---|---|---|
+| 2026-10-28 | Build the epic | 2 | 0.25 |
+
 ## Goal
 
 Any member can correct a saved expense. The edit form is the add expense form, prefilled. Saving recalculates

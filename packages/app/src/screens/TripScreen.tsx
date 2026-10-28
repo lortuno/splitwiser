@@ -3,8 +3,8 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Money } from "../components/Money";
 import type { Expense, Trip, TripSummary } from "../dto";
-import { formatDate, joinNames, t, tCount } from "../i18n";
-import { colors, size, space, typeScale } from "../theme";
+import { formatDate, formatLocalDate, joinNames, t, tCount } from "../i18n";
+import { colors, radius, size, space, typeScale } from "../theme";
 
 /** The hero shows this many transfers; "Show all" leads to the Balances tab for the rest. */
 const VISIBLE_TRANSFERS = 3;
@@ -13,13 +13,19 @@ export function TripScreen({
   trip,
   expenses,
   summary,
+  notice,
   onShowAllTransfers,
+  onOpenExpense,
 }: {
   trip: Trip;
   expenses: Expense[];
   summary: TripSummary;
+  /** An error from the last header action (Reopen), shown at the top. */
+  notice?: string | null;
   onShowAllTransfers: () => void;
+  onOpenExpense: (expense: Expense) => void;
 }) {
+  const { paid } = summary;
   return (
     <FlatList
       data={expenses}
@@ -27,6 +33,17 @@ export function TripScreen({
       contentContainerStyle={styles.content}
       ListHeaderComponent={
         <>
+          {notice && (
+            <View style={styles.notice}>
+              <Text style={styles.noticeLabel}>{notice}</Text>
+            </View>
+          )}
+          {paid && (
+            <Card style={styles.paid}>
+              <Text style={styles.paidTitle}>{t("trip.paid")}</Text>
+              <Text style={styles.state}>{t("trip.paidBy", { name: paid.by.name, date: formatLocalDate(paid.at) })}</Text>
+            </Card>
+          )}
           <Card style={styles.total}>
             <Text style={styles.totalLabel}>{t("trip.totalSpend")}</Text>
             <Money cents={summary.total_cents} compact style={styles.totalAmount} />
@@ -35,7 +52,7 @@ export function TripScreen({
             </Text>
             <Text style={styles.muted}>{tCount("trip.peopleCount", trip.members?.length ?? 0)}</Text>
           </Card>
-          {summary.expense_count > 0 && <Transfers summary={summary} onShowAll={onShowAllTransfers} />}
+          {summary.expense_count > 0 && !paid && <Transfers summary={summary} onShowAll={onShowAllTransfers} />}
           <Text style={styles.heading}>{t("trip.expenses")}</Text>
         </>
       }
@@ -45,7 +62,7 @@ export function TripScreen({
         </Card>
       }
       ItemSeparatorComponent={() => <View style={styles.separator} />}
-      renderItem={({ item }) => <ExpenseRow expense={item} />}
+      renderItem={({ item }) => <ExpenseRow expense={item} onPress={paid ? undefined : () => onOpenExpense(item)} />}
     />
   );
 }
@@ -78,19 +95,21 @@ function Transfers({ summary, onShowAll }: { summary: TripSummary; onShowAll: ()
   );
 }
 
-function ExpenseRow({ expense }: { expense: Expense }) {
+/** With onPress (an open trip) the whole card is a button that opens "Edit expense"; a paid trip's rows are not. */
+function ExpenseRow({ expense, onPress }: { expense: Expense; onPress?: () => void }) {
   const split =
     expense.split_between.length === 1
       ? t("expense.splitPersonal", { name: expense.split_between[0].name })
       : t("expense.splitBetween", { count: expense.split_between.length });
 
-  return (
-    <Card>
+  const card = (pressed: boolean) => (
+    <Card style={pressed && styles.rowPressed}>
       <View style={styles.rowTop}>
         <Text style={styles.name} numberOfLines={2}>
           {expense.name}
         </Text>
         <Money cents={expense.amount_cents} style={styles.amount} />
+        {onPress && <Text style={styles.chevron}>›</Text>}
       </View>
       <Text style={styles.detail}>
         {formatDate(expense.date)} · {t("expense.paidBy", { names: joinNames(expense.paid_by.map((p) => p.name)) })}
@@ -98,7 +117,16 @@ function ExpenseRow({ expense }: { expense: Expense }) {
       <Text style={styles.muted}>
         {t("expense.recordedBy", { name: expense.recorded_by.name })} · {split}
       </Text>
+      {expense.edited && <Text style={styles.muted}>{t("expense.edited")}</Text>}
     </Card>
+  );
+
+  return onPress ? (
+    <Pressable onPress={onPress} accessibilityRole="button" style={styles.row}>
+      {({ pressed }) => card(pressed)}
+    </Pressable>
+  ) : (
+    card(false)
   );
 }
 
@@ -121,4 +149,11 @@ const styles = StyleSheet.create({
   amount: { flexShrink: 0, fontSize: typeScale.body, fontWeight: "700" },
   detail: { fontSize: typeScale.caption, color: colors.ink, marginTop: space.xs },
   muted: { fontSize: typeScale.caption, color: colors.inkMuted, marginTop: space.xs },
+  row: { minHeight: size.tapMin },
+  rowPressed: { backgroundColor: colors.accentSoft },
+  chevron: { fontSize: typeScale.body, fontWeight: "700", color: colors.inkMuted },
+  paid: { marginBottom: space.md, backgroundColor: colors.accentSoft, borderColor: colors.accentSoft, gap: space.xs },
+  paidTitle: { fontSize: typeScale.body, fontWeight: "700", color: colors.ink },
+  notice: { backgroundColor: colors.owesSoft, borderRadius: radius.sm, padding: space.md, marginBottom: space.md },
+  noticeLabel: { fontSize: typeScale.body, color: colors.owes },
 });

@@ -99,6 +99,28 @@ final class Schema
             PRIMARY KEY (expense_id, person_id)
         )
         SQL,
+        // One row per saved edit: who changed the expense, when, and the full input before and after
+        // (see ExpenseService::snapshot). Rows are never updated or deleted.
+        <<<'SQL'
+        CREATE TABLE IF NOT EXISTS expense_changes (
+            id          INTEGER PRIMARY KEY,
+            expense_id  INTEGER NOT NULL REFERENCES expenses (id) ON DELETE CASCADE,
+            changed_by  INTEGER NOT NULL REFERENCES users (id),
+            changed_at  TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            before_json TEXT    NOT NULL,
+            after_json  TEXT    NOT NULL
+        )
+        SQL,
+        // Marking a trip as paid or reopening it. The latest row is the trip's status (v_trip_status); no row means open.
+        <<<'SQL'
+        CREATE TABLE IF NOT EXISTS trip_status_changes (
+            id         INTEGER PRIMARY KEY,
+            trip_id    INTEGER NOT NULL REFERENCES trips (id),
+            status     TEXT    NOT NULL CHECK (status IN ('paid', 'open')),
+            changed_by INTEGER NOT NULL REFERENCES users (id),
+            changed_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        SQL,
     ];
 
     private const array INDEXES = [
@@ -114,6 +136,8 @@ final class Schema
         'CREATE INDEX IF NOT EXISTS idx_expense_payers_person_id ON expense_payers (person_id)',
         'CREATE INDEX IF NOT EXISTS idx_expense_splits_expense_id ON expense_splits (expense_id)',
         'CREATE INDEX IF NOT EXISTS idx_expense_splits_person_id ON expense_splits (person_id)',
+        'CREATE INDEX IF NOT EXISTS idx_expense_changes_expense_id ON expense_changes (expense_id)',
+        'CREATE INDEX IF NOT EXISTS idx_trip_status_changes_trip_id ON trip_status_changes (trip_id)',
     ];
 
     /** Views in dependency order. */
@@ -191,6 +215,17 @@ final class Schema
         LEFT JOIN paid ON paid.trip_id = m.trip_id AND paid.person_id = m.person_id
         LEFT JOIN shared ON shared.trip_id = m.trip_id AND shared.person_id = m.person_id
         SQL,
+        // Each trip's current status: its latest status change, or 'open' without one.
+        'v_trip_status' => <<<'SQL'
+        CREATE VIEW v_trip_status AS
+        SELECT t.id                       AS trip_id,
+               COALESCE(s.status, 'open') AS status,
+               s.changed_by,
+               s.changed_at
+        FROM trips t
+        LEFT JOIN trip_status_changes s
+               ON s.id = (SELECT MAX(id) FROM trip_status_changes WHERE trip_id = t.id)
+        SQL,
         // Read model for listing expenses: one row per expense with its people as JSON arrays.
         'v_expense_list' => <<<'SQL'
         CREATE VIEW v_expense_list AS
@@ -202,6 +237,7 @@ final class Schema
                e.split_type,
                e.recorded_by,
                r.name AS recorded_by_name,
+               EXISTS (SELECT 1 FROM expense_changes c WHERE c.expense_id = e.id) AS edited,
                (SELECT json_group_array(json_object(
                            'person_id', p.person_id, 'name', pp.name, 'amount_cents', p.amount_cents
                        ) ORDER BY p.person_id)

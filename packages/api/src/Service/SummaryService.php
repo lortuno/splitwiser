@@ -31,6 +31,7 @@ final readonly class SummaryService
             $totals['expense_count'],
             $balances,
             $this->settlement->settle($balances),
+            $this->trips->paid($tripId),
         );
     }
 }

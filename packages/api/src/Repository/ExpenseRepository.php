@@ -33,7 +33,32 @@ final readonly class ExpenseRepository
             $expense->splitType->value,
         ]);
         $expenseId = (int) $this->pdo->lastInsertId();
+        $this->insertPeople($expenseId, $expense);
 
+        return $expenseId;
+    }
+
+    /**
+     * Replaces the input rows of an expense; trip, recorder and created_at never change. Call inside a transaction.
+     */
+    public function update(int $expenseId, NewExpense $expense): void
+    {
+        $this->pdo->prepare('UPDATE expenses SET name = ?, spent_on = ?, amount_cents = ?, split_type = ? WHERE id = ?')
+            ->execute([$expense->name, $expense->date, $expense->amountCents, $expense->splitType->value, $expenseId]);
+        $this->pdo->prepare('DELETE FROM expense_payers WHERE expense_id = ?')->execute([$expenseId]);
+        $this->pdo->prepare('DELETE FROM expense_splits WHERE expense_id = ?')->execute([$expenseId]);
+        $this->insertPeople($expenseId, $expense);
+    }
+
+    /** Keeps who changed an expense, when, and its input before and after (JSON snapshots). */
+    public function recordChange(int $expenseId, int $userId, string $beforeJson, string $afterJson): void
+    {
+        $this->pdo->prepare('INSERT INTO expense_changes (expense_id, changed_by, before_json, after_json) VALUES (?, ?, ?, ?)')
+            ->execute([$expenseId, $userId, $beforeJson, $afterJson]);
+    }
+
+    private function insertPeople(int $expenseId, NewExpense $expense): void
+    {
         $payer = $this->pdo->prepare('INSERT INTO expense_payers (expense_id, person_id, amount_cents) VALUES (?, ?, ?)');
         foreach ($expense->paidBy as $personId => $amountCents) {
             $payer->execute([$expenseId, $personId, $amountCents]);
@@ -43,8 +68,6 @@ final readonly class ExpenseRepository
         foreach ($expense->splitBetween as $entry) {
             $split->execute([$expenseId, $entry->personId, $entry->value]);
         }
-
-        return $expenseId;
     }
 
     /** @return list<Expense> newest first */
@@ -88,6 +111,7 @@ final readonly class ExpenseRepository
             new Person((int) $row['recorded_by'], $row['recorded_by_name']),
             $paidBy,
             $splitBetween,
+            (bool) $row['edited'],
         );
     }
 }

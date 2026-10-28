@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Dto\User;
 use App\Service\ExpenseService;
 use App\Service\SummaryService;
 
@@ -37,5 +38,17 @@ final readonly class ExpenseController
 
         // The updated summary travels with the new expense so the app needs no second request.
         return new JsonResponse(201, ['expense' => $expense, 'summary' => $this->summaries->forTrip($tripId)]);
+    }
+
+    /**
+     * PUT body: as for create. The recorder never changes: any recorded_by sent by the client is ignored.
+     * The change is stored with the logged-in user.
+     */
+    public function update(Request $request, array $params, int $personId, User $user): JsonResponse
+    {
+        $tripId = (int) $params['tripId'];
+        $expense = $this->expenses->update($tripId, (int) $params['expenseId'], $request->json(), $user);
+
+        return new JsonResponse(200, ['expense' => $expense, 'summary' => $this->summaries->forTrip($tripId)]);
     }
 }

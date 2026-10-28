@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Service\ConflictException;
 use App\Service\ForbiddenException;
 use App\Service\NotFoundException;
 use App\Service\UnauthorizedException;
@@ -50,6 +51,8 @@ final class Router
             return self::error(403, 'not_a_member', $e->getMessage());
         } catch (NotFoundException $e) {
             return self::error(404, 'not_found', $e->getMessage());
+        } catch (ConflictException $e) {
+            return self::error(409, $e->errorCode, $e->getMessage());
         } catch (\JsonException) {
             return self::error(400, 'invalid_json', 'The request body must be a JSON object.');
         } catch (\Throwable $e) {

@@ -5,7 +5,8 @@ import { colors, radius, size, space, typeScale } from "../theme";
 
 export type Screen = "trip" | "balances" | "add";
 
-export function TabBar({ current, onChange }: { current: Screen; onChange: (screen: Screen) => void }) {
+/** canAdd=false (a paid trip) leaves out "+ Add expense". */
+export function TabBar({ current, canAdd = true, onChange }: { current: Screen; canAdd?: boolean; onChange: (screen: Screen) => void }) {
   const tab = (screen: Screen, label: string) => (
     <Pressable
       key={screen}
@@ -22,9 +23,11 @@ export function TabBar({ current, onChange }: { current: Screen; onChange: (scre
     <View style={styles.bar} accessibilityRole="tablist">
       {tab("trip", t("tabs.trip"))}
       {tab("balances", t("tabs.balances"))}
-      <Pressable onPress={() => onChange("add")} accessibilityRole="button" style={styles.add}>
-        <Text style={styles.addLabel}>{t("tabs.add")}</Text>
-      </Pressable>
+      {canAdd && (
+        <Pressable onPress={() => onChange("add")} accessibilityRole="button" style={styles.add}>
+          <Text style={styles.addLabel}>{t("tabs.add")}</Text>
+        </Pressable>
+      )}
     </View>
   );
 }

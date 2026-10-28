@@ -13,6 +13,7 @@ final readonly class Trip implements \JsonSerializable
         public string $startDate,
         public string $endDate,
         public int $totalCents,
+        public bool $paid = false,
         public ?array $members = null,
     ) {
     }
@@ -25,6 +26,7 @@ final readonly class Trip implements \JsonSerializable
             'start_date' => $this->startDate,
             'end_date' => $this->endDate,
             'total_cents' => $this->totalCents,
+            'paid' => $this->paid,
         ];
         if ($this->members !== null) {
             $data['members'] = $this->members;

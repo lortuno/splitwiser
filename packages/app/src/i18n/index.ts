@@ -20,6 +20,12 @@ export function formatDate(isoDate: string): string {
   return `${day} ${t(`month.${month}` as MessageKey)} ${year}`;
 }
 
+/** A UTC timestamp ("2026-10-28T09:15:00Z") as the device's local date: "28 Oct 2026". */
+export function formatLocalDate(timestamp: string): string {
+  const date = new Date(timestamp);
+  return formatDate([date.getFullYear(), date.getMonth() + 1, date.getDate()].join("-"));
+}
+
 export function joinNames(names: string[]): string {
   return names.join(", ");
 }

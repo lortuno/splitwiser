@@ -9,12 +9,14 @@ use App\Repository\TripRepository;
 use App\Service\NotFoundException;
 use App\Service\SummaryService;
 use App\Service\TripService;
+use App\Service\TripStatusService;
 
 final readonly class TripController
 {
     public function __construct(
         private TripRepository $trips,
         private TripService $service,
+        private TripStatusService $status,
         private SummaryService $summaries,
     ) {
     }
@@ -39,5 +41,23 @@ final readonly class TripController
         $trip = $this->trips->find($tripId) ?? throw new NotFoundException("Trip {$tripId} not found.");
 
         return new JsonResponse(200, $trip);
+    }
+
+    /** Any member may mark the trip as paid once everyone has settled up outside the app. */
+    public function markPaid(Request $request, array $params, int $personId, User $user): JsonResponse
+    {
+        $tripId = (int) $params['tripId'];
+        $this->status->markPaid($tripId, $user);
+
+        return new JsonResponse(200, ['summary' => $this->summaries->forTrip($tripId)]);
+    }
+
+    /** Any member may reopen a paid trip, which allows new and edited expenses again. */
+    public function reopen(Request $request, array $params, int $personId, User $user): JsonResponse
+    {
+        $tripId = (int) $params['tripId'];
+        $this->status->reopen($tripId, $user);
+
+        return new JsonResponse(200, ['summary' => $this->summaries->forTrip($tripId)]);
     }
 }

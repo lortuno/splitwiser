@@ -26,6 +26,8 @@ export interface Trip {
   start_date: string;
   end_date: string;
   total_cents: number;
+  /** True once a member marked the trip as paid (until someone reopens it). */
+  paid: boolean;
   members?: Person[];
 }
 
@@ -53,6 +55,8 @@ export interface Expense {
   recorded_by: Person;
   paid_by: Payer[];
   split_between: SplitShare[];
+  /** True once the expense was changed after it was saved. */
+  edited: boolean;
 }
 
 export interface Balance {
@@ -69,6 +73,12 @@ export interface Transfer {
   amount_cents: number;
 }
 
+/** Who marked a trip as paid (their name on the trip today) and when, as "YYYY-MM-DDTHH:MM:SSZ" (UTC). */
+export interface TripPaid {
+  by: Person;
+  at: string;
+}
+
 export interface TripSummary {
   trip_id: number;
   /** Currency code from the API; the app formats cents with money/format.ts. */
@@ -77,6 +87,8 @@ export interface TripSummary {
   expense_count: number;
   balances: Balance[];
   transfers: Transfer[];
+  /** null while the trip is open. A paid trip still carries its real balances and transfers. */
+  paid: TripPaid | null;
 }
 
 export interface NewExpense {

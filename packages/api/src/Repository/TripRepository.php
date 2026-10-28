@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Dto\Person;
 use App\Dto\Trip;
+use App\Dto\TripPaid;
 use PDO;
 
 final readonly class TripRepository
@@ -37,10 +38,11 @@ final readonly class TripRepository
     public function findAll(): array
     {
         $rows = $this->pdo->query(
-            'SELECT t.*, v.total_cents
+            "SELECT t.*, v.total_cents, s.status = 'paid' AS paid
              FROM trips t
              JOIN v_trip_totals v ON v.trip_id = t.id
-             ORDER BY t.start_date DESC, t.id DESC'
+             JOIN v_trip_status s ON s.trip_id = t.id
+             ORDER BY t.start_date DESC, t.id DESC"
         )->fetchAll();
 
         return array_map(fn (array $row): Trip => $this->toTrip($row), $rows);
@@ -50,14 +52,15 @@ final readonly class TripRepository
     public function findForUser(int $userId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT t.*, v.total_cents
+            "SELECT t.*, v.total_cents, s.status = 'paid' AS paid
              FROM trips t
              JOIN v_trip_totals v ON v.trip_id = t.id
+             JOIN v_trip_status s ON s.trip_id = t.id
              WHERE EXISTS (
                  SELECT 1 FROM trip_members m JOIN people p ON p.id = m.person_id
                  WHERE m.trip_id = t.id AND p.user_id = ?
              )
-             ORDER BY t.start_date DESC, t.id DESC'
+             ORDER BY t.start_date DESC, t.id DESC"
         );
         $stmt->execute([$userId]);
 
@@ -90,10 +93,11 @@ final readonly class TripRepository
     public function find(int $tripId): ?Trip
     {
         $stmt = $this->pdo->prepare(
-            'SELECT t.*, v.total_cents
+            "SELECT t.*, v.total_cents, s.status = 'paid' AS paid
              FROM trips t
              JOIN v_trip_totals v ON v.trip_id = t.id
-             WHERE t.id = ?'
+             JOIN v_trip_status s ON s.trip_id = t.id
+             WHERE t.id = ?"
         );
         $stmt->execute([$tripId]);
         $row = $stmt->fetch();
@@ -129,6 +133,40 @@ final readonly class TripRepository
         return ['total_cents' => (int) $row['total_cents'], 'expense_count' => (int) $row['expense_count']];
     }
 
+    public function isPaid(int $tripId): bool
+    {
+        $stmt = $this->pdo->prepare("SELECT status = 'paid' FROM v_trip_status WHERE trip_id = ?");
+        $stmt->execute([$tripId]);
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /** Who marked the trip as paid (their person on the trip, with the name shown today) and when; null when open. */
+    public function paid(int $tripId): ?TripPaid
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT n.person_id, n.name, strftime('%Y-%m-%dT%H:%M:%SZ', s.changed_at) AS at
+             FROM v_trip_status s
+             JOIN trip_members m ON m.trip_id = s.trip_id
+             JOIN people p ON p.id = m.person_id AND p.user_id = s.changed_by
+             JOIN v_person_names n ON n.person_id = p.id
+             WHERE s.trip_id = ? AND s.status = 'paid'
+             ORDER BY p.id
+             LIMIT 1"
+        );
+        $stmt->execute([$tripId]);
+        $row = $stmt->fetch();
+
+        return $row === false ? null : new TripPaid(new Person((int) $row['person_id'], $row['name']), $row['at']);
+    }
+
+    /** Appends a status row ('paid' or 'open'); the latest row is the trip's status. */
+    public function addStatusChange(int $tripId, string $status, int $userId): void
+    {
+        $this->pdo->prepare('INSERT INTO trip_status_changes (trip_id, status, changed_by) VALUES (?, ?, ?)')
+            ->execute([$tripId, $status, $userId]);
+    }
+
     /** @param list<Person>|null $members */
     private function toTrip(array $row, ?array $members = null): Trip
     {
@@ -138,6 +176,7 @@ final readonly class TripRepository
             $row['start_date'],
             $row['end_date'],
             (int) $row['total_cents'],
+            (bool) $row['paid'],
             $members,
         );
     }

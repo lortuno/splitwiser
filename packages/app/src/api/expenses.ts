@@ -7,6 +7,10 @@ export const listExpenses = (tripId: number) => request<Expense[]>(`/trips/${tri
 export const createExpense = (tripId: number, expense: NewExpense) =>
   request<{ expense: Expense; summary: TripSummary }>(`/trips/${tripId}/expenses`, { method: "POST", body: expense });
 
+/** Saves changes to an expense; the response carries the updated trip summary. The recorder never changes. */
+export const updateExpense = (tripId: number, expenseId: number, expense: NewExpense) =>
+  request<{ expense: Expense; summary: TripSummary }>(`/trips/${tripId}/expenses/${expenseId}`, { method: "PUT", body: expense });
+
 /** Asks the API to calculate the split without saving anything. */
 export const previewSplit = (tripId: number, expense: NewExpense) =>
   request<{ split_between: SplitShare[] }>(`/trips/${tripId}/expenses?dry_run=1`, { method: "POST", body: expense });
