@@ -35,6 +35,11 @@ final readonly class Seeder
         'Olga' => 'olga@example.com',
         'Pia' => 'pia@example.com',
     ];
+    /**
+     * A fixed local login that needs no sign-up: an ordinary account (no extra rights), linked to no person and on no
+     * trip. Created by ensureAdmin() at every start when its email is free. Local development only.
+     */
+    public const array ADMIN = ['name' => 'Admin', 'email' => 'admin@travel.local', 'password' => 'admin123', 'language' => 'en'];
     /** Pending invites, person name => an email without an account. */
     public const array INVITES = [
         'Inés' => 'ines@example.com',
@@ -66,6 +71,26 @@ final readonly class Seeder
         foreach (self::ACCOUNTS as $name => $email) {
             $this->users->create($name, $email, self::demoPasswordHash());
         }
+    }
+
+    /**
+     * Creates the admin account when no account has its email yet; never changes an existing one (a changed name,
+     * language or password stays). Called after the seed, so the demo accounts keep ids 1–10 on a fresh database.
+     * @return bool whether the account was created
+     */
+    public function ensureAdmin(): bool
+    {
+        if ($this->users->idByEmail(self::ADMIN['email']) !== null) {
+            return false;
+        }
+        $this->users->create(
+            self::ADMIN['name'],
+            self::ADMIN['email'],
+            password_hash(self::ADMIN['password'], PASSWORD_DEFAULT),
+            self::ADMIN['language'],
+        );
+
+        return true;
     }
 
     public function seed(): int

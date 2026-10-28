@@ -23,7 +23,9 @@ Docker boundary, so read it as a snapshot while the API runs (`sqlite3 "file:pac
 or "read-only" in a database tool) and write to it only after `docker compose stop api`.
 
 Log in as `ana@example.com` (or `ben@`, `chloe@`, `david@`, `eva@`, `hugo@`, `jon@`, `noah@`, `olga@example.com`)
-with the password `travel-demo-2026`, or create an account on the sign-up screen.
+with the password `travel-demo-2026`, or create an account on the sign-up screen. The login `admin@travel.local` /
+`admin123` also always exists: an ordinary account on no trip, created at every start when that email is free and
+never changed afterwards (`Seeder::ADMIN`). These logins are for the local development database only.
 
 | Task | Command |
 |---|---|

@@ -4,6 +4,14 @@ Source: new feature (not in `specs/roadmap.md`; closest to epic 2, "Login and my
 `specs/07-admin-account-brainstorming.md` (rounds 1–3). Boundaries: `specs/guidelines/architecture.md`,
 `specs/guidelines/ui.md`.
 
+## Estimate
+
+Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-only.
+
+| Date | Task | Estimate (h) | Actual (h) |
+|---|---|---|---|
+| 2026-10-28 | Build the epic | 0.5 | 0.08 |
+
 ## Goal
 
 A fixed local login, `admin@travel.local` / `admin123`, exists in every database, so nobody has to sign up to try the

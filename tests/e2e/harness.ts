@@ -22,24 +22,27 @@ export const euro = (text: string) => `${text}${NBSP}€`;
 const work = mkdtempSync(join(tmpdir(), "e2e-"));
 const env = { ...process.env, DB_PATH: join(work, "app.sqlite"), EXPO_PUBLIC_API_URL: API_URL };
 
-function run(cmd: string[], cwd: string) {
+function run(cmd: string[], cwd: string): string {
   const result = Bun.spawnSync(cmd, { cwd, env, stdout: "pipe", stderr: "pipe" });
   if (result.exitCode !== 0) {
     throw new Error(`${cmd.join(" ")} failed:\n${result.stdout}\n${result.stderr}`);
   }
+  return result.stdout.toString();
 }
 
 // A production web build with the test API URL baked in, once for all suites.
 run(["bunx", "expo", "export", "--platform", "web", "--output-dir", join(work, "web")], ROOT);
 
 let api: ReturnType<typeof Bun.spawn> | undefined;
+/** What the API's start step (bin/init-db.php) printed when startServers() created the fresh database. */
+export let firstStartLog = "";
 let web: ReturnType<typeof Bun.serve> | undefined;
 export let browser: Browser;
 
 /** Fresh seed, then the API, the web server and Chromium. Call in beforeAll. */
 export async function startServers() {
   rmSync(join(work, "app.sqlite"), { force: true });
-  run(["php", "bin/init-db.php"], join(ROOT, "packages/api"));
+  firstStartLog = initDb();
   api = Bun.spawn(["php", "-S", `127.0.0.1:${API_PORT}`, "-t", "public", "public/index.php"], {
     cwd: join(ROOT, "packages/api"),
     env,
@@ -61,6 +64,11 @@ export async function startServers() {
   }
   mkdirSync(SHOTS, { recursive: true });
   browser = await chromium.launch();
+}
+
+/** Runs the API's start step (bin/init-db.php) against the test database again, as a restart does; returns its log. */
+export function initDb(): string {
+  return run(["php", "bin/init-db.php"], join(ROOT, "packages/api"));
 }
 
 /** Call in afterAll. */
