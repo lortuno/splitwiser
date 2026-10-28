@@ -28,7 +28,7 @@
 11. No new package, service, volume, image or dependency without an entry under Inventory, in the same commit. Check: each name in `package.json`, `composer.json` and `docker-compose.yml` appears below.
 
 ## Inventory
-- Services: `api`, `app`. Volumes: `db-data`, `node_modules`.
+- Services: `api`, `app`. Volumes: `node_modules`. The database is bind-mounted from `packages/api/var` (git-ignored).
 - Images: `php:8.4.27-cli-trixie`, `oven/bun:1.4.3-debian`, `node:22.23.4-trixie-slim`.
 - JS: `expo`, `@expo/metro-runtime`, `react`, `react-dom`, `react-native`, `react-native-web`; dev: `typescript`, `@types/react`, `@types/bun`, `playwright` (Chromium installed in `docker/Dockerfile`, for the screenshot tests in `tests/e2e`).
 - PHP: none.

@@ -13,9 +13,14 @@ Only Docker is needed on the host.
 docker compose up            # API on http://localhost:8080, web app on http://localhost:8081
 ```
 
-The first start builds the image, creates the SQLite database in the `db-data` volume and seeds the demo
-trip ("Lisbon & Porto": 4 people, 20 expenses over 7 days), the test trips and the demo accounts. The seed only runs
-when the database has no trips; after pulling a schema change, reset it with `docker compose down -v`.
+The first start builds the image, creates the SQLite database at `packages/api/var/app.sqlite` (bind-mounted to
+`/data` in the containers, git-ignored) and seeds the demo trip ("Lisbon & Porto": 4 people, 20 expenses over 7 days),
+the test trips and the demo accounts. The seed only runs when the database has no trips; to start over, stop the
+containers and delete `packages/api/var/app.sqlite`.
+
+The file can be opened outside Docker. It uses SQLite's write-ahead log, whose locking does not work across the
+Docker boundary, so read it as a snapshot while the API runs (`sqlite3 "file:packages/api/var/app.sqlite?immutable=1"`,
+or "read-only" in a database tool) and write to it only after `docker compose stop api`.
 
 Log in as `ana@example.com` (or `ben@`, `chloe@`, `david@`, `eva@`, `hugo@`, `jon@`, `noah@`, `olga@example.com`)
 with the password `travel-demo-2026`, or create an account on the sign-up screen.
@@ -41,7 +46,7 @@ On a phone (Expo Go), set `EXPO_PUBLIC_API_URL` to an address the phone can reac
 ```
 package.json, bun.lock         all JS dependencies (exact versions); Expo project root (app.json)
 docker/Dockerfile              one dev image: PHP 8.4.27 CLI + pdo_sqlite, Bun, Node
-docker-compose.yml             services api (php -S) and app (Expo), volumes db-data and node_modules
+docker-compose.yml             services api (php -S) and app (Expo), volume node_modules, database bind mount
 scripts/dev.ts                 `bun dev`: starts both servers
 tests/unit/                    app unit tests (money formatting and parsing, session token, API client)
 tests/e2e/                     Playwright at 390x844 (harness.ts starts a seeded API and a web export)
