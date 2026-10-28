@@ -92,11 +92,11 @@ test('an edit stores one change record with the editor, a time and full before/a
     assertTrue(preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $changes[0]['changed_at']) === 1);
     $paidBy = [['person_id' => $m['ana'], 'amount_cents' => 3000]];
     assertSame([
-        'name' => 'Prado Museum tickets', 'date' => $m['prado']->date, 'amount_cents' => 3000, 'paid_by' => $paidBy,
+        'name' => 'Prado Museum tickets', 'date' => $m['prado']->date, 'amount_cents' => 3000, 'category' => 'activities', 'paid_by' => $paidBy,
         'split' => ['type' => 'equal', 'between' => [['person_id' => $m['ana'], 'value' => null], ['person_id' => $m['chloe'], 'value' => null]]],
     ], json_decode($changes[0]['before_json'], true));
     assertSame([
-        'name' => 'Prado Museum tickets', 'date' => $m['prado']->date, 'amount_cents' => 3000, 'paid_by' => $paidBy,
+        'name' => 'Prado Museum tickets', 'date' => $m['prado']->date, 'amount_cents' => 3000, 'category' => 'activities', 'paid_by' => $paidBy,
         'split' => ['type' => 'percentage', 'between' => [['person_id' => $m['ana'], 'value' => 7000], ['person_id' => $m['chloe'], 'value' => 3000]]],
     ], json_decode($changes[0]['after_json'], true), 'Lists are sorted by person id.');
 });

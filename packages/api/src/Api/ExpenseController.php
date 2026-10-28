@@ -51,4 +51,13 @@ final readonly class ExpenseController
 
         return new JsonResponse(200, ['expense' => $expense, 'summary' => $this->summaries->forTrip($tripId)]);
     }
+
+    /** GET ?name=…: the category the form should preselect for this name, and where it came from. */
+    public function suggestCategory(Request $request, array $params, int $personId): JsonResponse
+    {
+        $name = $request->query['name'] ?? '';
+        [$category, $source] = $this->expenses->suggestCategory((int) $params['tripId'], is_string($name) ? $name : '');
+
+        return new JsonResponse(200, ['category' => $category->value, 'source' => $source]);
+    }
 }

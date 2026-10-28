@@ -77,6 +77,7 @@ final class Schema
             recorded_by  INTEGER NOT NULL,
             split_type   TEXT    NOT NULL CHECK (split_type IN ('equal', 'exact', 'percentage', 'shares')),
             created_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            category     TEXT    CHECK (category IS NULL OR category IN ('food', 'groceries', 'drinks', 'coffee', 'fuel', 'transport', 'flights', 'lodging', 'activities', 'shopping', 'other')),
             FOREIGN KEY (trip_id, recorded_by) REFERENCES trip_members (trip_id, person_id)
         )
         SQL,
@@ -138,6 +139,15 @@ final class Schema
         'CREATE INDEX IF NOT EXISTS idx_expense_splits_person_id ON expense_splits (person_id)',
         'CREATE INDEX IF NOT EXISTS idx_expense_changes_expense_id ON expense_changes (expense_id)',
         'CREATE INDEX IF NOT EXISTS idx_trip_status_changes_trip_id ON trip_status_changes (trip_id)',
+    ];
+
+    /**
+     * Columns added after their table was first created: SQLite cannot add them in CREATE TABLE IF NOT EXISTS, so
+     * apply() adds each one that an existing database lacks. table => [column => definition].
+     */
+    private const array ADDED_COLUMNS = [
+        // What the expense was for (App\Dto\Category). NULL only until bin/init-db.php guesses it once.
+        'expenses' => ['category' => "TEXT CHECK (category IS NULL OR category IN ('food', 'groceries', 'drinks', 'coffee', 'fuel', 'transport', 'flights', 'lodging', 'activities', 'shopping', 'other'))"],
     ];
 
     /** Views in dependency order. */
@@ -235,6 +245,7 @@ final class Schema
                e.spent_on,
                e.amount_cents,
                e.split_type,
+               COALESCE(e.category, 'other') AS category,
                e.recorded_by,
                r.name AS recorded_by_name,
                EXISTS (SELECT 1 FROM expense_changes c WHERE c.expense_id = e.id) AS edited,
@@ -261,7 +272,18 @@ final class Schema
     {
         $pdo->beginTransaction();
         try {
-            foreach ([...self::TABLES, ...self::INDEXES] as $sql) {
+            foreach (self::TABLES as $sql) {
+                $pdo->exec($sql);
+            }
+            foreach (self::ADDED_COLUMNS as $table => $columns) {
+                $existing = array_column($pdo->query("PRAGMA table_info({$table})")->fetchAll(), 'name');
+                foreach ($columns as $column => $definition) {
+                    if (!in_array($column, $existing, true)) {
+                        $pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+                    }
+                }
+            }
+            foreach (self::INDEXES as $sql) {
                 $pdo->exec($sql);
             }
             foreach (array_reverse(array_keys(self::VIEWS)) as $view) {

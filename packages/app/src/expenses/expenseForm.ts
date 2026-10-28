@@ -1,5 +1,5 @@
 // The add/edit expense form state as typed text, and how a saved expense fills it. Pure, so it is unit tested.
-import type { Expense, Person, SplitType } from "../dto";
+import type { Category, Expense, Person, SplitType } from "../dto";
 import { formatBasisPointsInput, formatCentsInput } from "../money/format";
 
 export interface ExpenseFormState {
@@ -13,6 +13,9 @@ export interface ExpenseFormState {
   between: number[];
   /** Per person in "Split between", as typed; empty for an equal split. */
   splitValues: Record<number, string>;
+  category: Category;
+  /** True once the person tapped a category (and always when editing): suggestions no longer change it. */
+  categoryPicked: boolean;
 }
 
 /** A new expense: today's date (or the nearest trip day), nobody paid yet, split equally between everyone. */
@@ -26,6 +29,8 @@ export function emptyForm(members: Person[], date: string): ExpenseFormState {
     splitType: "equal",
     between: members.map((m) => m.id),
     splitValues: {},
+    category: "other",
+    categoryPicked: false,
   };
 }
 
@@ -44,7 +49,20 @@ export function formFromExpense(expense: Expense): ExpenseFormState {
         .filter((s) => s.split_value !== null)
         .map((s) => [s.person_id, splitValueInput(expense.split_type, s.split_value as number)]),
     ),
+    category: expense.category,
+    categoryPicked: true,
   };
+}
+
+/**
+ * The category after a suggestion for `name` arrives (or the name was emptied, suggested = null): a picked category
+ * never changes; an empty name means "other".
+ */
+export function applySuggestion(category: Category, picked: boolean, name: string, suggested: Category | null): Category {
+  if (picked) {
+    return category;
+  }
+  return name.trim() === "" ? "other" : (suggested ?? category);
 }
 
 function splitValueInput(type: SplitType, value: number): string {

@@ -1,7 +1,8 @@
 import { describe, expect, test } from "bun:test";
 
 import type { Expense } from "../../../packages/app/src/dto";
-import { emptyForm, formFromExpense } from "../../../packages/app/src/expenses/expenseForm";
+import { CATEGORIES, categoryIcon, categoryLabel } from "../../../packages/app/src/expenses/categories";
+import { applySuggestion, emptyForm, formFromExpense } from "../../../packages/app/src/expenses/expenseForm";
 
 const ana = { id: 1, name: "Ana" };
 const chloe = { id: 3, name: "Chloé" };
@@ -14,6 +15,7 @@ function expense(overrides: Partial<Expense>): Expense {
     date: "2026-09-12",
     amount_cents: 4830,
     split_type: "equal",
+    category: "food",
     recorded_by: chloe,
     paid_by: [{ person_id: 3, name: "Chloé", amount_cents: 4830 }],
     split_between: [
@@ -36,6 +38,8 @@ describe("expense form prefill", () => {
       splitType: "equal",
       between: [1, 3],
       splitValues: {},
+      category: "food",
+      categoryPicked: true,
     });
   });
 
@@ -82,6 +86,39 @@ describe("expense form prefill", () => {
       splitType: "equal",
       between: [1, 3],
       splitValues: {},
+      category: "other",
+      categoryPicked: false,
     });
+  });
+});
+
+describe("category suggestion", () => {
+  test("a suggestion replaces the category while none was picked", () => {
+    expect(applySuggestion("other", false, "Gasolne Repsol", "fuel")).toBe("fuel");
+    expect(applySuggestion("fuel", false, "Dinner", "food")).toBe("food");
+  });
+
+  test("a picked category never changes, also not for an empty name", () => {
+    expect(applySuggestion("drinks", true, "Dinner and wine", "food")).toBe("drinks");
+    expect(applySuggestion("drinks", true, "", null)).toBe("drinks");
+  });
+
+  test("an empty name goes back to other until something is picked", () => {
+    expect(applySuggestion("fuel", false, "  ", null)).toBe("other");
+  });
+
+  test("the edit form starts from the stored category, picked", () => {
+    const form = formFromExpense(expense({ category: "activities" }));
+    expect([form.category, form.categoryPicked]).toEqual(["activities", true]);
+  });
+
+  test("every category has an icon and a label, in the form's order", () => {
+    expect(CATEGORIES.map((c) => c.code)).toEqual([
+      "food", "groceries", "drinks", "coffee", "fuel", "transport", "flights", "lodging", "activities", "shopping", "other",
+    ]);
+    expect(CATEGORIES.map((c) => `${categoryIcon(c.code)} ${categoryLabel(c.code)}`)).toEqual([
+      "🍴 Food", "🛒 Groceries", "🍺 Drinks", "☕ Coffee", "⛽ Fuel", "🚕 Transport", "✈️ Flights", "🏨 Lodging",
+      "🎟️ Activities", "🛍️ Shopping", "🧾 Other",
+    ]);
   });
 });

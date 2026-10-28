@@ -2,6 +2,20 @@
 
 export type SplitType = "equal" | "exact" | "percentage" | "shares";
 
+/** What an expense was for; the order is the form's order (see expenses/categories.ts for the icons). */
+export type Category =
+  | "food"
+  | "groceries"
+  | "drinks"
+  | "coffee"
+  | "fuel"
+  | "transport"
+  | "flights"
+  | "lodging"
+  | "activities"
+  | "shopping"
+  | "other";
+
 export interface Person {
   id: number;
   name: string;
@@ -52,6 +66,7 @@ export interface Expense {
   date: string;
   amount_cents: number;
   split_type: SplitType;
+  category: Category;
   recorded_by: Person;
   paid_by: Payer[];
   split_between: SplitShare[];
@@ -97,6 +112,14 @@ export interface NewExpense {
   amount_cents: number | null;
   paid_by: { person_id: number; amount_cents: number | null }[];
   split: { type: SplitType; between: { person_id: number; value: number | null }[] };
+  /** Left out, the API guesses it for a new expense and keeps it for an edit. */
+  category?: Category;
+}
+
+/** Response of GET /trips/{id}/category-suggestion. */
+export interface CategorySuggestion {
+  category: Category;
+  source: "trip" | "keywords" | "none";
 }
 
 /** Body of POST /trips. The creator is never sent: the API adds them as the first member. */
@@ -119,7 +142,7 @@ export interface FieldError {
 }
 
 /**
- * Expense keys: name, date, amount_cents, paid_by, paid_by.<id>, split, split.<id>. Sign-up keys: display_name, email,
+ * Expense keys: name, date, amount_cents, paid_by, paid_by.<id>, split, split.<id>, category. Sign-up keys: display_name, email,
  * password. New trip keys: name, start_date, end_date, people, people.<index>.name, people.<index>.email.
  */
 export type FieldErrors = Record<string, FieldError>;

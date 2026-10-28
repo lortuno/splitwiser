@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Dto\Category;
 use App\Dto\Expense;
 use App\Dto\Payer;
 use App\Dto\Person;
@@ -22,6 +23,7 @@ final readonly class ExpenseService
         private TripRepository $trips,
         private ExpenseRepository $expenses,
         private ExpenseValidator $validator,
+        private CategoryGuesser $guesser,
     ) {
     }
 
@@ -38,10 +40,11 @@ final readonly class ExpenseService
         $memberIds = $this->memberIds($tripId);
         $this->assertOpen($tripId);
         $expense = $this->validator->validate($input, $memberIds);
+        $category = $expense->category ?? $this->suggestCategory($tripId, $expense->name)[0];
 
         $this->pdo->beginTransaction();
         try {
-            $expenseId = $this->expenses->insert($tripId, $expense);
+            $expenseId = $this->expenses->insert($tripId, $expense, $category);
             $this->pdo->commit();
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
@@ -65,11 +68,13 @@ final readonly class ExpenseService
         $this->assertOpen($tripId);
         $expense = $this->validator->validate([...$input, 'recorded_by' => $current->recordedBy->id], $memberIds);
 
-        $before = self::snapshot($current->name, $current->date, $current->amountCents, $current->splitType,
+        $category = $expense->category ?? $current->category;
+
+        $before = self::snapshot($current->name, $current->date, $current->amountCents, $current->category, $current->splitType,
             array_map(static fn (Payer $p): array => [$p->personId, $p->amountCents], $current->paidBy),
             array_map(static fn (SplitShare $s): array => [$s->personId, $s->splitValue], $current->splitBetween),
         );
-        $after = self::snapshot($expense->name, $expense->date, $expense->amountCents, $expense->splitType,
+        $after = self::snapshot($expense->name, $expense->date, $expense->amountCents, $category, $expense->splitType,
             array_map(null, array_keys($expense->paidBy), $expense->paidBy),
             array_map(static fn (SplitEntry $e): array => [$e->personId, $e->value], $expense->splitBetween),
         );
@@ -79,7 +84,7 @@ final readonly class ExpenseService
 
         $this->pdo->beginTransaction();
         try {
-            $this->expenses->update($expenseId, $expense);
+            $this->expenses->update($expenseId, $expense, $category);
             $this->expenses->recordChange($expenseId, $user->id, $before, $after);
             $this->pdo->commit();
         } catch (\Throwable $e) {
@@ -105,11 +110,44 @@ final readonly class ExpenseService
 
         $this->pdo->beginTransaction();
         try {
-            $expenseId = $this->expenses->insert($tripId, $expense);
+            $expenseId = $this->expenses->insert($tripId, $expense, $expense->category ?? Category::Other);
             return $this->expenses->find($expenseId)->splitBetween;
         } finally {
             $this->pdo->rollBack();
         }
+    }
+
+    /**
+     * The category for a name on this trip: an earlier expense with the same name key wins (the newest one), so the
+     * trip learns from what its members chose; otherwise the keyword guess; otherwise "other".
+     *
+     * @return array{Category, string} the category and its source: "trip", "keywords" or "none"
+     */
+    public function suggestCategory(int $tripId, string $name): array
+    {
+        $key = CategoryGuesser::nameKey($name);
+        if ($key === '') {
+            return [Category::Other, 'none'];
+        }
+        foreach ($this->expenses->namesByTrip($tripId) as $row) {
+            if (CategoryGuesser::nameKey($row['name']) === $key) {
+                return [Category::from($row['category']), 'trip'];
+            }
+        }
+        $guess = $this->guesser->guess($name);
+
+        return $guess === null ? [Category::Other, 'none'] : [$guess, 'keywords'];
+    }
+
+    /** Gives every expense stored before categories existed its keyword guess, once. Returns how many were set. */
+    public function backfillCategories(): int
+    {
+        $rows = $this->expenses->withoutCategory();
+        foreach ($rows as $row) {
+            $this->expenses->setCategory((int) $row['id'], $this->guesser->guess($row['name']) ?? Category::Other);
+        }
+
+        return count($rows);
     }
 
     /**
@@ -118,7 +156,7 @@ final readonly class ExpenseService
      * @param list<array{int, int}> $paidBy [person id, cents]
      * @param list<array{int, ?int}> $between [person id, split value]
      */
-    private static function snapshot(string $name, string $date, int $amountCents, SplitType $type, array $paidBy, array $between): string
+    private static function snapshot(string $name, string $date, int $amountCents, Category $category, SplitType $type, array $paidBy, array $between): string
     {
         $entries = static function (array $pairs, string $key): array {
             usort($pairs, static fn (array $a, array $b): int => $a[0] <=> $b[0]);
@@ -130,6 +168,7 @@ final readonly class ExpenseService
             'name' => $name,
             'date' => $date,
             'amount_cents' => $amountCents,
+            'category' => $category->value,
             'paid_by' => $entries($paidBy, 'amount_cents'),
             'split' => ['type' => $type->value, 'between' => $entries($between, 'value')],
         ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);

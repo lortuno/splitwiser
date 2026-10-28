@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
 import { updateMe } from "../../../packages/app/src/api/auth";
-import { updateExpense } from "../../../packages/app/src/api/expenses";
+import { suggestCategory, updateExpense } from "../../../packages/app/src/api/expenses";
 import { createTrip, markPaid, reopenTrip } from "../../../packages/app/src/api/trips";
 import { clearToken, setToken } from "../../../packages/app/src/api/session";
 
@@ -80,5 +80,17 @@ describe("epic 4 requests", () => {
       ["POST", "/trips/7/paid", undefined],
       ["POST", "/trips/7/reopen", undefined],
     ]);
+  });
+});
+
+describe("epic 5 requests", () => {
+  test("suggestCategory sends GET with the encoded name", async () => {
+    answer(200, { category: "fuel", source: "keywords" });
+
+    const result = await suggestCategory(7, "Gasolne & Repsol");
+
+    expect(result).toEqual({ category: "fuel", source: "keywords" });
+    expect(calls[0].method).toBe("GET");
+    expect(calls[0].url.endsWith("/trips/7/category-suggestion?name=Gasolne%20%26%20Repsol")).toBe(true);
   });
 });

@@ -36,6 +36,7 @@ final class Routes
         $router->add('GET', '/trips/{tripId}', $member($trips->show(...)));
         $router->add('GET', '/trips/{tripId}/expenses', $member($expenses->list(...)));
         $router->add('POST', '/trips/{tripId}/expenses', $member($expenses->create(...)));
+        $router->add('GET', '/trips/{tripId}/category-suggestion', $member($expenses->suggestCategory(...)));
         $router->add('PUT', '/trips/{tripId}/expenses/{expenseId}', $member($expenses->update(...)));
         $router->add('POST', '/trips/{tripId}/paid', $member($trips->markPaid(...)));
         $router->add('POST', '/trips/{tripId}/reopen', $member($trips->reopen(...)));

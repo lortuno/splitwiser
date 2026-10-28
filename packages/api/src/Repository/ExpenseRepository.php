@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Repository;
 
+use App\Dto\Category;
 use App\Dto\Expense;
 use App\Dto\NewExpense;
 use App\Dto\Payer;
@@ -19,11 +20,11 @@ final readonly class ExpenseRepository
     }
 
     /** Writes the input rows only; shares are derived by v_expense_shares. Call inside a transaction. */
-    public function insert(int $tripId, NewExpense $expense): int
+    public function insert(int $tripId, NewExpense $expense, Category $category): int
     {
         $this->pdo->prepare(
-            'INSERT INTO expenses (trip_id, name, spent_on, amount_cents, recorded_by, split_type)
-             VALUES (?, ?, ?, ?, ?, ?)'
+            'INSERT INTO expenses (trip_id, name, spent_on, amount_cents, recorded_by, split_type, category)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
         )->execute([
             $tripId,
             $expense->name,
@@ -31,6 +32,7 @@ final readonly class ExpenseRepository
             $expense->amountCents,
             $expense->recordedBy,
             $expense->splitType->value,
+            $category->value,
         ]);
         $expenseId = (int) $this->pdo->lastInsertId();
         $this->insertPeople($expenseId, $expense);
@@ -41,13 +43,33 @@ final readonly class ExpenseRepository
     /**
      * Replaces the input rows of an expense; trip, recorder and created_at never change. Call inside a transaction.
      */
-    public function update(int $expenseId, NewExpense $expense): void
+    public function update(int $expenseId, NewExpense $expense, Category $category): void
     {
-        $this->pdo->prepare('UPDATE expenses SET name = ?, spent_on = ?, amount_cents = ?, split_type = ? WHERE id = ?')
-            ->execute([$expense->name, $expense->date, $expense->amountCents, $expense->splitType->value, $expenseId]);
+        $this->pdo->prepare('UPDATE expenses SET name = ?, spent_on = ?, amount_cents = ?, split_type = ?, category = ? WHERE id = ?')
+            ->execute([$expense->name, $expense->date, $expense->amountCents, $expense->splitType->value, $category->value, $expenseId]);
         $this->pdo->prepare('DELETE FROM expense_payers WHERE expense_id = ?')->execute([$expenseId]);
         $this->pdo->prepare('DELETE FROM expense_splits WHERE expense_id = ?')->execute([$expenseId]);
         $this->insertPeople($expenseId, $expense);
+    }
+
+    /** @return list<array{id: int, name: string, category: string}> the trip's expense names, newest (highest id) first */
+    public function namesByTrip(int $tripId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT id, name, category FROM v_expense_list WHERE trip_id = ? ORDER BY id DESC');
+        $stmt->execute([$tripId]);
+
+        return $stmt->fetchAll();
+    }
+
+    /** @return list<array{id: int, name: string}> expenses that have no category yet, oldest first */
+    public function withoutCategory(): array
+    {
+        return $this->pdo->query('SELECT id, name FROM expenses WHERE category IS NULL ORDER BY id')->fetchAll();
+    }
+
+    public function setCategory(int $expenseId, Category $category): void
+    {
+        $this->pdo->prepare('UPDATE expenses SET category = ? WHERE id = ?')->execute([$category->value, $expenseId]);
     }
 
     /** Keeps who changed an expense, when, and its input before and after (JSON snapshots). */
@@ -112,6 +134,7 @@ final readonly class ExpenseRepository
             $paidBy,
             $splitBetween,
             (bool) $row['edited'],
+            Category::from($row['category']),
         );
     }
 }

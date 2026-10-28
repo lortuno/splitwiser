@@ -1,4 +1,4 @@
-import type { Expense, NewExpense, SplitShare, TripSummary } from "../dto";
+import type { CategorySuggestion, Expense, NewExpense, SplitShare, TripSummary } from "../dto";
 import { request } from "./client";
 
 export const listExpenses = (tripId: number) => request<Expense[]>(`/trips/${tripId}/expenses`);
@@ -14,3 +14,7 @@ export const updateExpense = (tripId: number, expenseId: number, expense: NewExp
 /** Asks the API to calculate the split without saving anything. */
 export const previewSplit = (tripId: number, expense: NewExpense) =>
   request<{ split_between: SplitShare[] }>(`/trips/${tripId}/expenses?dry_run=1`, { method: "POST", body: expense });
+
+/** The category the API suggests for a name: learned from the trip's own expenses first, then from keywords. */
+export const suggestCategory = (tripId: number, name: string) =>
+  request<CategorySuggestion>(`/trips/${tripId}/category-suggestion?name=${encodeURIComponent(name)}`);

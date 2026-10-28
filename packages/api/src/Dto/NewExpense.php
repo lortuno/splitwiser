@@ -19,6 +19,8 @@ final readonly class NewExpense
         public array $paidBy,
         public SplitType $splitType,
         public array $splitBetween,
+        /** null when the request sent none: the API decides (a guess for a new expense, unchanged for an edit). */
+        public ?Category $category = null,
     ) {
     }
 }

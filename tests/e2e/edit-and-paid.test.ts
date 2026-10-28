@@ -56,7 +56,8 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     await button(page, "‹ My trips").waitFor();
     const markPaid = await button(page, "Mark as paid").boundingBox();
     expect(markPaid!.height).toBeGreaterThanOrEqual(48);
-    for (const name of [/^Tapas at Mercado de San Miguel/, /^Prado Museum tickets/]) {
+    // Since epic 5 a row's name starts with its category ("Food, Tapas at …").
+    for (const name of [/^\w+, Tapas at Mercado de San Miguel/, /^\w+, Prado Museum tickets/]) {
       const row = page.getByRole("button", { name });
       expect((await row.boundingBox())!.height).toBeGreaterThanOrEqual(48);
     }

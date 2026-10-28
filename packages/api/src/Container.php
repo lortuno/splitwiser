@@ -12,6 +12,7 @@ use App\Repository\SessionRepository;
 use App\Repository\TripRepository;
 use App\Repository\UserRepository;
 use App\Service\AuthService;
+use App\Service\CategoryGuesser;
 use App\Service\ExpenseService;
 use App\Service\ExpenseValidator;
 use App\Service\SettlementService;
@@ -47,7 +48,7 @@ final class Container
         $this->access = new TripAccess($this->trips);
         $this->tripService = new TripService($pdo, $this->trips, $this->people, $this->users);
         $this->tripStatus = new TripStatusService($this->trips);
-        $this->expenses = new ExpenseService($pdo, $this->trips, $this->expenseRepository, new ExpenseValidator());
+        $this->expenses = new ExpenseService($pdo, $this->trips, $this->expenseRepository, new ExpenseValidator(), new CategoryGuesser());
         $this->summaries = new SummaryService($this->trips, $this->balances, new SettlementService());
     }
 

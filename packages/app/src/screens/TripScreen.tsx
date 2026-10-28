@@ -3,7 +3,9 @@ import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { Card } from "../components/Card";
 import { Money } from "../components/Money";
 import type { Expense, Trip, TripSummary } from "../dto";
+import { categoryIcon, categoryLabel } from "../expenses/categories";
 import { formatDate, formatLocalDate, joinNames, t, tCount } from "../i18n";
+import { formatCents } from "../money/format";
 import { colors, radius, size, space, typeScale } from "../theme";
 
 /** The hero shows this many transfers; "Show all" leads to the Balances tab for the rest. */
@@ -102,31 +104,41 @@ function ExpenseRow({ expense, onPress }: { expense: Expense; onPress?: () => vo
       ? t("expense.splitPersonal", { name: expense.split_between[0].name })
       : t("expense.splitBetween", { count: expense.split_between.length });
 
+  // Screen readers get the category as a word instead of the emoji.
+  const label = `${categoryLabel(expense.category)}, ${expense.name}, ${formatCents(expense.amount_cents)}`;
+
   const card = (pressed: boolean) => (
-    <Card style={pressed && styles.rowPressed}>
-      <View style={styles.rowTop}>
-        <Text style={styles.name} numberOfLines={2}>
-          {expense.name}
-        </Text>
-        <Money cents={expense.amount_cents} style={styles.amount} />
-        {onPress && <Text style={styles.chevron}>›</Text>}
+    <Card style={[styles.rowCard, pressed && styles.rowPressed]}>
+      <View style={styles.iconBox} importantForAccessibility="no-hide-descendants" aria-hidden>
+        <Text style={styles.icon}>{categoryIcon(expense.category)}</Text>
       </View>
-      <Text style={styles.detail}>
-        {formatDate(expense.date)} · {t("expense.paidBy", { names: joinNames(expense.paid_by.map((p) => p.name)) })}
-      </Text>
-      <Text style={styles.muted}>
-        {t("expense.recordedBy", { name: expense.recorded_by.name })} · {split}
-      </Text>
-      {expense.edited && <Text style={styles.muted}>{t("expense.edited")}</Text>}
+      <View style={styles.rowText}>
+        <View style={styles.rowTop}>
+          <Text style={styles.name} numberOfLines={2}>
+            {expense.name}
+          </Text>
+          <Money cents={expense.amount_cents} style={styles.amount} />
+          {onPress && <Text style={styles.chevron}>›</Text>}
+        </View>
+        <Text style={styles.detail}>
+          {formatDate(expense.date)} · {t("expense.paidBy", { names: joinNames(expense.paid_by.map((p) => p.name)) })}
+        </Text>
+        <Text style={styles.muted}>
+          {t("expense.recordedBy", { name: expense.recorded_by.name })} · {split}
+        </Text>
+        {expense.edited && <Text style={styles.muted}>{t("expense.edited")}</Text>}
+      </View>
     </Card>
   );
 
   return onPress ? (
-    <Pressable onPress={onPress} accessibilityRole="button" style={styles.row}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={label} style={styles.row}>
       {({ pressed }) => card(pressed)}
     </Pressable>
   ) : (
-    card(false)
+    <View accessible accessibilityLabel={label}>
+      {card(false)}
+    </View>
   );
 }
 
@@ -150,6 +162,17 @@ const styles = StyleSheet.create({
   detail: { fontSize: typeScale.caption, color: colors.ink, marginTop: space.xs },
   muted: { fontSize: typeScale.caption, color: colors.inkMuted, marginTop: space.xs },
   row: { minHeight: size.tapMin },
+  rowCard: { flexDirection: "row", alignItems: "flex-start", gap: space.md },
+  rowText: { flex: 1 },
+  iconBox: {
+    width: size.iconBox,
+    height: size.iconBox,
+    borderRadius: radius.sm,
+    backgroundColor: colors.accentSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  icon: { fontSize: typeScale.title },
   rowPressed: { backgroundColor: colors.accentSoft },
   chevron: { fontSize: typeScale.body, fontWeight: "700", color: colors.inkMuted },
   paid: { marginBottom: space.md, backgroundColor: colors.accentSoft, borderColor: colors.accentSoft, gap: space.xs },

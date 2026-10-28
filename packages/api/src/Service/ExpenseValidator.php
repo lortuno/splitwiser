@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use App\Dto\Category;
 use App\Dto\NewExpense;
 use App\Dto\SplitEntry;
 use App\Dto\SplitType;
@@ -12,7 +13,7 @@ use App\Money;
 /**
  * Turns a raw request body into a NewExpense or throws ValidationException.
  * Error keys match the form fields: name, date, amount_cents, recorded_by,
- * paid_by, paid_by.<person_id>, split, split.<person_id>.
+ * paid_by, paid_by.<person_id>, split, split.<person_id>, category.
  */
 final class ExpenseValidator
 {
@@ -34,12 +35,27 @@ final class ExpenseValidator
         $recordedBy = $this->member('recorded_by', $input['recorded_by'] ?? null, $memberIds);
         $paidBy = $this->paidBy($input['paid_by'] ?? null, $memberIds, $amount);
         [$splitType, $splitBetween] = $this->split($input['split'] ?? null, $memberIds, $amount);
+        $category = $this->category($input);
 
         if ($this->errors !== []) {
             throw new ValidationException($this->errors);
         }
 
-        return new NewExpense($name, $date, $amount, $recordedBy, $paidBy, $splitType, $splitBetween);
+        return new NewExpense($name, $date, $amount, $recordedBy, $paidBy, $splitType, $splitBetween, $category);
+    }
+
+    /** Optional: a missing category is null, anything that is not one of the codes is an error. */
+    private function category(array $input): ?Category
+    {
+        if (!array_key_exists('category', $input)) {
+            return null;
+        }
+        $category = is_string($input['category']) ? Category::tryFrom($input['category']) : null;
+        if ($category === null) {
+            $this->fail('category', 'invalid_category', 'Choose one of the categories.');
+        }
+
+        return $category;
     }
 
     private function name(mixed $value): string

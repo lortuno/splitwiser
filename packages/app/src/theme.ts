@@ -29,6 +29,8 @@ export const size = {
   border: 1,
   /** Width of the per-person amount / percentage / shares field. */
   fieldWidth: 120,
+  /** The square behind an expense's category icon. */
+  iconBox: 40,
   /** Width of the currency / "%" / "×" suffix after a field. */
   suffixWidth: 16,
   /** The app column is centred on screens wider than this (web). */

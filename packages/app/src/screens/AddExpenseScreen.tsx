@@ -1,14 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ApiError } from "../api/client";
-import { createExpense, previewSplit, updateExpense } from "../api/expenses";
+import { createExpense, previewSplit, suggestCategory, updateExpense } from "../api/expenses";
 import { Card } from "../components/Card";
 import { Chip } from "../components/Chip";
 import { FieldError } from "../components/FieldError";
 import { Money } from "../components/Money";
-import type { Expense, FieldErrors, NewExpense, Person, SplitShare, SplitType, TripSummary } from "../dto";
-import { emptyForm, formFromExpense } from "../expenses/expenseForm";
+import type { Category, Expense, FieldErrors, NewExpense, Person, SplitShare, SplitType, TripSummary } from "../dto";
+import { CATEGORIES, categoryLabel } from "../expenses/categories";
+import { applySuggestion, emptyForm, formFromExpense } from "../expenses/expenseForm";
 import { t } from "../i18n";
 import { CURRENCY_SYMBOL, formatBasisPoints } from "../money/format";
 import { parseEuroToCents, parsePercentToBasisPoints, parseWholeNumber } from "../money/parse";
@@ -37,6 +38,10 @@ export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSave
   const [splitType, setSplitType] = useState<SplitType>(initial.splitType);
   const [between, setBetween] = useState<number[]>(initial.between);
   const [splitValues, setSplitValues] = useState<Record<number, string>>(initial.splitValues);
+  const [category, setCategory] = useState<Category>(initial.category);
+  const [categoryPicked, setCategoryPicked] = useState(initial.categoryPicked);
+  // Read by suggestion replies that arrive late: once a chip was tapped they are ignored.
+  const categoryPickedRef = useRef(initial.categoryPicked);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [preview, setPreview] = useState<SplitShare[] | null>(null);
   const [previewErrors, setPreviewErrors] = useState<FieldErrors>({});
@@ -60,6 +65,7 @@ export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSave
     amount_cents: amountCents,
     paid_by: paidBy,
     split: { type: splitType, between: splitEntries },
+    category,
   };
 
   // The preview only depends on the amount and the split; the other fields get stand-in values
@@ -107,6 +113,32 @@ export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSave
     };
   }, [tripId, previewInput]);
 
+  // The suggestion follows the name until a category is tapped (never in the edit form, which starts picked).
+  // A failed request keeps the current choice without a message.
+  useEffect(() => {
+    if (categoryPickedRef.current) {
+      return;
+    }
+    if (name.trim() === "") {
+      setCategory((current) => applySuggestion(current, false, name, null));
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      suggestCategory(tripId, name)
+        .then((result) => {
+          if (!cancelled) {
+            setCategory((current) => applySuggestion(current, categoryPickedRef.current, name, result.category));
+          }
+        })
+        .catch(() => undefined);
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [tripId, name]);
+
   const toggle = (list: number[], id: number) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
 
   // Editing a field hides the errors the last save attempt reported for it (and its per-person entries).
@@ -120,6 +152,12 @@ export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSave
   const changeName = (text: string) => {
     setName(text);
     edited("name");
+  };
+  const pickCategory = (code: Category) => {
+    categoryPickedRef.current = true;
+    setCategoryPicked(true);
+    setCategory(code);
+    edited("category");
   };
   const changeDate = (text: string) => {
     setDate(text);
@@ -190,6 +228,23 @@ export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSave
             placeholderTextColor={colors.inkMuted}
             maxLength={120}
           />
+        </Section>
+
+        <Section
+          label={t("add.category")}
+          hint={t(name.trim() === "" && !categoryPicked ? "add.categoryHintEmpty" : "add.categoryHint")}
+          error={errorFor("category")}
+        >
+          <View style={styles.chips}>
+            {CATEGORIES.map((c) => (
+              <Chip
+                key={c.code}
+                label={`${c.icon} ${categoryLabel(c.code)}`}
+                selected={category === c.code}
+                onPress={() => pickCategory(c.code)}
+              />
+            ))}
+          </View>
         </Section>
 
         <View style={styles.twoColumns}>

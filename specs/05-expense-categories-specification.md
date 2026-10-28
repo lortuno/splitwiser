@@ -4,6 +4,14 @@ Source: new feature (not in `specs/roadmap.md`; it builds on epic 4, "Edit expen
 Brainstorming: `specs/05-expense-categories-brainstorming.md` (rounds 1–3; every recommendation was kept).
 Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
+## Estimate
+
+Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-only.
+
+| Date | Task | Estimate (h) | Actual (h) |
+|---|---|---|---|
+| 2026-10-28 | Build the epic | 1.5 | 0.33 |
+
 ## Goal
 
 Every expense has one of 11 categories, shown as an emoji icon on its row, so a list of expenses can be scanned at a
