@@ -18,7 +18,7 @@ function errorCodes(App\Api\JsonResponse $response): array
 
 function signUp(App\Container $app, string $name, string $email, string $password): App\Api\JsonResponse
 {
-    return call($app, 'POST', '/auth/signup', ['name' => $name, 'email' => $email, 'password' => $password]);
+    return call($app, 'POST', '/auth/signup', ['display_name' => $name, 'email' => $email, 'password' => $password]);
 }
 
 test('sign-up returns a token and the user, and the token works', function (): void {
@@ -27,8 +27,8 @@ test('sign-up returns a token and the user, and the token works', function (): v
 
     assertSame(201, $response->status);
     assertSame(64, strlen($response->data['token']));
-    assertSame(['name' => 'Zoe', 'email' => 'zoe@example.com'], array_slice($response->data['user']->jsonSerialize(), 1));
-    assertSame('Zoe', get($app, '/me', $response->data['token'])->data->name);
+    assertSame(['display_name' => 'Zoe', 'email' => 'zoe@example.com'], array_slice($response->data['user']->jsonSerialize(), 1));
+    assertSame('Zoe', get($app, '/me', $response->data['token'])->data->displayName);
     assertSame([], get($app, '/trips', $response->data['token'])->data, 'A new account has no trips.');
 });
 
@@ -42,9 +42,9 @@ test('sign-up rejects a taken email, also with other case and spaces', function 
 test('sign-up validates name, email and password', function (): void {
     $app = seededApp();
 
-    assertSame(['name' => 'required', 'email' => 'required', 'password' => 'too_short'], errorCodes(call($app, 'POST', '/auth/signup', ['x' => 1])));
-    assertSame(['name' => 'required'], errorCodes(signUp($app, '   ', 'zoe@example.com', 'long-enough-1')));
-    assertSame(['name' => 'too_long'], errorCodes(signUp($app, str_repeat('a', 61), 'zoe@example.com', 'long-enough-1')));
+    assertSame(['display_name' => 'required', 'email' => 'required', 'password' => 'too_short'], errorCodes(call($app, 'POST', '/auth/signup', ['x' => 1])));
+    assertSame(['display_name' => 'required'], errorCodes(signUp($app, '   ', 'zoe@example.com', 'long-enough-1')));
+    assertSame(['display_name' => 'too_long'], errorCodes(signUp($app, str_repeat('a', 61), 'zoe@example.com', 'long-enough-1')));
     assertSame(['email' => 'invalid_email'], errorCodes(signUp($app, 'Zoe', 'zoe', 'long-enough-1')));
     assertSame(['email' => 'invalid_email'], errorCodes(signUp($app, 'Zoe', 'zoe@example', 'long-enough-1')));
     assertSame(['password' => 'too_short'], errorCodes(signUp($app, 'Zoe', 'zoe@example.com', '1234567')));
@@ -64,7 +64,7 @@ test('login works with the right password, also with a loosely typed email', fun
     foreach (['ana@example.com', '  ANA@Example.com '] as $email) {
         $response = call($app, 'POST', '/auth/login', ['email' => $email, 'password' => Seeder::DEMO_PASSWORD]);
         assertSame(200, $response->status, $email);
-        assertSame('Ana', $response->data['user']->name);
+        assertSame('Ana', $response->data['user']->displayName);
     }
 });
 
@@ -139,6 +139,7 @@ test('each demo account lists exactly its own trips, newest first', function ():
         'jon@example.com' => [[4, 1000]],
         'noah@example.com' => [[5, 234_567_891]],
         'olga@example.com' => [[6, 9000]],
+        'pia@example.com' => [[8, 30000]],
     ];
     assertSame(array_values(Seeder::ACCOUNTS), array_keys($expected));
 

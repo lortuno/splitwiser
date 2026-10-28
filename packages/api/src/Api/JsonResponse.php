@@ -17,7 +17,7 @@ final readonly class JsonResponse
         http_response_code($this->status);
         // Bearer tokens, no cookies: any origin may call the API, and only a request carrying a token sees data.
         header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+        header('Access-Control-Allow-Methods: GET, POST, PATCH, OPTIONS');
         header('Access-Control-Allow-Headers: Content-Type, Authorization');
         header('Content-Type: application/json; charset=utf-8');
         if ($this->status !== 204) {

@@ -14,7 +14,8 @@ use PDO;
  * Deterministic demo data: the demo accounts in ACCOUNTS, one trip with four people and twenty expenses over
  * seven days, followed by the edge-case trips in fixtures().
  * Expenses go through ExpenseService, so the seed obeys the same validation as the app.
- * A seeded person whose name is in ACCOUNTS is linked to that account, on every trip they are on.
+ * A seeded person whose name is in ACCOUNTS is linked to that account, on every trip they are on; a person whose
+ * name is in INVITES gets a pending invite instead, linked when that email signs up.
  */
 final readonly class Seeder
 {
@@ -32,6 +33,11 @@ final readonly class Seeder
         'Jon' => 'jon@example.com',
         'Noah' => 'noah@example.com',
         'Olga' => 'olga@example.com',
+        'Pia' => 'pia@example.com',
+    ];
+    /** Pending invites, person name => an email without an account. */
+    public const array INVITES = [
+        'Inés' => 'ines@example.com',
     ];
 
     public function __construct(
@@ -69,7 +75,8 @@ final readonly class Seeder
 
     /**
      * Edge-case trips for the acceptance checks in specs/01-trip-at-a-glance-specification.md (trips 2–6) and
-     * specs/02-login-and-my-trips-specification.md (trip 7), created after the demo trip so it keeps id 1.
+     * specs/02-login-and-my-trips-specification.md (trip 7) and specs/03-create-a-trip-specification.md (trip 8),
+     * created after the demo trip so it keeps id 1.
      * @return list<int> trip ids in fixtures() order
      */
     public function seedFixtures(): array
@@ -93,6 +100,9 @@ final readonly class Seeder
             $userId = isset(self::ACCOUNTS[$name]) ? $this->users->idByEmail(self::ACCOUNTS[$name]) : null;
             $ids[$name] = $this->people->create($name, $userId);
             $this->trips->addMember($tripId, $ids[$name]);
+            if (isset(self::INVITES[$name])) {
+                $this->people->invite($ids[$name], self::INVITES[$name]);
+            }
         }
         $this->pdo->commit();
 
@@ -181,6 +191,10 @@ final readonly class Seeder
             ['Madrid weekend', '2026-09-12', '2026-09-14', ['Ana', 'Chloé'], [
                 ['2026-09-12', 'Tapas at Mercado de San Miguel', 4830, 'Chloé', ['Chloé' => 4830], 'equal', ['Ana' => null, 'Chloé' => null]],
                 ['2026-09-13', 'Prado Museum tickets', 3000, 'Ana', ['Ana' => 3000], 'equal', ['Ana' => null, 'Chloé' => null]],
+            ]],
+            // Created by Pia: Inés has a pending invite, Grandpa is a name only.
+            ['Ski week', '2026-12-19', '2026-12-26', ['Pia', 'Inés', 'Grandpa'], [
+                ['2026-12-19', 'Ski passes', 30000, 'Pia', ['Pia' => 30000], 'equal', ['Pia' => null, 'Inés' => null, 'Grandpa' => null]],
             ]],
         ];
     }

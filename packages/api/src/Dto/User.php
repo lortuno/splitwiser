@@ -8,13 +8,13 @@ final readonly class User implements \JsonSerializable
 {
     public function __construct(
         public int $id,
-        public string $name,
+        public string $displayName,
         public string $email,
     ) {
     }
 
     public function jsonSerialize(): array
     {
-        return ['id' => $this->id, 'name' => $this->name, 'email' => $this->email];
+        return ['id' => $this->id, 'display_name' => $this->displayName, 'email' => $this->email];
     }
 }

@@ -3,6 +3,14 @@
 Source: `specs/roadmap.md`, epic 3. Brainstorming: `specs/03-create-a-trip-brainstorming.md` (rounds 1–4).
 Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
+## Estimate
+
+Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-only.
+
+| Date | Task | Estimate (h) | Actual (h) |
+|---|---|---|---|
+| 2026-10-28 | Build the epic | 1.5 | 0.25 |
+
 ## Goal
 
 Anyone logged in can start a trip: a name, a start and end date, and the people travelling. The creator is added
@@ -164,8 +172,8 @@ name" sets the display name.
 ### Trip view, Balances, Add expense (unchanged layout)
 
 - After "Create trip", the trip view shows the trip name in the header (1 line, "…"), `0,00 €`, "{start} – {end} ·
-  0 expenses", "{n} people", "Everyone is settled up." and "No expenses yet. Tap + Add expense to record the first
-  one."
+  0 expenses", "{n} people" and "No expenses yet. Tap + Add expense to record the first one." As in epic 1 for a trip
+  without expenses, "Who owes whom" is not shown there; the Balances tab shows "Everyone is settled up."
 - Name-only members appear in "Paid by" and "Split between" exactly like linked members.
 
 ## Data
@@ -310,8 +318,8 @@ that checks 5 and 6 use, and check 12 renames Ana.
 3. 📸 **Create a trip with three people.** Enter "Summer in Sicily", start `2026-07-10`, end `2026-07-17`. In the first
    card enter "Ben" and `  BEN@Example.com `. Tap "+ Add person" and enter "Grandma" with no email. Tap "Create trip".
    The trip view opens with "‹ My trips" and "Summer in Sicily", the total `0,00 €`, "10 Jul 2026 – 17 Jul 2026 ·
-   0 expenses", "3 people", "Everyone is settled up." and "No expenses yet. Tap + Add expense to record the first one."
-   The URL is `/?trip=9`.
+   0 expenses", "3 people" and "No expenses yet. Tap + Add expense to record the first one." (no "Who owes whom", as in
+   epic 1). The URL is `/?trip=9`. The Balances tab shows every balance `0,00 €` and "Everyone is settled up."
 4. **First expense, uneven split, name-only member.** In "Summer in Sicily" tap "+ Add expense". The chips under "Paid
    by" and "Split between" are Ana, Ben and Grandma. Enter "Dinner", date `2026-07-10`, amount `10,00`, paid by Ana,
    split equally between all three, and save. The trip view shows total `10,00 €`, "1 expense", "Ben pays Ana

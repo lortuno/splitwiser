@@ -10,4 +10,5 @@ test("PHP API test suite", () => {
   const output = result.stdout.toString() + result.stderr.toString();
   console.log(output);
   expect(result.exitCode).toBe(0);
-});
+  // Logins and sign-ups hash passwords with bcrypt, which is slow on purpose: the suite takes several seconds.
+}, 60_000);

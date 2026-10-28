@@ -9,7 +9,8 @@ export interface Person {
 
 export interface User {
   id: number;
-  name: string;
+  /** The only name the app shows for an account; editable on "Your name". */
+  display_name: string;
   email: string;
 }
 
@@ -86,10 +87,27 @@ export interface NewExpense {
   split: { type: SplitType; between: { person_id: number; value: number | null }[] };
 }
 
+/** Body of POST /trips. The creator is never sent: the API adds them as the first member. */
+export interface NewTrip {
+  name: string;
+  start_date: string;
+  end_date: string;
+  people: { name: string; email: string | null }[];
+}
+
+/** Response of POST /trips. */
+export interface CreatedTrip {
+  trip: Trip;
+  summary: TripSummary;
+}
+
 export interface FieldError {
   code: string;
   message: string;
 }
 
-/** Expense keys: name, date, amount_cents, paid_by, paid_by.<id>, split, split.<id>. Sign-up keys: name, email, password. */
+/**
+ * Expense keys: name, date, amount_cents, paid_by, paid_by.<id>, split, split.<id>. Sign-up keys: display_name, email,
+ * password. New trip keys: name, start_date, end_date, people, people.<index>.name, people.<index>.email.
+ */
 export type FieldErrors = Record<string, FieldError>;

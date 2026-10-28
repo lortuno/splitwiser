@@ -3,8 +3,11 @@ import { request } from "./client";
 import { clearToken, setToken } from "./session";
 
 /** Creates an account and keeps its session token. */
-export async function signUp(name: string, email: string, password: string): Promise<User> {
-  const result = await request<AuthResult>("/auth/signup", { method: "POST", body: { name, email, password } });
+export async function signUp(displayName: string, email: string, password: string): Promise<User> {
+  const result = await request<AuthResult>("/auth/signup", {
+    method: "POST",
+    body: { display_name: displayName, email, password },
+  });
   setToken(result.token);
   return result.user;
 }
@@ -26,3 +29,6 @@ export async function logOut(): Promise<void> {
 }
 
 export const getMe = () => request<User>("/me");
+
+/** Renames the account; the new name shows on every trip at once. */
+export const updateMe = (displayName: string) => request<User>("/me", { method: "PATCH", body: { display_name: displayName } });

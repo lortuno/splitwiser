@@ -13,7 +13,7 @@ final readonly class AuthController
     {
     }
 
-    /** POST body: { name, email, password } */
+    /** POST body: { display_name, email, password } */
     public function signUp(Request $request, array $params): JsonResponse
     {
         [$token, $user] = $this->auth->signUp($request->json());
@@ -39,5 +39,11 @@ final readonly class AuthController
     public function me(Request $request, array $params, User $user): JsonResponse
     {
         return new JsonResponse(200, $user);
+    }
+
+    /** PATCH body: { display_name } */
+    public function updateMe(Request $request, array $params, User $user): JsonResponse
+    {
+        return new JsonResponse(200, $this->auth->updateDisplayName($user, $request->json()));
     }
 }

@@ -9,14 +9,19 @@ import { StateMessage } from "../components/StateMessage";
 import type { Trip, User } from "../dto";
 import { formatDate, t } from "../i18n";
 import { colors, radius, size, space, typeScale } from "../theme";
+import { authStyles } from "./LoginScreen";
 
 export function MyTripsScreen({
   user,
   onOpenTrip,
+  onNewTrip,
+  onYourName,
   onLogOut,
 }: {
   user: User;
   onOpenTrip: (tripId: number) => void;
+  onNewTrip: () => void;
+  onYourName: () => void;
   onLogOut: () => void;
 }) {
   const [trips, setTrips] = useState<Trip[] | null>(null);
@@ -39,10 +44,17 @@ export function MyTripsScreen({
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Text style={styles.title}>{t("trips.title")}</Text>
-        <Pressable onPress={onLogOut} accessibilityRole="button" style={styles.logOut}>
-          <Text style={styles.logOutLabel}>{t("trips.logOut")}</Text>
-        </Pressable>
+        <Text style={styles.title} numberOfLines={1}>
+          {t("trips.title")}
+        </Text>
+        <View style={styles.headerActions}>
+          <Pressable onPress={onYourName} accessibilityRole="button" style={styles.headerButton}>
+            <Text style={styles.headerButtonLabel}>{t("trips.yourName")}</Text>
+          </Pressable>
+          <Pressable onPress={onLogOut} accessibilityRole="button" style={styles.headerButton}>
+            <Text style={styles.headerButtonLabel}>{t("trips.logOut")}</Text>
+          </Pressable>
+        </View>
       </View>
       {trips === null ? (
         failed ? (
@@ -53,9 +65,10 @@ export function MyTripsScreen({
       ) : (
         <FlatList
           data={trips}
+          style={styles.list}
           keyExtractor={(trip) => String(trip.id)}
           contentContainerStyle={styles.content}
-          ListHeaderComponent={<Text style={styles.loggedInAs}>{t("trips.loggedInAs", { name: user.name })}</Text>}
+          ListHeaderComponent={<Text style={styles.loggedInAs}>{t("trips.loggedInAs", { name: user.display_name })}</Text>}
           ListEmptyComponent={
             <Card>
               <Text style={styles.empty}>{t("trips.empty")}</Text>
@@ -64,6 +77,17 @@ export function MyTripsScreen({
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           renderItem={({ item }) => <TripCard trip={item} onPress={() => onOpenTrip(item.id)} />}
         />
+      )}
+      {trips !== null && (
+        <View style={authStyles.footer}>
+          <Pressable
+            onPress={onNewTrip}
+            accessibilityRole="button"
+            style={({ pressed }) => [authStyles.primary, pressed && authStyles.primaryPressed]}
+          >
+            <Text style={authStyles.primaryLabel}>{t("trips.newTrip")}</Text>
+          </Pressable>
+        </View>
       )}
     </View>
   );
@@ -99,9 +123,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.line,
   },
-  title: { fontSize: typeScale.title, fontWeight: "700", color: colors.ink },
-  logOut: { minHeight: size.tapMin, justifyContent: "center", paddingHorizontal: space.sm },
-  logOutLabel: { fontSize: typeScale.body, color: colors.accent, fontWeight: "600" },
+  title: { flexShrink: 1, fontSize: typeScale.title, fontWeight: "700", color: colors.ink },
+  headerActions: { flexDirection: "row", alignItems: "center" },
+  headerButton: { minHeight: size.tapMin, justifyContent: "center", paddingHorizontal: space.sm },
+  headerButtonLabel: { fontSize: typeScale.body, color: colors.accent, fontWeight: "600" },
+  list: { flex: 1 },
   content: { padding: space.lg, paddingBottom: space.xl },
   loggedInAs: { fontSize: typeScale.caption, color: colors.inkMuted, marginBottom: space.md },
   empty: { fontSize: typeScale.body, color: colors.ink },

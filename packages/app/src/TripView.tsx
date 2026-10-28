@@ -12,6 +12,7 @@ import { AddExpenseScreen } from "./screens/AddExpenseScreen";
 import { BalancesScreen } from "./screens/BalancesScreen";
 import { TripScreen } from "./screens/TripScreen";
 import { colors, size, space, typeScale } from "./theme";
+import { todayIso } from "./trips/newTripInput";
 
 interface TripData {
   trip: Trip;
@@ -21,9 +22,20 @@ interface TripData {
 
 type Problem = "unreachable" | "notFound" | "notMember";
 
-/** One trip with its tabs (Trip, Balances, + Add expense). tripId null means the link held no valid id. */
-export function TripView({ tripId, onBack }: { tripId: number | null; onBack: () => void }) {
-  const [data, setData] = useState<TripData | null>(null);
+/**
+ * One trip with its tabs (Trip, Balances, + Add expense). tripId null means the link held no valid id.
+ * `created` is a trip that was just created: it is shown from the create response, without loading it again.
+ */
+export function TripView({
+  tripId,
+  created,
+  onBack,
+}: {
+  tripId: number | null;
+  created?: Omit<TripData, "expenses">;
+  onBack: () => void;
+}) {
+  const [data, setData] = useState<TripData | null>(created ? { ...created, expenses: [] } : null);
   const [problem, setProblem] = useState<Problem | null>(tripId === null ? "notFound" : null);
   const [screen, setScreen] = useState<Screen>("trip");
 
@@ -43,7 +55,11 @@ export function TripView({ tripId, onBack }: { tripId: number | null; onBack: ()
   }, [tripId]);
 
   useEffect(() => {
-    void load();
+    if (!created) {
+      void load();
+    }
+    // A created trip is complete already; only a different trip id loads.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load]);
 
   // The create response already carries the new summary: no second request needed.
@@ -103,11 +119,6 @@ export function TripView({ tripId, onBack }: { tripId: number | null; onBack: ()
       <TabBar current={screen} onChange={setScreen} />
     </>
   );
-}
-
-function todayIso(): string {
-  const now = new Date();
-  return [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((n) => String(n).padStart(2, "0")).join("-");
 }
 
 /** Today when it falls inside the trip, otherwise the nearest trip day (ISO dates compare as strings). */

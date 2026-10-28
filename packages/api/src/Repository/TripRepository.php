@@ -105,11 +105,11 @@ final readonly class TripRepository
     public function findMembers(int $tripId): array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT p.id, p.name
+            'SELECT n.person_id AS id, n.name
              FROM trip_members m
-             JOIN people p ON p.id = m.person_id
+             JOIN v_person_names n ON n.person_id = m.person_id
              WHERE m.trip_id = ?
-             ORDER BY p.id'
+             ORDER BY n.person_id'
         );
         $stmt->execute([$tripId]);
 

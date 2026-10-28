@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Dto\User;
+use App\Repository\PersonRepository;
 use App\Repository\SessionRepository;
 use App\Repository\UserRepository;
+use PDO;
 
 /**
  * Sign-up, login and logout with opaque bearer tokens: 32 random bytes as hex, stored only as their SHA-256.
- * Sign-up errors are keyed by form field (name, email, password), like ExpenseValidator.
+ * Sign-up errors are keyed by form field (display_name, email, password), like ExpenseValidator.
+ * A sign-up links every trip person invited with the same email (trip_invites) to the new account.
  */
 final readonly class AuthService
 {
@@ -20,8 +23,10 @@ final readonly class AuthService
     private const int MAX_EMAIL_LENGTH = 254;
 
     public function __construct(
+        private PDO $pdo,
         private UserRepository $users,
         private SessionRepository $sessions,
+        private PersonRepository $people,
     ) {
     }
 
@@ -29,19 +34,17 @@ final readonly class AuthService
     public function signUp(array $input): array
     {
         $errors = [];
-        $name = is_string($input['name'] ?? null) ? trim($input['name']) : '';
+        $name = self::trimmed($input['display_name'] ?? null);
         $email = self::normaliseEmail($input['email'] ?? null);
         $password = is_string($input['password'] ?? null) ? $input['password'] : '';
 
-        if ($name === '') {
-            $errors['name'] = ['code' => 'required', 'message' => 'Enter your name.'];
-        } elseif (mb_strlen($name) > self::MAX_NAME_LENGTH) {
-            $errors['name'] = ['code' => 'too_long', 'message' => 'Use at most 60 characters.'];
+        if (($nameError = self::displayNameError($name)) !== null) {
+            $errors['display_name'] = $nameError;
         }
 
         if ($email === '') {
             $errors['email'] = ['code' => 'required', 'message' => 'Enter your email.'];
-        } elseif (mb_strlen($email) > self::MAX_EMAIL_LENGTH || preg_match('/^[^@\s]+@[^@\s]+\.[^@\s]+$/u', $email) !== 1) {
+        } elseif (!self::isPlausibleEmail($email)) {
             $errors['email'] = ['code' => 'invalid_email', 'message' => 'Enter an email like ana@example.com.'];
         } elseif ($this->users->idByEmail($email) !== null) {
             $errors['email'] = ['code' => 'taken', 'message' => 'This email already has an account.'];
@@ -57,9 +60,32 @@ final readonly class AuthService
             throw new ValidationException($errors);
         }
 
-        $userId = $this->users->create($name, $email, password_hash($password, PASSWORD_DEFAULT));
+        $hash = password_hash($password, PASSWORD_DEFAULT);
+        $this->pdo->beginTransaction();
+        try {
+            $userId = $this->users->create($name, $email, $hash);
+            $this->users->touchLastLogin($userId);
+            $this->people->linkInvites($email, $userId);
+            $token = $this->startSession($userId);
+            $this->pdo->commit();
+        } catch (\Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
 
-        return [$this->startSession($userId), new User($userId, $name, $email)];
+        return [$token, new User($userId, $name, $email)];
+    }
+
+    /** PATCH /me: { display_name }. */
+    public function updateDisplayName(User $user, array $input): User
+    {
+        $name = self::trimmed($input['display_name'] ?? null);
+        if (($error = self::displayNameError($name)) !== null) {
+            throw new ValidationException(['display_name' => $error]);
+        }
+        $this->users->updateDisplayName($user->id, $name);
+
+        return new User($user->id, $name, $user->email);
     }
 
     /** @return array{string, User} a new session token and the user */
@@ -72,6 +98,8 @@ final readonly class AuthService
         if ($found === null || !is_string($password) || !password_verify($password, $found[1])) {
             throw UnauthorizedException::invalidCredentials();
         }
+
+        $this->users->touchLastLogin($found[0]->id);
 
         return [$this->startSession($found[0]->id), $found[0]];
     }
@@ -94,6 +122,27 @@ final readonly class AuthService
     public static function normaliseEmail(mixed $value): string
     {
         return is_string($value) ? mb_strtolower(trim($value)) : '';
+    }
+
+    /** A plausible x@y.z; $email must already be normalised. */
+    public static function isPlausibleEmail(string $email): bool
+    {
+        return mb_strlen($email) <= self::MAX_EMAIL_LENGTH && preg_match('/^[^@\s]+@[^@\s]+\.[^@\s]+$/u', $email) === 1;
+    }
+
+    /** @return array{code: string, message: string}|null */
+    private static function displayNameError(string $name): ?array
+    {
+        return match (true) {
+            $name === '' => ['code' => 'required', 'message' => 'Enter your name.'],
+            mb_strlen($name) > self::MAX_NAME_LENGTH => ['code' => 'too_long', 'message' => 'Use at most 60 characters.'],
+            default => null,
+        };
+    }
+
+    private static function trimmed(mixed $value): string
+    {
+        return is_string($value) ? trim($value) : '';
     }
 
     private function startSession(int $userId): string

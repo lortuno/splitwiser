@@ -18,4 +18,4 @@ Travel notebook: cool blue-grey paper, one blue accent (kept clear of the green/
 6. Balances never rely on colour alone. Check: net amounts use `formatSignedCents` (always + or −).
 
 ## Components (`packages/app/src/components`)
-`Card`, `Chip`, `FieldError`, `Money`, `StateMessage`, `TabBar`, `TextField`. Screens: `LoginScreen`, `SignUpScreen`, `MyTripsScreen`, `TripScreen`, `BalancesScreen`, `AddExpenseScreen` (the trip's tabs live in `TripView.tsx`).
+`Card`, `Chip`, `FieldError`, `Money`, `StateMessage`, `TabBar`, `TextField`. Screens: `LoginScreen`, `SignUpScreen`, `MyTripsScreen`, `NewTripScreen`, `YourNameScreen`, `TripScreen`, `BalancesScreen`, `AddExpenseScreen` (the trip's tabs live in `TripView.tsx`).

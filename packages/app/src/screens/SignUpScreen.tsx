@@ -46,7 +46,7 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
           value={name}
           onChangeText={setName}
           autoComplete="name"
-          error={errors.name?.message}
+          error={errors.display_name?.message}
         />
         <TextField
           label={t("auth.email")}

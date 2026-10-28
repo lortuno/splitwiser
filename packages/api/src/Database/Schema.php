@@ -24,13 +24,15 @@ final class Schema
         )
         SQL,
         // Accounts. Emails are stored trimmed and lowercased; only a password_hash() is kept.
+        // display_name is the only name the app shows for a linked person; last_login_at is never shown.
         <<<'SQL'
         CREATE TABLE IF NOT EXISTS users (
             id            INTEGER PRIMARY KEY,
-            name          TEXT NOT NULL,
+            display_name  TEXT NOT NULL,
             email         TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
-            created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            last_login_at TEXT
         )
         SQL,
         // One row per login. Only the SHA-256 of the bearer token is stored.
@@ -43,11 +45,19 @@ final class Schema
         )
         SQL,
         // user_id links a trip member to an account; NULL for people without one.
+        // name is what the trip's creator typed; a linked person shows users.display_name instead.
         <<<'SQL'
         CREATE TABLE IF NOT EXISTS people (
             id      INTEGER PRIMARY KEY,
             name    TEXT NOT NULL,
             user_id INTEGER REFERENCES users (id)
+        )
+        SQL,
+        // An email typed for a person that has no account yet. The first sign-up with it links the person.
+        <<<'SQL'
+        CREATE TABLE IF NOT EXISTS trip_invites (
+            person_id INTEGER PRIMARY KEY REFERENCES people (id) ON DELETE CASCADE,
+            email     TEXT NOT NULL
         )
         SQL,
         <<<'SQL'
@@ -94,6 +104,7 @@ final class Schema
     private const array INDEXES = [
         'CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id)',
         'CREATE INDEX IF NOT EXISTS idx_people_user_id ON people (user_id)',
+        'CREATE INDEX IF NOT EXISTS idx_trip_invites_email ON trip_invites (email)',
         'CREATE INDEX IF NOT EXISTS idx_trip_members_trip_id ON trip_members (trip_id)',
         'CREATE INDEX IF NOT EXISTS idx_trip_members_person_id ON trip_members (person_id)',
         'CREATE INDEX IF NOT EXISTS idx_expenses_trip_id ON expenses (trip_id)',
@@ -107,6 +118,13 @@ final class Schema
 
     /** Views in dependency order. */
     private const array VIEWS = [
+        // The name the app shows for each person: the account's display name when linked, else the typed name.
+        'v_person_names' => <<<'SQL'
+        CREATE VIEW v_person_names AS
+        SELECT p.id AS person_id, COALESCE(u.display_name, p.name) AS name
+        FROM people p
+        LEFT JOIN users u ON u.id = p.user_id
+        SQL,
         // Each person's share of an expense, in cents.
         // Rounding rule: everyone gets floor(amount * weight / total_weight); the leftover cents
         // go one each to the largest remainders, ties broken by ascending person id.
@@ -169,7 +187,7 @@ final class Schema
                COALESCE(shared.share_cents, 0)                               AS share_cents,
                COALESCE(paid.paid_cents, 0) - COALESCE(shared.share_cents, 0) AS net_cents
         FROM trip_members m
-        JOIN people pe ON pe.id = m.person_id
+        JOIN v_person_names pe ON pe.person_id = m.person_id
         LEFT JOIN paid ON paid.trip_id = m.trip_id AND paid.person_id = m.person_id
         LEFT JOIN shared ON shared.trip_id = m.trip_id AND shared.person_id = m.person_id
         SQL,
@@ -188,7 +206,7 @@ final class Schema
                            'person_id', p.person_id, 'name', pp.name, 'amount_cents', p.amount_cents
                        ) ORDER BY p.person_id)
                 FROM expense_payers p
-                JOIN people pp ON pp.id = p.person_id
+                JOIN v_person_names pp ON pp.person_id = p.person_id
                 WHERE p.expense_id = e.id) AS paid_by_json,
                (SELECT json_group_array(json_object(
                            'person_id', s.person_id, 'name', sp.name,
@@ -196,10 +214,10 @@ final class Schema
                        ) ORDER BY s.person_id)
                 FROM v_expense_shares s
                 JOIN expense_splits es ON es.expense_id = s.expense_id AND es.person_id = s.person_id
-                JOIN people sp ON sp.id = s.person_id
+                JOIN v_person_names sp ON sp.person_id = s.person_id
                 WHERE s.expense_id = e.id) AS split_between_json
         FROM expenses e
-        JOIN people r ON r.id = e.recorded_by
+        JOIN v_person_names r ON r.person_id = e.recorded_by
         SQL,
     ];
 

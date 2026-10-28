@@ -5,12 +5,14 @@ import { getMe, logOut } from "./api/auth";
 import { API_URL, ApiError, setUnauthenticatedHandler } from "./api/client";
 import { getToken } from "./api/session";
 import { StateMessage } from "./components/StateMessage";
-import type { User } from "./dto";
+import type { CreatedTrip, User } from "./dto";
 import { t } from "./i18n";
 import { parseTripParam, type TripParam } from "./navigation/tripParam";
 import { LoginScreen } from "./screens/LoginScreen";
 import { MyTripsScreen } from "./screens/MyTripsScreen";
+import { NewTripScreen } from "./screens/NewTripScreen";
 import { SignUpScreen } from "./screens/SignUpScreen";
+import { YourNameScreen } from "./screens/YourNameScreen";
 import { TripView } from "./TripView";
 import { colors, size } from "./theme";
 
@@ -20,7 +22,9 @@ type Route =
   | { kind: "login"; sessionEnded: boolean }
   | { kind: "signup" }
   | { kind: "trips" }
-  | { kind: "trip"; tripId: number | null };
+  | { kind: "newTrip" }
+  | { kind: "yourName" }
+  | { kind: "trip"; tripId: number | null; created?: CreatedTrip };
 
 // Only the web has a URL; iOS and Android always start on "My trips".
 const IS_WEB = Platform.OS === "web";
@@ -94,6 +98,16 @@ export default function App() {
     setRoute({ kind: "trip", tripId });
   };
 
+  const openCreatedTrip = (created: CreatedTrip) => {
+    showTripInUrl(created.trip.id);
+    setRoute({ kind: "trip", tripId: created.trip.id, created });
+  };
+
+  const renamed = (who: User) => {
+    setUser(who);
+    setRoute({ kind: "trips" });
+  };
+
   const backToMyTrips = () => {
     showTripInUrl(null);
     setRoute({ kind: "trips" });
@@ -117,9 +131,19 @@ export default function App() {
         ) : route.kind === "signup" ? (
           <SignUpScreen onSignedUp={loggedIn} onBack={() => setRoute({ kind: "login", sessionEnded: false })} />
         ) : route.kind === "trips" && user !== null ? (
-          <MyTripsScreen user={user} onOpenTrip={openTrip} onLogOut={doLogOut} />
+          <MyTripsScreen
+            user={user}
+            onOpenTrip={openTrip}
+            onNewTrip={() => setRoute({ kind: "newTrip" })}
+            onYourName={() => setRoute({ kind: "yourName" })}
+            onLogOut={doLogOut}
+          />
+        ) : route.kind === "newTrip" && user !== null ? (
+          <NewTripScreen user={user} onCreated={openCreatedTrip} onBack={backToMyTrips} />
+        ) : route.kind === "yourName" && user !== null ? (
+          <YourNameScreen user={user} onSaved={renamed} onBack={backToMyTrips} />
         ) : route.kind === "trip" ? (
-          <TripView key={route.tripId ?? "invalid"} tripId={route.tripId} onBack={backToMyTrips} />
+          <TripView key={route.tripId ?? "invalid"} tripId={route.tripId} created={route.created} onBack={backToMyTrips} />
         ) : null}
       </View>
     </View>

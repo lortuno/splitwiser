@@ -17,6 +17,7 @@ use App\Service\ExpenseValidator;
 use App\Service\SettlementService;
 use App\Service\SummaryService;
 use App\Service\TripAccess;
+use App\Service\TripService;
 use PDO;
 
 /** Composition root: wires repositories and services around one PDO connection. */
@@ -29,6 +30,7 @@ final class Container
     public readonly UserRepository $users;
     public readonly AuthService $auth;
     public readonly TripAccess $access;
+    public readonly TripService $tripService;
     public readonly ExpenseService $expenses;
     public readonly SummaryService $summaries;
 
@@ -39,8 +41,9 @@ final class Container
         $this->expenseRepository = new ExpenseRepository($pdo);
         $this->balances = new BalanceRepository($pdo);
         $this->users = new UserRepository($pdo);
-        $this->auth = new AuthService($this->users, new SessionRepository($pdo));
+        $this->auth = new AuthService($pdo, $this->users, new SessionRepository($pdo), $this->people);
         $this->access = new TripAccess($this->trips);
+        $this->tripService = new TripService($pdo, $this->trips, $this->people, $this->users);
         $this->expenses = new ExpenseService($pdo, $this->trips, $this->expenseRepository, new ExpenseValidator());
         $this->summaries = new SummaryService($this->trips, $this->balances, new SettlementService());
     }

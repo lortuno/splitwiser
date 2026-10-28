@@ -56,6 +56,7 @@ test('seeded trips have fixed ids', function (): void {
         [5, 'Great tour of every UNESCO world heritage site in southern Europe by sleeper train'],
         [6, 'Big group'],
         [7, 'Madrid weekend'],
+        [8, 'Ski week'],
     ], $names);
 });
 
