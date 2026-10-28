@@ -237,3 +237,207 @@ The user asked for two changes after reading the specification; the specificatio
    every start with a session applies the stored language, even when the device last showed another one (check 8
    extended). Before login (no account yet) a pick on Login or Sign up is recorded at login. iOS and Android keep
    nothing on the device, so a cold start shows Login in English until the person logs in.
+
+# Change: one menu at the top for the language, Settings and Log out
+
+The user's request: "I want the language dropdown to be always visible in the top, not only inside settings. Also
+settings and logout should be available in the dropdown, to simplify and not have too many things visible."
+
+### What the specification says today
+
+- **Language control** (`LanguagePicker`): a bordered dropdown button (`size.tapMin` high, `size.menuWidth` wide)
+  showing "English ▾"; it opens a menu with "English", "Español", "Français". It sits at the top right of **Login**,
+  on the "‹ Log in" row of **Sign up**, and under "Language" in **Settings**. No other screen has it.
+- **My trips header:** `My trips            Settings Log out` (two text buttons, `size.tapMin`). These are the only
+  places to open Settings and to log out (also in `specs/accounts/02-login-and-my-trips-specification.md`, Log out,
+  and check 1 of `specs/accounts/07-admin-account-specification.md`: "The header shows "Settings" and "Log out"").
+- **Settings:** name with "Save", plus "Language": a switch is saved at once with `PATCH /me { language }`; if that
+  fails, the switch is undone and "Could not reach the API at {url}." appears under the control.
+- **Trip view header:** `‹ My trips` on the left, "Mark as paid" / "Reopen" on the right; the add and edit forms have
+  their title and "Cancel"; New trip and Settings have "‹ My trips".
+- Checks that go through the current places: 06 checks 1, 3, 8, 9, 11, 13, 14, 15; 02 checks that tap "Log out";
+  07 check 1. Data and API do not change: `PATCH /me { language }` and `POST /auth/logout` stay as they are.
+
+## Round 4
+
+### Q1. Where does the menu sit so it is always visible at the top?
+- [x] A. One app bar, 48 high, on top of every screen, with the menu button at the right. Each screen keeps its own
+  header below it, without "Settings" and "Log out" (Recommended: the same place everywhere, no crowding of the trip
+  view's "‹ My trips" / "Mark as paid" row; costs 48 px of height on every screen)
+- [ ] B. Inside each screen's own header row, at the right (no extra height, but a compact button next to "Mark as
+  paid", "Cancel" etc., and a different position on screens without a header)
+
+Option A at 390 px, My trips (correct it directly here if anything is wrong):
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │  app bar, 48 high, every screen
+├──────────────────────────────────────┤
+│ My trips                             │  header as today, without
+│ Logged in as Ana                     │  "Settings" and "Log out"
+│ ┌──────────────────────────────────┐ │
+│ │ Lisbon & Porto        1.915,57 € │ │
+│ └──────────────────────────────────┘ │
+│            (flexible space)          │
+│ ┌──────────────────────────────────┐ │
+│ │            + New trip            │ │
+│ └──────────────────────────────────┘ │
+└──────────────────────────────────────┘
+```
+
+Option A, trip view:
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │  app bar
+├──────────────────────────────────────┤
+│ ‹ My trips              Mark as paid │  trip header as today
+│ Lisbon & Porto                       │
+│ Total spent                          │
+│ 1.915,57 €                           │
+│ ...                                  │
+└──────────────────────────────────────┘
+```
+
+Option B, trip view:
+
+```
+┌──────────────────────────────────────┐
+│ ‹ My trips      Mark as paid  [EN ▾] │
+│ Lisbon & Porto                       │
+└──────────────────────────────────────┘
+```
+
+### Q2. What does the closed button show?
+- [x] The current language, as today: "English ▾", "Español ▾", "Français ▾" (Recommended: people still find the
+  language where they expect it; accessible name "Menu, language: English")
+- [ ] The language code: "EN ▾"
+- [ ] A menu icon: "☰"
+
+### Q3. What is in the open menu? (correct the wireframe directly here)
+- [x] Languages first, then a line, then "Settings" and "Log out". Before login (Login, Sign up) only the three
+  languages. On the Settings screen itself, "Settings" is left out of the menu (Recommended)
+- [ ] The same, but "Settings" stays in the menu on the Settings screen, doing nothing
+- [ ] Settings and Log out first, languages below
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │
+│                       ┌────────────┐ │
+│                       │ English    │ │  each row 48 high; the chosen
+│                       │ Español    │ │  language accent with onAccent
+│                       │ Français   │ │  text (radio)
+│                       ├────────────┤ │
+│                       │ Settings   │ │  opens Settings
+│                       │ Log out    │ │  logs out, shows Login
+│                       └────────────┘ │
+│                                      │
+```
+
+Tapping a row, tapping outside the menu or Escape closes it, as today.
+
+### Q4. Does "Settings" keep its own "Language" section?
+- [ ] No: Settings keeps only the name and "Save"; the language is changed only from the menu (Recommended: one
+  place for the language, fewer things on screen)
+- [x] Yes: keep the dropdown in Settings as well
+
+### Q5. Saving the language fails (logged in, API unreachable)
+Today in Settings: the switch is undone and the error appears under the control.
+- [ ] Same rule from the menu: the switch is undone, and "Could not reach the API at {url}." appears in an owesSoft
+  card right under the app bar on whatever screen is open, until the next successful switch or the next screen
+  (Recommended)
+- [x] Keep the new language on screen and retry saving later (the database would no longer decide the language)
+
+### Q6. Settings or Log out from a screen with unsaved input (add or edit expense, New trip, Settings name)
+- [ ] Leave at once and drop the unsaved input, without asking, as "Cancel" and "‹ My trips" do today
+  (Recommended)
+- [x] Ask "Discard your changes?" first
+- [ ] Hide "Settings" and "Log out" from the menu on those screens (only languages there)
+
+### Q7. Which screens get the app bar?
+- [x] Every screen: Login, Sign up, My trips, New trip, the trip view (Trip, Balances, the Mark as paid
+  confirmation), the add and edit forms and Settings. Not the first "Loading…" while the app starts (Recommended)
+- [ ] Only the screens after login, with Login and Sign up keeping today's picker in place
+
+- [x] Round 4 answered (tick this when you have answered every question above)
+
+## Round 5
+
+Round 4 settled: one app bar on every screen but the first "Loading…" (Q1, Q7), the button shows "English ▾" (Q2),
+the menu has the languages, then "Settings" and "Log out" (Q3), Settings keeps its own language dropdown (Q4). Q5 and
+Q6 need details before they can go into the specification.
+
+### Q1. Retrying a language that could not be saved (Round 4 Q5)
+The specification says today that the database decides the language: every start with a session applies
+`users.language` (check 8). A language kept on screen but not saved would be overwritten at the next start unless
+the rule changes.
+- [ ] The app keeps the unsaved language as "pending" (on the web also on the device) and sends it again with
+  `PATCH /me { language }` at the next language switch, the next screen change and the next start. At a start with a
+  pending language, the app sends it first; when that works, it wins over the stored one; when it still fails, the
+  app shows the pending language anyway. The database decides only when nothing is pending (Recommended)
+- [x] Retry only while the app stays open (next switch, next screen change). At the next start the database
+  language applies and the unsaved pick is lost
+- [ ] Retry every 30 seconds in the background while the app is open, plus the rule of the first option at start
+
+### Q2. Does the person see that the language is not saved yet?
+- [ ] Yes: a small owesSoft line under the app bar, "Language not saved yet. We will try again.", until a retry
+  works (Recommended: otherwise a later start on another device shows the old language without explanation)
+- [x] No message; retries are silent
+
+### Q3. Settings' own language dropdown (kept in Round 4 Q4)
+- [x] Same rule as the menu: a failed save keeps the language and retries; check 14 changes accordingly (Recommended:
+  one rule for both controls)
+- [ ] Keep today's rule in Settings only: the switch is undone and "Could not reach the API at {url}." appears
+
+### Q4. When does "Discard your changes?" appear (Round 4 Q6)?
+- [x] Only when the person taps "Settings" or "Log out" in the menu while a form has input that differs from how the
+  form opened (add or edit expense, New trip, the name in Settings). An untouched form, and a language switch, never
+  ask. "Cancel" and "‹ My trips" keep today's behaviour and do not ask (Recommended)
+- [ ] The same, and "Cancel" and "‹ My trips" ask too
+- [ ] Always ask on those screens, changed or not
+
+### Q5. The "Discard your changes?" dialog at 390 px (correct it directly here)
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │
+├──────────────────────────────────────┤
+│ (the form, dimmed)                   │
+│ ┌──────────────────────────────────┐ │
+│ │ Discard your changes?            │ │  card, title 17 bold
+│ │ What you entered on this screen  │ │
+│ │ will be lost.                    │ │
+│ │ ┌──────────────────────────────┐ │ │
+│ │ │       Discard and log out    │ │ │  primary, 56 high; reads
+│ │ └──────────────────────────────┘ │ │  "Discard and open Settings"
+│ │ ┌──────────────────────────────┐ │ │  when Settings was tapped
+│ │ │         Keep editing         │ │ │  secondary, 48 high
+│ │ └──────────────────────────────┘ │ │
+│ └──────────────────────────────────┘ │
+└──────────────────────────────────────┘
+```
+
+- [x] As drawn: the button names the action ("Discard and log out" / "Discard and open Settings"); "Keep editing",
+  tapping outside or Escape closes the dialog and keeps the input (Recommended)
+- [ ] One "Discard" button for both cases, and "Keep editing"
+
+- [x] Round 5 answered (tick this when you have answered every question above)
+
+### Decisions made while changing the specification
+
+Rounds 4 and 5 are in `specs/translations/06-translations-specification.md`, and also in
+`specs/accounts/02-login-and-my-trips-specification.md` (Log out in the menu) and
+`specs/accounts/07-admin-account-specification.md` (check 1). These details were settled there and can be challenged:
+
+- **"Screen change" for the retry** is any change of route in `App.tsx` (opening a trip, a form, "Settings", going
+  back). Only a network error or a `5xx` makes a language pending; a `401` ends the session and drops it; a newer
+  switch replaces it.
+- **The app bar is also on the start screen "Could not reach the API at {url}."**, with languages only, like Login.
+- **"Settings" from the menu clears `?trip=`** on the web, and its "‹ My trips" leads to "My trips", as today.
+- **"Unsaved input"** means any field differing from how the screen opened; changing a field back counts as
+  unchanged. The "Mark as paid" confirmation has no input and never asks.
+- **New keys** `menu.button`, `menu.logOut` (replaces `trips.logOut`) and `discard.*`; the menu's "Settings" row
+  reuses `settings.title`. The Spanish and French drafts are in the Screens table, for the native-speaker review.
+- **Checks:** 1, 3, 4, 8, 11, 13, 14, 15 and 18 changed; 20, 21 and 22 are new and use Noah, whom no other check
+  touches. Check 18 keeps the epic 1 rule that the total and all three transfers of "Lisbon & Porto" are visible
+  without scrolling, now below the app bar. In spec 02, checks 2 and 16; in spec 07, check 1.

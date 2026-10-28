@@ -90,7 +90,7 @@ other.
 
 1. 📸 **Log in as admin.** Open the app, enter `admin@travel.local` and `admin123`, and tap "Log in". "My trips" shows
    "Logged in as Admin", the empty card "You are not on any trip yet. Start one with "+ New trip", or ask a friend to
-   add you with your email." and "+ New trip" at the bottom. The header shows "Settings" and "Log out".
+   add you with your email." and "+ New trip" at the bottom. The menu in the app bar lists "Settings" and "Log out".
 2. **Email as typed.** Log out and log in again with `  ADMIN@Travel.local ` and `admin123`: "My trips" for Admin
    appears.
 3. **Wrong password and taken email.** Log out. Log in with `admin@travel.local` and `admin1234`: "Email or password is

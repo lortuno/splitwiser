@@ -4,7 +4,7 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 
 ## Steps
 
-- [x] Screens
+- [ ] Screens
 - [x] Data
 - [x] API
 - [x] Seed data
@@ -13,7 +13,7 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 ## Acceptance checks
 
 - [x] 1. 📸 **Login screen.** Open `/` with no stored token (a fresh browser profile). The Login screen shows "Travel expenses", "Log in to see your trips.", the Email and Password fields, "Log in" as a full-width 56 px button at the bottom, and "No account yet? Sign up" under it. No trip data is visible.
-- [x] 2. 📸 **My trips, two trips.** Log in as `ana@example.com`. "My trips" shows "Logged in as Ana" and exactly two cards in this order: "Madrid weekend", "12 Sep 2026 – 14 Sep 2026", total `78,30 €`; then "Lisbon & Porto", "1 Jun 2026 – 7 Jun 2026", total `1.915,57 €`. "Log out" is in the header. There is no tab bar.
+- [ ] 2. 📸 **My trips, two trips.** Log in as `ana@example.com`. "My trips" shows "Logged in as Ana" and exactly two cards in this order: "Madrid weekend", "12 Sep 2026 – 14 Sep 2026", total `78,30 €`; then "Lisbon & Porto", "1 Jun 2026 – 7 Jun 2026", total `1.915,57 €`. "Log out" is in the menu of the app bar. There is no tab bar.
 - [x] 3. **Open a trip.** On Ana's "My trips", tap "Lisbon & Porto". The epic 1 trip view opens with "‹ My trips" above the name "Lisbon & Porto", the total `1.915,57 €`, and "Ana pays Ben `63,75 €`", "David pays Ben `27,65 €`", "David pays Chloé `27,07 €`". The URL is `/?trip=1`. Tap "‹ My trips": the two cards from check 2 are back, and the URL has no `?trip=`.
 - [x] 4. 📸 **Madrid trip view.** On Ana's "My trips", tap "Madrid weekend". The total shows `78,30 €`, "12 Sep 2026 – 14 Sep 2026 · 2 expenses", "2 people", and "Who owes whom" shows only "Ana pays Chloé `9,15 €`".
 - [x] 5. **One trip only.** Log out, then log in as `ben@example.com`. "My trips" shows "Logged in as Ben" and exactly one card, "Lisbon & Porto" `1.915,57 €`. "Madrid weekend" is not listed.
@@ -27,7 +27,7 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 - [x] 13. **Zero total in the list.** Log in as `eva@example.com`. One card: "Empty weekend", "10 Jan 2026 – 12 Jan 2026", total `0,00 €`.
 - [x] 14. 📸 **Add expense records as me.** Log in as `ana@example.com`, open "Madrid weekend" and tap "+ Add expense". The form has no "Recorded by" section. Enter "Churros", amount `6,00`, paid by Ana, split equally between Ana and Chloé, and save. The trip view shows the total `84,30 €`, "3 expenses", "Ana pays Chloé `6,15 €`", and the new row "Churros `6,00 €`" with "Recorded by Ana". Tap "‹ My trips": Madrid weekend shows `84,30 €`.
 - [x] 15. **Client `recorded_by` is ignored.** Logged in as Ana, in the browser console send `POST /trips/1/expenses` with Ana's token, `recorded_by` set to Ben's person id and an otherwise valid body (e.g. "Coffee", `2,00 €` paid by Ana, split equally between all four). The response is `201` and `expense.recorded_by.name` is "Ana".
-- [x] 16. **Log out ends the session.** Logged in as Ana, copy the token from `localStorage` (`travel-expenses.token`), then tap "Log out". Login appears. In the console, `GET /me` with the copied token answers `401` with code `unauthenticated`.
+- [ ] 16. **Log out ends the session.** Logged in as Ana, copy the token from `localStorage` (`travel-expenses.token`), then tap "Log out" in the menu. Login appears. In the console, `GET /me` with the copied token answers `401` with code `unauthenticated`.
 - [x] 17. **Reload keeps me logged in.** Log in as Ana and reload the page. "My trips" appears again without the Login screen.
 - [x] 18. 📸 **Session ended.** Logged in as Ana with "Lisbon & Porto" open, delete the session on the server, either by sending `POST /auth/logout` with the same token in the console or by changing the stored token to `x`. Then tap "Balances" and reload, or tap "‹ My trips". Login appears with "Your session has ended. Please log in again." After logging in, "My trips" opens.
 - [x] 19. **Deep link while logged out.** With no stored token, open `/?trip=1`. Login appears. Log in as `ben@example.com`: the "Lisbon & Porto" trip view opens directly (`1.915,57 €`).

@@ -1,7 +1,7 @@
 # Epic 6: Translations (English, Spanish, French) — specification
 
-Source: new feature (not in `specs/roadmap.md`). Brainstorming: `specs/translations/06-translations-brainstorming.md` (rounds 1–3;
-every recommendation was kept). Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
+Source: new feature (not in `specs/roadmap.md`). Brainstorming: `specs/translations/06-translations-brainstorming.md` (rounds 1–5).
+Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
 ## Estimate
 
@@ -14,11 +14,14 @@ Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-
 
 ## Goal
 
-Every text the app writes can be shown in English, Spanish or French. A new account starts in English. A person
-switches the language on Login, Sign up or the new "Settings" screen, and the whole app changes at once. **Every switch
-is recorded in the database** (`users.language`) and the account's language is the source of truth: each time the app
-starts with a session, it starts in the language stored for that account. On the web the last language is also kept
-on the device, so Login already appears in it.
+Every text the app writes can be shown in English, Spanish or French. A new account starts in English. **One menu at
+the top of every screen** shows the current language ("English ▾"); it switches the language, and once logged in it
+also opens "Settings" and logs out, so no screen needs its own buttons for them. "Settings" keeps a language dropdown
+as well. The whole app changes language at once. **Every switch made while logged in is sent to the database**
+(`users.language`); when that fails, the app keeps the new language and tries again while it stays open. Each time
+the app starts with a session, it starts in the language stored for that account. On the web the last language is
+also kept on the device, so Login already appears in it. Leaving a form with unsaved input through the menu asks
+"Discard your changes?" first.
 
 The translations live in one TypeScript file per language inside the project and are kept **small and maintainable**:
 one key per distinct text, never two keys with the same text; anything that varies (names, amounts, dates, counts,
@@ -30,23 +33,113 @@ service or dependency.
 ## Screens
 
 All buttons are at least `size.tapMin` (48 px) high. Primary buttons are `size.tapPrimary` (56 px) high and sit at the
-bottom. Visible layout changes happen only on Login, Sign up, the "My trips" header and "Settings"; every other screen
-shows its text in the chosen language with no layout change.
+bottom. Every screen except the first "Loading…" gets the app bar on top; below it, the layout changes only on Login,
+Sign up, the "My trips" header and "Settings", plus the new "Discard your changes?" dialog. Every other screen shows
+its text in the chosen language with no other layout change.
 
-**Language control** (new component `LanguagePicker`, `src/components`): a dropdown. A bordered button
+**Language control** (`LanguagePicker`, `src/components`): a dropdown, used in "Settings". A bordered button
 (`size.tapMin` high, `size.menuWidth` wide) shows the current language and "▾"; its accessible name is
 `settings.languageCurrent` ("Language: English"). Tapping it opens a menu right under it with the three languages
 (each option `size.tapMin` high, the chosen one `accent` with `onAccent` text, `accessibilityRole="radio"` with
 `aria-checked`). The options always read "English", "Español", "Français", whatever the current language. Picking an
-option, tapping outside the menu or Escape closes it. "Tap a language" in the checks means: open the dropdown and tap
-that language. (Changed 2026-10-28 from a three-part segmented control under the form.)
+option, tapping outside the menu or Escape closes it. The app menu below shares this button, the menu's position and
+the language rows.
+
+"Tap a language" in the checks means: open the menu in the app bar (or, where the check says so, the dropdown in
+"Settings") and tap that language. "Log out" and "open Settings" mean: open the menu in the app bar and tap that row.
+
+### App bar and menu (`AppBar`, `AppMenu`, new)
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │  app bar, 48 high, every screen
+├──────────────────────────────────────┤  but the first "Loading…"
+│ My trips                             │  the screen's own header below
+│ ...                                  │
+```
+
+Open, logged in:
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │
+│                       ┌────────────┐ │
+│                       │ English    │ │  each row 48 high; the chosen
+│                       │ Español    │ │  language accent with onAccent
+│                       │ Français   │ │  text (radio)
+│                       ├────────────┤ │
+│                       │ Settings   │ │  opens Settings
+│                       │ Log out    │ │  logs out, shows Login
+│                       └────────────┘ │
+│                                      │
+```
+
+- **App bar:** one row, `size.tapMin` (48 px) high, `paper` background with a `line` border underneath, rendered by
+  `App.tsx` above every route except the first "Loading…" (also above the start screen "Could not reach the API at
+  {url}."). It holds only the menu button, at the right. Screens keep their own headers below it.
+- **Menu button:** looks like the `LanguagePicker` button: "English ▾", "Español ▾" or "Français ▾"; accessible name
+  `menu.button` ("Menu, language: English"), `accessibilityState.expanded` while open.
+- **Open menu:** the three language rows, then a `line` separator, then "Settings" (`settings.title`) and "Log out"
+  (`menu.logOut`), each `size.tapMin` high, `ink` text, `accessibilityRole="menuitem"`. Before login (Login, Sign up,
+  the start error screen) only the three languages. On "Settings" itself, the "Settings" row is left out. Tapping a
+  row, tapping outside the menu or Escape (Android: back) closes it.
+- **A language:** switches every text on screen at once, without a reload; field values and errors already on screen
+  stay. Before login it works as described for Login; logged in it is saved as described under "Saving the language".
+  A language switch never asks "Discard your changes?".
+- **Settings:** opens "Settings" from any screen (on the web the `?trip=` in the URL is cleared). Its "‹ My trips"
+  leads to "My trips", as today.
+- **Log out:** as in `specs/accounts/02-login-and-my-trips-specification.md`: `POST /auth/logout`, the app forgets
+  the token and shows Login, also when the request fails.
+- **Unsaved input:** when "Settings" or "Log out" is tapped on a screen with unsaved input, "Discard your changes?"
+  appears first (see below).
+
+### Saving the language (logged in)
+
+A language picked in the menu or in Settings' dropdown is shown at once and sent with `PATCH /me { language }`. Both
+controls stay usable while the request runs. When it fails because the API cannot be reached (network error or a
+`5xx`), **nothing is undone and no message is shown**: the app keeps the language and marks it pending. It sends the
+pending language again at every screen change (any change of route in `App.tsx`, including opening a trip, a form or
+"Settings") until a save works. A newer switch replaces the pending one. A `401` ends the session as everywhere and
+drops what is pending. A pending language is not kept beyond the running app: after a reload or a new start, the
+language stored in the database applies.
+
+### Discard your changes? (`DiscardDialog`, new)
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │
+├──────────────────────────────────────┤
+│ (the form, dimmed)                   │
+│ ┌──────────────────────────────────┐ │
+│ │ Discard your changes?            │ │  card, title 17 bold
+│ │ What you entered on this screen  │ │
+│ │ will be lost.                    │ │
+│ │ ┌──────────────────────────────┐ │ │
+│ │ │       Discard and log out    │ │ │  primary, 56 high; reads
+│ │ └──────────────────────────────┘ │ │  "Discard and open Settings"
+│ │ ┌──────────────────────────────┐ │ │  when Settings was tapped
+│ │ │         Keep editing         │ │ │  secondary, 48 high
+│ │ └──────────────────────────────┘ │ │
+│ └──────────────────────────────────┘ │
+└──────────────────────────────────────┘
+```
+
+- **When:** only after "Settings" or "Log out" in the menu, on the add or edit expense form, "New trip" or "Settings",
+  and only when the input differs from how the screen opened: any field of the form (name, amount, date, category,
+  "Paid by" and its amounts, the split type and its values, the trip's dates and people, the name in Settings).
+  Changing a field and changing it back counts as unchanged. An untouched form, a language switch, "Cancel" and
+  "‹ My trips" never ask.
+- **Discard and log out / Discard and open Settings** (`size.tapPrimary`): drops the input and does what was tapped.
+- **Keep editing** (`size.tapMin`), tapping outside the card or Escape (Android: back): closes the dialog; the input
+  stays as it was.
+- The card is `surface` on a dimmed backdrop, centred, `accessibilityRole="alert"` with the title as its name.
 
 ### Login and Sign up (`LoginScreen`, `SignUpScreen`, changed)
 
 ```
 ┌──────────────────────────────────────┐
-│                        [English  ▾] │  LanguagePicker, 48 high,
-│                                      │  top right
+│                        [English  ▾] │  app bar: the menu, languages
+├──────────────────────────────────────┤  only
 │ Travel expenses                      │
 │ Log in to see your trips.            │
 │                                      │
@@ -67,9 +160,9 @@ that language. (Changed 2026-10-28 from a three-part segmented control under the
 └──────────────────────────────────────┘
 ```
 
-- **LanguagePicker** at the top right (on Sign up on the same row as "‹ Log in"): picking a language switches every text on
-  the screen at once, without a reload, and keeps the choice on the device (web). Field values and errors already on
-  screen stay; their texts switch language.
+- **The menu in the app bar** (on Sign up, "‹ Log in" is the first row below the app bar): picking a language switches
+  every text on the screen at once, without a reload, and keeps the choice on the device (web). Field values and
+  errors already on screen stay; their texts switch language.
 - **Log in / Create account:** as today. Before login there is no account to record the language on, so a language
   picked on this screen during this visit is recorded in the database right after login (`PATCH /me { language }`)
   or with the sign-up (`POST /auth/signup { …, language }`). Without such a pick, the account's stored language applies
@@ -80,17 +173,20 @@ that language. (Changed 2026-10-28 from a three-part segmented control under the
 
 ```
 ┌──────────────────────────────────────┐
-│ My trips            Settings Log out │  "Your name" becomes "Settings"
+│                        [English  ▾] │  app bar
 ├──────────────────────────────────────┤
+│ My trips                             │  title 20 bold, no buttons
+│ Logged in as Ana                     │
 ```
 
-- **Settings** (header button, `size.tapMin`): opens "Settings". The title still shrinks first ("…") when the buttons
-  need the room.
+- The header has no buttons: "Settings" and "Log out" are in the menu.
 
 ### Settings (`SettingsScreen`, replaces `YourNameScreen`)
 
 ```
 ┌──────────────────────────────────────┐
+│                        [English  ▾] │  app bar; its menu has no
+├──────────────────────────────────────┤  "Settings" row here
 │ ‹ My trips                           │
 │ Settings                             │  title 20 bold
 ├──────────────────────────────────────┤
@@ -102,7 +198,7 @@ that language. (Changed 2026-10-28 from a three-part segmented control under the
 │ └──────────────────────────────────┘ │
 │                                      │
 │ Language                             │
-│ [English  ▾]                         │  same dropdown as on Login
+│ [English  ▾]                         │  LanguagePicker
 │                                      │
 │            (flexible space)          │
 │ ┌──────────────────────────────────┐ │
@@ -113,11 +209,9 @@ that language. (Changed 2026-10-28 from a three-part segmented control under the
 
 - **Name and Save:** exactly as "Your name" today (`PATCH /me { display_name }`, "Saving…", field errors, back to My
   trips on success).
-- **Language:** tapping a language switches the app at once and records it right away with `PATCH /me { language }`,
-  without "Save". While the request runs the control is disabled. When it fails, the switch is undone (the app and the
-  control go back to the stored language) and "Could not reach the API at {url}." (owesSoft card) appears under the
-  control, so the app never shows a language the database does not have. Tapping again retries.
-- **‹ My trips:** back without saving the name.
+- **Language:** tapping a language switches the app at once and saves it without "Save", as described under "Saving
+  the language". It always shows the same language as the menu button.
+- **‹ My trips:** back without saving the name, without asking.
 
 ### Text that must fit at 390 px
 
@@ -132,8 +226,12 @@ shorter. The French and Spanish texts the checks rely on are fixed below; the bu
 | `auth.logIn` | Log in | Iniciar sesión | Se connecter |
 | `auth.toSignUp` | No account yet? Sign up | ¿Aún no tienes cuenta? Regístrate | Pas encore de compte ? S’inscrire |
 | `trips.title` | My trips | Mis viajes | Mes voyages |
-| `trips.settings` | Settings | Ajustes | Paramètres |
-| `trips.logOut` | Log out | Cerrar sesión | Déconnexion |
+| `menu.logOut` | Log out | Cerrar sesión | Déconnexion |
+| `menu.button` (menu button's accessible name) | Menu, language: {language} | Menú, idioma: {language} | Menu, langue : {language} |
+| `discard.title` | Discard your changes? | ¿Descartar los cambios? | Abandonner les modifications ? |
+| `discard.body` | What you entered on this screen will be lost. | Lo que has escrito en esta pantalla se perderá. | Ce que vous avez saisi sur cet écran sera perdu. |
+| `discard.logOut` / `discard.openSettings` | Discard and log out / Discard and open Settings | Descartar y cerrar sesión / Descartar y abrir Ajustes | Abandonner et se déconnecter / Abandonner et ouvrir les Paramètres |
+| `discard.keep` | Keep editing | Seguir editando | Continuer la saisie |
 | `trip.back` | ‹ My trips | ‹ Mis viajes | ‹ Mes voyages |
 | `common.markPaid` | Mark as paid | Marcar pagado | Marquer payé |
 | `common.cancel` / `common.save` / `common.saving` | Cancel / Save / Saving… | Cancelar / Guardar / Guardando… | Annuler / Enregistrer / Enregistrement… |
@@ -149,7 +247,7 @@ shorter. The French and Spanish texts the checks rely on are fixed below; the bu
 | `add.fixErrors` | Please fix the fields marked in red. | Corrige los campos marcados en rojo. | Corrigez les champs en rouge. |
 | `common.paid` / `trip.paidBy` | ✓ Paid / Marked as paid by {name} on {date}. | ✓ Pagado / Marcado como pagado por {name} el {date}. | ✓ Payé / Marqué comme payé par {name} le {date}. |
 | `markPaid.title` | Mark this trip as paid? | ¿Marcar este viaje como pagado? | Marquer ce voyage comme payé ? |
-| `settings.title` / `settings.language` | Settings / Language | Ajustes / Idioma | Paramètres / Langue |
+| `settings.title` (title and menu row) / `settings.language` | Settings / Language | Ajustes / Idioma | Paramètres / Langue |
 | `settings.languageCurrent` (dropdown's accessible name) | Language: {language} | Idioma: {language} | Langue : {language} |
 | `common.loadFailed` | Could not reach the API at {url}. | No se pudo conectar con la API en {url}. | Impossible de joindre l’API à {url}. |
 | `month.6` / `month.10` | Jun / Oct | jun / oct | juin / oct. |
@@ -254,10 +352,12 @@ vol, vols, Air France → `flights` ("air" alone stays in no list); hôtel (exis
 musée, billets, entrée, visite guidée → `activities`; pharmacie, cadeau, cadeaux, vêtements → `shopping`. The guess
 itself does not depend on the app's language.
 
-**The database is the source of truth.** Every switch made while logged in is written to `users.language` before
-the app shows it as chosen (Settings undoes a switch that could not be saved). At every start with a session, the
-app loads `GET /me` and switches to the account's language before showing "My trips" or a trip. The device copy only
-covers the moments without an account:
+**The database decides at start.** Every switch made while logged in is sent to `users.language` at once; a switch
+that could not be saved stays on screen as the pending language (kept in memory by the language store in `index.ts`)
+and is sent again at every screen change while the app runs (see "Saving the language" in Screens). At every start
+with a session, the app loads `GET /me` and switches to the account's language before showing "My trips" or a trip,
+so a pending language is lost with a reload or a new start. The device copy only covers the moments without an
+account:
 
 - **Web:** the language is kept under `travel-expenses.language` in `localStorage` (read and written in try/catch,
   like the token). It is used for the loading state at start and for Login and Sign up, and is overwritten with the
@@ -307,8 +407,10 @@ The checks switch languages through the app. The figures they use are the existi
   the same `{placeholders}` in every language, no text literals in JSX outside `i18n`. Also: plural rules (fr 0 →
   singular); `formatDate` per language; the error mapping (each API code to its key, `choosePerson` on person fields,
   `params` filled and formatted, unknown code → API `message`); the language store (DB language applied at start,
-  device copy overwritten, storage blocked → English on Login, "picked this visit" flag); Settings undoes a switch that
-  could not be saved; `updateMe` and `signUp` send `language`.
+  device copy overwritten, storage blocked → English on Login, "picked this visit" flag); a failed save keeps the
+  language as pending, sends it again at the next screen change, and drops it after a save, a newer switch or a `401`;
+  the menu's rows before login, after login and on Settings; the "unsaved input" check of each form (untouched,
+  changed, changed back); `updateMe` and `signUp` send `language`.
 - **Playwright (`tests/e2e`, 390x844):** a new `translations.test.ts` with one screenshot per 📸 check, on a fresh
   seed, in the order of the checks. The French walk fails when any of these English texts appears: "Save", "Cancel",
   "Paid by", "Recorded by", "Who owes whom", "Balances", "expenses", "people", "Settings", "Log out", "Mark as paid",
@@ -316,7 +418,9 @@ The checks switch languages through the app. The figures they use are the existi
   expect "Could not reach the API at {url}." in the expense form; "Enter a name for the expense.", "Enter a name for
   the trip." and "Enter your name." become "Fill in this field."; "This name is already on the trip." and "This email
   is already on the trip." become "This is already on the trip.". Texts whose words stay the same through a
-  placeholder ("Use at most 80 characters.", "Use at least 8 characters.") are unchanged.
+  placeholder ("Use at most 80 characters.", "Use at least 8 characters.") are unchanged. Every suite that logs out
+  or opens "Settings" does it through the menu (a shared helper in `tests/e2e`), and the epic 1 check "The total and
+  all three transfers are visible without scrolling" still passes with the app bar.
 
 ## Acceptance checks
 
@@ -325,16 +429,18 @@ Viewport 390x844. Freshly seeded database. App at http://localhost:8081. Every d
 other. "{today}" is the local date of the check in the language shown ("28 oct. 2026", "28 oct 2026").
 
 1. 📸 **Login starts in English.** Fresh browser, open the app. Login reads "Travel expenses", "Log in to see your
-   trips." and shows the language dropdown "English ▾" at the top right, above the title, at least 48 px high. Opened,
-   it lists "English", "Español", "Français", each at least 48 px high, with "English" selected; Escape closes it. The
-   page's `lang` is `en`.
+   trips." and shows the app bar with the menu button "English ▾" at the top right, above the title, at least 48 px
+   high. Opened, the menu lists only "English", "Español", "Français", each at least 48 px high, with "English"
+   selected, and no "Settings" or "Log out"; Escape closes it. The page's `lang` is `en`.
 2. 📸 **Switch Login to French.** Tap "Français". Without a reload the screen reads "Frais de voyage", "Connectez-vous
    pour voir vos voyages.", "Se connecter" and "Pas encore de compte ? S’inscrire"; "Français" is selected and the page's
    `lang` is `fr`. Reload the page: it is still French.
-3. **Log in in French.** Log in as `ana@example.com`. "Mes voyages" shows the header buttons "Paramètres" and
-   "Déconnexion", and the cards "Madrid weekend" and "Lisbon & Porto" with their totals. In the console, `GET /me`
+3. **Log in in French.** Log in as `ana@example.com`. "Mes voyages" shows no header buttons, the menu button
+   "Français ▾", and the cards "Madrid weekend" and "Lisbon & Porto" with their totals. The open menu lists
+   "English", "Español", "Français", then "Paramètres" and "Déconnexion". In the console, `GET /me`
    answers `language: "fr"` (the pick on Login was saved to the account).
-4. 📸 **Trip view in French.** Open "Lisbon & Porto". The header shows "‹ Mes voyages" and "Marquer payé" on one row.
+4. 📸 **Trip view in French.** Open "Lisbon & Porto". The app bar with "Français ▾" is on top; below it the header
+   shows "‹ Mes voyages" and "Marquer payé" on one row.
    The screen reads "Total des dépenses", `1.915,57 €`, "1 juin 2026 – 7 juin 2026 · 20 dépenses", "4 personnes", "Qui
    doit à qui", "Ana paie Ben `63,75 €`", "David paie Ben `27,65 €`", "David paie Chloé `27,07 €`"; the tab bar reads
    "Voyage", "Soldes" and "+ Dépense". The row "Taxi to Porto airport" reads "7 juin 2026 · Payé par David" and its
@@ -351,9 +457,11 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
    `39,15 €`", Chloé `+9,15 €`, and "Ana paie Chloé `9,15 €`". Tap "Voyage", then "Marquer payé": the confirmation reads
    "Marquer ce voyage comme payé ?" and lists "Ana paie Chloé `9,15 €`". Confirm: the card reads "✓ Payé" and "Marqué
    comme payé par Ana le {today}.", and the header shows the French for "Reopen".
-8. 📸 **Settings in French, switch to Spanish.** Tap "‹ Mes voyages", then "Paramètres". The screen reads "Paramètres",
-   the name field with "Ana", "Langue" with "Français" selected, and "Enregistrer". Tap "Español": without "Enregistrer"
-   the screen reads "Ajustes", "Idioma" and "Guardar", and in the console `GET /me` answers `language: "es"`. Reload:
+8. 📸 **Settings in French, switch to Spanish.** Tap "‹ Mes voyages", open the menu and tap "Paramètres". The screen
+   reads "Paramètres", the name field with "Ana", "Langue" with "Français" selected, and "Enregistrer"; the menu here
+   lists the languages and "Déconnexion", without "Paramètres". In the dropdown under "Langue", tap "Español": without
+   "Enregistrer" the screen reads "Ajustes", "Idioma" and "Guardar", the menu button reads "Español ▾", and in the
+   console `GET /me` answers `language: "es"`. Reload:
    still Spanish. **The database decides at start:** in the console, with Ana's token, `PATCH /me { "language": "fr" }`,
    then reload: the app starts in French although this browser last showed Spanish. `PATCH /me { "language": "es" }`
    and reload: Spanish again.
@@ -366,21 +474,23 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
     Porto": "Gasto total del viaje", `1.915,57 €`, "Ana paga a Ben `63,75 €`". Tap "+ Gasto", enter the name "Cena",
     the amount `50,00`, choose Ana and Ben under "Pagado por" with `20,00` and `25,00`, and tap "Guardar gasto": "Los
     importes suman `45,00 €` pero el gasto es de `50,00 €`." appears and nothing is saved. Tap "Cancelar", then
-    open "Ajustes": "Español" is selected.
+    open "Ajustes" from the menu: "Español" is selected.
 12. **Sign up in French.** Fresh browser, tap "Français", then "Pas encore de compte ? S’inscrire". The sign-up form is
     French. Sign up as "Lena" with `lena@example.com` and `travel-demo-2026`: "Mes voyages" appears in French and `GET
     /me` answers `language: "fr"`. Log out, open sign-up again and use `ana@example.com`: "Cet e-mail a déjà un
     compte." appears.
 13. **Plurals.** As `eva@example.com` in French (switch on Login), "Empty weekend" reads "0 dépense" and "3
-    personnes"; in Spanish (switch in "Ajustes") it reads "0 gastos" and "3 personas". As `jon@example.com` in French,
+    personnes"; in Spanish (switch in the menu) it reads "0 gastos" and "3 personas". As `jon@example.com` in French,
     "Three-way taxi" reads "1 dépense".
-14. 📸 **Saving the language fails, nothing changes.** As `hugo@example.com` (English), open "Settings" and block the
-    API. Tap "Français": the switch is undone, the screen stays English with "English" selected, and "Could not reach
-    the API at http://localhost:8080." appears under the control. Unblock the API and tap "Français" again: the screen
-    is French and `GET /me` answers `language: "fr"`. Tap "English": English again, `language: "en"`.
+14. 📸 **Saving the language fails, the app keeps it and retries.** As `hugo@example.com` (English) on "My trips",
+    block the API. Tap "Français" in the menu: the screen is French, the menu button reads "Français ▾" and no error
+    appears. Unblock the API and open "Even split": in the console `GET /me` answers `language: "fr"` (sent again at the
+    screen change). Block the API again, open "Paramètres" and tap "English" in its dropdown: the screen is English with
+    no error. Unblock the API and reload: the app starts in French, the stored language (the unsaved switch is gone).
+    Tap "English" in the menu: English, and `GET /me` answers `language: "en"`.
 15. **Network error in the expense form.** As Hugo in English on "Even split", open "+ Add expense", enter a name,
     `10,00` and "Paid by" Hugo, block the API and tap "Save expense": "Could not reach the API at
-    http://localhost:8080." appears above the button and the input stays. Unblock, switch to French in Settings, and
+    http://localhost:8080." appears above the button and the input stays. Unblock, switch to French in the menu, and
     repeat on "Even split": "Impossible de joindre l’API à http://localhost:8080.".
 16. **API.** In the console with Olga's token (`olga@example.com`): `PATCH /me { "language": "de" }` answers `422` with
     `errors.language.code` `invalid_language`; `{ "language": "es" }` answers `200` with `language: "es"` and the name
@@ -393,18 +503,39 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
 17. **French category suggestions.** As Hugo (French since check 15) on "Even split", tap "+ Dépense" and type,
     waiting a second each time: "Dîner au restaurant" selects "Repas"; "Essence Total" selects "Carburant"; "Péage
     autoroute" selects "Transport"; "Total" selects "Autre". Tap "Annuler".
-18. **Earlier epics still hold.** With a fresh seed, the epic 1–5 checks pass in English with the same figures; where
-    they pinned an error text that is now shared, they show the shared wording listed in Tests.
+18. **Earlier epics still hold.** With a fresh seed, the epic 1–5 and 7 checks pass in English with the same figures;
+    where they pinned an error text that is now shared, they show the shared wording listed in Tests; they log out and
+    open "Settings" through the menu. On "Lisbon & Porto" the total and all three transfers are still visible without
+    scrolling, below the app bar.
 19. **A maintainable translation repository.** The unit tests for the translation rules pass: `en.ts` has no two keys
     with the same text, no unused key, and no sentence built from two keys; `es.ts` and `fr.ts` have exactly the keys of
     `en.ts`, in the same order, with the same placeholders; no screen contains a text literal. The error keys are the 16
     `error.*` keys of the Screens table, and the 7 groups of duplicate texts in today's `en.ts` are merged into
     `common.*` keys.
+20. 📸 **The menu on every screen.** Fresh seed, log in as `noah@example.com` (English). The app bar with "English ▾"
+    is on top of "My trips", the trip view (Trip and Balances tabs), "+ Add expense", "+ New trip" and "Settings", and
+    none of these screens has a "Log out" button of its own. On the trip view the open menu lists "English", "Español",
+    "Français", "Settings" and "Log out" (screenshot). Tap "Settings": "Settings" opens; "‹ My trips" leads to "My
+    trips".
+21. 📸 **Discard your changes? on Log out.** As Noah, open his trip, tap "+ Add expense" and type the name "Taxi". In
+    the menu, tap "Español": the form is Spanish, "Taxi" stays, and no dialog appears; tap "English". In the menu, tap
+    "Log out": "Discard your changes?", "What you entered on this screen will be lost.", "Discard and log out" and
+    "Keep editing" appear (screenshot). Tap "Keep editing": the form still shows "Taxi". Tap "Log out" in the menu
+    again, then "Discard and log out": Login appears.
+22. **Discard your changes? on Settings, only with changes.** Log in as Noah and tap "+ New trip". Without typing,
+    open "Settings" from the menu: it opens without a dialog. Tap "‹ My trips", then "+ New trip", type the trip name
+    "Rome", and open "Settings" from the menu: the dialog shows "Discard and open Settings". Press Escape: the form
+    still shows "Rome". Open "Settings" again and tap "Discard and open Settings": "Settings" opens. Change the name to
+    "Noah B" and tap "Log out" in the menu: the dialog appears; tap outside the card: the name field still shows
+    "Noah B". Change the name back to "Noah" and tap "Log out": Login appears without a dialog.
 
 ## Out of scope
 
 Excluded in the rounds: more languages, following the device's language, API-side translation (`Accept-Language`),
-English API errors shown as they are, a language button in the "My trips" header, saving the language with "Save",
+English API errors shown as they are, menu or language buttons inside each screen's own header, a language code or
+icon instead of the language name on the menu button, a message that the language is not saved yet, keeping an
+unsaved language after a reload or a new start, retrying in the background, asking "Discard your changes?" on
+"Cancel" or "‹ My trips", saving the language with "Save",
 `adjustsFontSizeToFit`, a `user_settings` table, a separate language endpoint, `params` on every error, seeding an
 account in another language, a storage dependency for iOS and Android (`AsyncStorage`), and the full walk in Spanish.
 Also not included: translating what people typed (trip, expense and people's names), language-specific money formats
@@ -416,6 +547,9 @@ build's texts are a draft (checks that pin a text are updated with the review).
 
 - The language control and all French and Spanish labels fit at the largest accessibility text size; header buttons
   and the tab bar do not overlap.
+- The app bar sits below the status bar and the notch on every screen; the menu opens right under its button and
+  stays on screen at the largest text size; the Android back button closes the menu and "Discard your changes?"
+  (keeping the input).
 - Switching language on Login, then logging in, keeps the language; a cold start before login shows English, and the
   account's language applies after login.
 - VoiceOver and TalkBack read French and Spanish screens with the right voice (the language reaches the accessibility

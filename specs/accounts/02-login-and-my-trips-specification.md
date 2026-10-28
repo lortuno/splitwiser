@@ -130,8 +130,9 @@ dependency.
 
 ```
 ┌──────────────────────────────────────┐
-│ My trips                    Log out  │  header: title 20 bold;
-├──────────────────────────────────────┤  "Log out" text button, 48 high
+│                        [English  ▾] │  app bar (epic 6): its menu
+├──────────────────────────────────────┤  holds "Log out"
+│ My trips                             │  header: title 20 bold
 │ Logged in as Ana                     │  caption, inkMuted
 │ ┌──────────────────────────────────┐ │
 │ │ Madrid weekend                   │ │  one card per trip, whole card
@@ -152,8 +153,10 @@ dependency.
   (`formatCents`, e.g. `2.345.678,91 €`) on one line, right-aligned. The trip name wraps to at most 2 lines and ends in
   "…".
 - **Tap a card:** opens the trip view for that trip on the Trip tab. On the web the URL becomes `?trip={id}`.
-- **Log out** (`size.tapMin`): `POST /auth/logout`, then the app forgets the token and shows Login. If the request fails
-  (unreachable or `401`), the app still forgets the token and shows Login.
+- **Log out** (a row of the menu in the app bar, `size.tapMin`, on every screen after login; see
+  `specs/translations/06-translations-specification.md`): `POST /auth/logout`, then the app forgets the token and
+  shows Login. If the request fails (unreachable or `401`), the app still forgets the token and shows Login. "Log out"
+  in the checks means: open the menu and tap "Log out".
 - **Empty state:** a card "You are not on any trip yet. When someone adds you to a trip with your email, it shows up
   here."
 - **Loading:** the centred spinner with "Loading…". **Error:** "Could not reach the API at {url}." with "Try again",
@@ -309,7 +312,7 @@ because it adds an expense.
    bottom, and "No account yet? Sign up" under it. No trip data is visible.
 2. 📸 **My trips, two trips.** Log in as `ana@example.com`. "My trips" shows "Logged in as Ana" and exactly two cards in
    this order: "Madrid weekend", "12 Sep 2026 – 14 Sep 2026", total `78,30 €`; then "Lisbon & Porto", "1 Jun 2026 –
-   7 Jun 2026", total `1.915,57 €`. "Log out" is in the header. There is no tab bar.
+   7 Jun 2026", total `1.915,57 €`. "Log out" is in the menu of the app bar. There is no tab bar.
 3. **Open a trip.** On Ana's "My trips", tap "Lisbon & Porto". The epic 1 trip view opens with "‹ My trips" above the
    name "Lisbon & Porto", the total `1.915,57 €`, and "Ana pays Ben `63,75 €`", "David pays Ben `27,65 €`", "David pays
    Chloé `27,07 €`". The URL is `/?trip=1`. Tap "‹ My trips": the two cards from check 2 are back, and the URL has no
@@ -349,7 +352,7 @@ because it adds an expense.
     Ana's token, `recorded_by` set to Ben's person id and an otherwise valid body (e.g. "Coffee", `2,00 €` paid by Ana,
     split equally between all four). The response is `201` and `expense.recorded_by.name` is "Ana".
 16. **Log out ends the session.** Logged in as Ana, copy the token from `localStorage` (`travel-expenses.token`), then
-    tap "Log out". Login appears. In the console, `GET /me` with the copied token answers `401` with code
+    tap "Log out" in the menu. Login appears. In the console, `GET /me` with the copied token answers `401` with code
     `unauthenticated`.
 17. **Reload keeps me logged in.** Log in as Ana and reload the page. "My trips" appears again without the Login screen.
 18. 📸 **Session ended.** Logged in as Ana with "Lisbon & Porto" open, delete the session on the server, either by
@@ -384,8 +387,8 @@ email or password.
   and offers the platform password manager without breaking the layout.
 - With the keyboard open on Login and Sign-up, the bottom button is still reachable: scroll, or the keyboard does not
   cover the focused field.
-- The "Log out" and "‹ My trips" text buttons respond across their full 48 px height, and the header does not sit under
-  the status bar or notch.
+- The menu's "Log out" row and the "‹ My trips" text button respond across their full 48 px height, and the app bar
+  does not sit under the status bar or notch.
 - A long trip name on "My trips" wraps to 2 lines with the largest accessibility text size, and `2.345.678,91 €` stays on
   one line.
 - `EXPO_PUBLIC_API_URL` on a device points at a reachable host. `localhost` on a phone is the phone itself.
