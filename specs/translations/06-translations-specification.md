@@ -10,7 +10,7 @@ Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-
 | Date | Task | Estimate (h) | Actual (h) |
 |---|---|---|---|
 | 2026-10-28 | Build the epic | 2 | 0.33 |
-| 2026-10-28 | Language dropdown at the top right of Login, Sign up and Settings | 2 | |
+| 2026-10-28 | Language dropdown at the top right of Login, Sign up and Settings | 2 | 0.25 |
 
 ## Goal
 
