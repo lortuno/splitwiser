@@ -4,10 +4,9 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { signUp } from "../api/auth";
 import { API_URL, ApiError } from "../api/client";
 import { Card } from "../components/Card";
-import { LanguagePicker } from "../components/LanguagePicker";
 import { TextField } from "../components/TextField";
 import type { FieldErrors, User } from "../dto";
-import { getLanguage, setLanguage, t } from "../i18n";
+import { getLanguage, t } from "../i18n";
 import { errorText } from "../i18n/errors";
 import { authStyles as styles } from "./LoginScreen";
 
@@ -39,12 +38,9 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={[styles.topBar, styles.topBarWithBack]}>
-          <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
-            <Text style={styles.linkLabel}>{t("auth.backToLogin")}</Text>
-          </Pressable>
-          <LanguagePicker value={getLanguage()} onChange={(language) => setLanguage(language, { picked: true })} />
-        </View>
+        <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
+          <Text style={styles.linkLabel}>{t("auth.backToLogin")}</Text>
+        </Pressable>
         <Text style={[styles.title, styles.titleSpaced]}>{t("auth.signUpTitle")}</Text>
         <TextField
           label={t("auth.name")}

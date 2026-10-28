@@ -4,7 +4,24 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Page } from "playwright";
 
-import { API_URL, TOKEN_KEY, VIEWPORT, euro, firstStartLog, initDb, logInWithForm, open, shot, startServers, stopServers, tokenFor, visible } from "./harness";
+import {
+  API_URL,
+  TOKEN_KEY,
+  VIEWPORT,
+  euro,
+  firstStartLog,
+  fromMenu,
+  initDb,
+  logInWithForm,
+  menuButton,
+  menuItem,
+  open,
+  shot,
+  startServers,
+  stopServers,
+  tokenFor,
+  visible,
+} from "./harness";
 
 beforeAll(startServers);
 afterAll(stopServers);
@@ -32,7 +49,7 @@ async function me(page: Page) {
 }
 
 async function logOut(page: Page) {
-  await button(page, "Log out").click();
+  await fromMenu(page, "Log out");
   await button(page, "Log in").waitFor();
 }
 
@@ -44,8 +61,10 @@ describe("epic 7: admin account in the seed (390x844)", () => {
     await visible(page, EMPTY);
     const newTrip = (await button(page, "+ New trip").boundingBox())!;
     expect(VIEWPORT.height - (newTrip.y + newTrip.height)).toBeLessThanOrEqual(16);
-    await button(page, "Settings").waitFor();
-    await button(page, "Log out").waitFor();
+    await menuButton(page).click();
+    await menuItem(page, "Settings").waitFor();
+    await menuItem(page, "Log out").waitFor();
+    await page.keyboard.press("Escape");
     await shot(page, "e7-01-admin-empty-trips");
 
     await logOut(page);
@@ -94,11 +113,11 @@ describe("epic 7: admin account in the seed (390x844)", () => {
   test("check 6: a restart keeps the admin's changes", async () => {
     const page = await open("/");
     await logInWithForm(page, ADMIN_EMAIL, ADMIN_PASSWORD);
-    await button(page, "Settings").click();
+    await fromMenu(page, "Settings");
     await field(page, "Name").fill("Laura");
     await button(page, "Save").click();
     await visible(page, "Logged in as Laura");
-    await button(page, "Settings").click();
+    await fromMenu(page, "Settings");
     await page.getByRole("button", { name: "Language: English", exact: true }).click();
     await page.getByRole("radio", { name: "Español", exact: true }).click();
     await visible(page, "Ajustes");

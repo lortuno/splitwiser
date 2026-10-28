@@ -9,6 +9,7 @@ import { TextField } from "../components/TextField";
 import type { CreatedTrip, FieldErrors, User } from "../dto";
 import { t } from "../i18n";
 import { errorText } from "../i18n/errors";
+import { useUnsavedInput } from "../navigation/useUnsavedInput";
 import { newTripBody, todayIso } from "../trips/newTripInput";
 import { colors, radius, size, space, typeScale } from "../theme";
 import { authStyles } from "./LoginScreen";
@@ -35,6 +36,8 @@ export function NewTripScreen({
   const [startDate, setStartDate] = useState(todayIso);
   const [endDate, setEndDate] = useState(todayIso);
   const [people, setPeople] = useState<PersonCard[]>([{ key: 0, name: "", email: "" }]);
+  const [opened] = useState(() => ({ name: "", startDate: todayIso(), endDate: todayIso(), people: [{ name: "", email: "" }] }));
+  useUnsavedInput(opened, { name, startDate, endDate, people: people.map((p) => ({ name: p.name, email: p.email })) });
   // Field errors come from the API (422); `unreachable` covers everything else.
   const [errors, setErrors] = useState<FieldErrors>({});
   const [unreachable, setUnreachable] = useState(false);

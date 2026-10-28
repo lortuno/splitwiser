@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
-import { applyAccountLanguage } from "../../../packages/app/src/api/language";
+import {
+  applyAccountLanguage,
+  dropPendingLanguage,
+  pendingLanguage,
+  savePendingLanguage,
+  switchLanguage,
+} from "../../../packages/app/src/api/language";
 import { signUp, updateMe } from "../../../packages/app/src/api/auth";
 import { clearToken, setToken } from "../../../packages/app/src/api/session";
 import type { User } from "../../../packages/app/src/dto";
@@ -30,6 +36,7 @@ beforeEach(() => {
 
 afterEach(() => {
   globalThis.fetch = realFetch;
+  dropPendingLanguage();
   delete (globalThis as { localStorage?: unknown }).localStorage;
   clearToken();
   takePickedLanguage();
@@ -172,5 +179,60 @@ describe("the account's language at start and login", () => {
       ["PATCH", { language: "es" }],
       ["POST", { display_name: "Lena", email: "lena@example.com", password: "travel-demo-2026", language: "fr" }],
     ]);
+  });
+});
+
+describe("a switch while logged in", () => {
+  const unreachable = () => {
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      calls.push({ url, method: init.method ?? "GET", body: JSON.parse(String(init.body)) });
+      throw new TypeError("Failed to fetch");
+    }) as unknown as typeof fetch;
+  };
+
+  test("is shown at once and saved", async () => {
+    answer(200, ana("fr"));
+    const who = await switchLanguage("fr");
+    expect([who?.language, getLanguage(), pendingLanguage()]).toEqual(["fr", "fr", null]);
+    expect(calls[0]).toMatchObject({ method: "PATCH", body: { language: "fr" } });
+  });
+
+  test.each([
+    ["the API cannot be reached", unreachable],
+    ["the API fails", () => answer(500, {})],
+  ])("stays on screen and is sent again at the next screen change when %s", async (_, fail) => {
+    fail();
+    expect(await switchLanguage("fr")).toBeNull();
+    expect([getLanguage(), pendingLanguage()]).toEqual(["fr", "fr"]);
+    answer(200, ana("fr"));
+    expect((await savePendingLanguage())?.language).toBe("fr");
+    expect(pendingLanguage()).toBeNull();
+    expect(calls.map((c) => c.body)).toEqual([{ language: "fr" }, { language: "fr" }]);
+  });
+
+  test("a newer switch replaces the pending one", async () => {
+    unreachable();
+    await switchLanguage("fr");
+    await switchLanguage("es");
+    expect([getLanguage(), pendingLanguage()]).toEqual(["es", "es"]);
+  });
+
+  test("nothing pending, nothing sent", async () => {
+    answer(200, ana("en"));
+    expect(await savePendingLanguage()).toBeNull();
+    expect(calls).toEqual([]);
+  });
+
+  test("a 401, a login or a log out drops the pending language", async () => {
+    answer(401, { error: { code: "unauthenticated", message: "Log in again." } });
+    await switchLanguage("fr");
+    expect(pendingLanguage()).toBeNull();
+    unreachable();
+    await switchLanguage("es");
+    await applyAccountLanguage(ana("fr"));
+    expect([pendingLanguage(), getLanguage()]).toEqual([null, "fr"]);
+    await switchLanguage("es");
+    dropPendingLanguage();
+    expect(pendingLanguage()).toBeNull();
   });
 });

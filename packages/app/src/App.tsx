@@ -3,12 +3,15 @@ import { Platform, StatusBar, StyleSheet, View, useWindowDimensions } from "reac
 
 import { getMe, logOut } from "./api/auth";
 import { API_URL, ApiError, setUnauthenticatedHandler } from "./api/client";
-import { applyAccountLanguage } from "./api/language";
+import { applyAccountLanguage, dropPendingLanguage, savePendingLanguage, switchLanguage } from "./api/language";
 import { getToken } from "./api/session";
+import { AppBar } from "./components/AppBar";
+import { DiscardDialog, type LeaveAction } from "./components/DiscardDialog";
 import { StateMessage } from "./components/StateMessage";
 import type { CreatedTrip, User } from "./dto";
-import { getLanguage, subscribeLanguage, t } from "./i18n";
+import { getLanguage, setLanguage, subscribeLanguage, t, type Language } from "./i18n";
 import { parseTripParam, type TripParam } from "./navigation/tripParam";
+import { hasUnsavedInput, setUnsavedInput } from "./navigation/unsavedInput";
 import { LoginScreen } from "./screens/LoginScreen";
 import { MyTripsScreen } from "./screens/MyTripsScreen";
 import { NewTripScreen } from "./screens/NewTripScreen";
@@ -58,6 +61,8 @@ export default function App() {
   useSyncExternalStore(subscribeLanguage, getLanguage);
   const [route, setRoute] = useState<Route>({ kind: "starting" });
   const [user, setUser] = useState<User | null>(null);
+  // "Settings" or "Log out" tapped in the menu while a form had unsaved input: waits for "Discard your changes?".
+  const [leaving, setLeaving] = useState<LeaveAction | null>(null);
   // A `?trip=` link opened while logged out: it opens right after login.
   const pendingTrip = useRef<TripParam>(tripParam());
   // On screens wider than the app column, edge lines frame it as a panel on the paper.
@@ -119,14 +124,59 @@ export default function App() {
   };
 
   const doLogOut = async () => {
+    dropPendingLanguage();
     await logOut().catch(() => undefined);
     setUser(null);
     setRoute({ kind: "login", sessionEnded: false });
   };
 
+  const openSettings = () => {
+    showTripInUrl(null);
+    setRoute({ kind: "settings" });
+  };
+
+  // A language that could not be saved is sent again at every screen change.
+  useEffect(() => {
+    if (user !== null) {
+      void savePendingLanguage().then((who) => who && setUser(who));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [route]);
+
+  // Logged in, a switch is saved on the account; before login it is kept on the device and recorded at login.
+  const chooseLanguage = (language: Language) => {
+    if (user === null) {
+      setLanguage(language, { picked: true });
+    } else {
+      void switchLanguage(language).then((who) => who && setUser(who));
+    }
+  };
+
+  const leave = (action: LeaveAction) => {
+    if (hasUnsavedInput()) {
+      setLeaving(action);
+    } else {
+      void (action === "settings" ? openSettings() : doLogOut());
+    }
+  };
+
+  const discardAndLeave = (action: LeaveAction) => {
+    setUnsavedInput(false);
+    void (action === "settings" ? openSettings() : doLogOut());
+  };
+
+  const menuActions =
+    user === null || route.kind === "login" || route.kind === "signup"
+      ? []
+      : [
+          ...(route.kind === "settings" ? [] : [{ label: t("settings.title"), onPress: () => leave("settings") }]),
+          { label: t("menu.logOut"), onPress: () => leave("logOut") },
+        ];
+
   return (
     <View style={styles.page}>
       <View style={[styles.app, framed && styles.framed]}>
+        {route.kind !== "starting" && <AppBar language={getLanguage()} onLanguage={chooseLanguage} actions={menuActions} />}
         {route.kind === "starting" ? (
           <StateMessage message={t("app.loading")} loading />
         ) : route.kind === "unreachable" ? (
@@ -140,8 +190,6 @@ export default function App() {
             user={user}
             onOpenTrip={openTrip}
             onNewTrip={() => setRoute({ kind: "newTrip" })}
-            onSettings={() => setRoute({ kind: "settings" })}
-            onLogOut={doLogOut}
           />
         ) : route.kind === "newTrip" && user !== null ? (
           <NewTripScreen user={user} onCreated={openCreatedTrip} onBack={backToMyTrips} />
@@ -150,6 +198,7 @@ export default function App() {
         ) : route.kind === "trip" ? (
           <TripView key={route.tripId ?? "invalid"} tripId={route.tripId} created={route.created} onBack={backToMyTrips} />
         ) : null}
+        <DiscardDialog action={leaving} onClose={() => setLeaving(null)} onDiscard={discardAndLeave} />
       </View>
     </View>
   );

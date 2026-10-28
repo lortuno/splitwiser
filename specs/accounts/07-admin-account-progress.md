@@ -12,7 +12,7 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 
 ## Acceptance checks
 
-- [ ] 1. 📸 **Log in as admin.** Open the app, enter `admin@travel.local` and `admin123`, and tap "Log in". "My trips" shows "Logged in as Admin", the empty card "You are not on any trip yet. Start one with "+ New trip", or ask a friend to add you with your email." and "+ New trip" at the bottom. The menu in the app bar lists "Settings" and "Log out".
+- [x] 1. 📸 **Log in as admin.** Open the app, enter `admin@travel.local` and `admin123`, and tap "Log in". "My trips" shows "Logged in as Admin", the empty card "You are not on any trip yet. Start one with "+ New trip", or ask a friend to add you with your email." and "+ New trip" at the bottom. The menu in the app bar lists "Settings" and "Log out".
 - [x] 2. **Email as typed.** Log out and log in again with `  ADMIN@Travel.local ` and `admin123`: "My trips" for Admin appears.
 - [x] 3. **Wrong password and taken email.** Log out. Log in with `admin@travel.local` and `admin1234`: "Email or password is wrong." appears. Open "No account yet? Sign up", enter "Someone", `admin@travel.local` and `travel-demo-2026`, and tap "Create account": "This email already has an account." appears under the email.
 - [x] 4. 📸 **The admin creates a trip with Ana.** Log in as admin, tap "+ New trip", enter "Team lunch", start and end date `2026-11-03`, and the person "Ana" with the email `ana@example.com`, then tap "Create trip". The trip view shows "Team lunch", `0,00 €`, "3 Nov 2026 – 3 Nov 2026 · 0 expenses" and "2 people"; the address bar shows `?trip=9`.

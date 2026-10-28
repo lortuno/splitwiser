@@ -14,6 +14,7 @@ import { t } from "../i18n";
 import { errorText } from "../i18n/errors";
 import { CURRENCY_SYMBOL, formatBasisPoints } from "../money/format";
 import { parseEuroToCents, parsePercentToBasisPoints, parseWholeNumber } from "../money/parse";
+import { useUnsavedInput } from "../navigation/useUnsavedInput";
 import { colors, radius, size, space, typeScale } from "../theme";
 
 const SPLIT_TYPES: SplitType[] = ["equal", "exact", "percentage", "shares"];
@@ -48,6 +49,9 @@ export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSave
   const [previewErrors, setPreviewErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
   const [tripPaid, setTripPaid] = useState(false);
+  // "Discard your changes?" compares the fields a person fills in; categoryPicked only tracks how the category was set.
+  const { categoryPicked: _openedPicked, ...opened } = initial;
+  useUnsavedInput(opened, { name, date, amountText, payers, payerAmounts, splitType, between, splitValues, category });
 
   const amountCents = parseEuroToCents(amountText);
   const sortedPayers = members.filter((m) => payers.includes(m.id));

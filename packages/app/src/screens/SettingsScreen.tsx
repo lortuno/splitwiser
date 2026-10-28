@@ -3,19 +3,20 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { updateMe } from "../api/auth";
 import { API_URL, ApiError } from "../api/client";
+import { switchLanguage } from "../api/language";
 import { Card } from "../components/Card";
 import { LanguagePicker } from "../components/LanguagePicker";
 import { TextField } from "../components/TextField";
 import type { FieldErrors, User } from "../dto";
-import { getLanguage, setLanguage, t, type Language } from "../i18n";
+import { getLanguage, t, type Language } from "../i18n";
 import { errorText } from "../i18n/errors";
+import { useUnsavedInput } from "../navigation/useUnsavedInput";
 import { colors, space, typeScale } from "../theme";
 import { authStyles } from "./LoginScreen";
 
 /**
- * The account's display name (shown on every trip, saved with "Save") and app language. A language is recorded on the
- * account as soon as it is tapped; when that fails the switch is undone, so the app never shows a language the
- * database does not have.
+ * The account's display name (shown on every trip, saved with "Save") and app language. A language is shown and sent
+ * to the account as soon as it is tapped; when that fails it stays and is sent again at the next screen change.
  */
 export function SettingsScreen({
   user,
@@ -34,8 +35,14 @@ export function SettingsScreen({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [unreachable, setUnreachable] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [languageBusy, setLanguageBusy] = useState(false);
-  const [languageFailed, setLanguageFailed] = useState(false);
+  useUnsavedInput(user.display_name, name);
+
+  async function chooseLanguage(language: Language) {
+    const account = await switchLanguage(language);
+    if (account !== null) {
+      onUserChanged(account);
+    }
+  }
 
   async function submit() {
     if (busy) {
@@ -51,24 +58,6 @@ export function SettingsScreen({
       setErrors(fieldErrors);
       setUnreachable(Object.keys(fieldErrors).length === 0);
       setBusy(false);
-    }
-  }
-
-  async function chooseLanguage(language: Language) {
-    const previous = getLanguage();
-    if (language === previous || languageBusy) {
-      return;
-    }
-    setLanguage(language);
-    setLanguageBusy(true);
-    setLanguageFailed(false);
-    try {
-      onUserChanged(await updateMe({ language }));
-    } catch (e) {
-      setLanguage(previous);
-      setLanguageFailed(!(e instanceof ApiError && e.status === 401));
-    } finally {
-      setLanguageBusy(false);
     }
   }
 
@@ -92,14 +81,7 @@ export function SettingsScreen({
           error={errorText(errors.display_name, "display_name")}
         />
         <Text style={styles.label}>{t("settings.language")}</Text>
-        <LanguagePicker value={getLanguage()} onChange={chooseLanguage} disabled={languageBusy} />
-        {languageFailed && (
-          <Card style={[authStyles.errorCard, styles.languageError]}>
-            <Text style={authStyles.errorText} accessibilityRole="alert">
-              {t("common.loadFailed", { url: API_URL })}
-            </Text>
-          </Card>
-        )}
+        <LanguagePicker value={getLanguage()} onChange={chooseLanguage} />
       </ScrollView>
       <View style={authStyles.footer}>
         {unreachable && (
@@ -135,6 +117,5 @@ const styles = StyleSheet.create({
   content: { padding: space.lg },
   // Same as the TextField label above it.
   label: { fontSize: typeScale.caption, fontWeight: "700", color: colors.ink, marginTop: space.lg, marginBottom: space.xs },
-  languageError: { marginTop: space.sm },
   footerCard: { marginBottom: space.sm },
 });

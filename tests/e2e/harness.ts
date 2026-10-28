@@ -115,6 +115,29 @@ export async function logInWithForm(page: Page, email: string, password = DEMO_P
   await page.getByRole("button", { name: "Log in", exact: true }).click();
 }
 
+/** The menu button in the app bar ("Menu, language: English", "Menú, idioma: …", "Menu, langue : …"). */
+export const menuButton = (page: Page) => page.getByRole("button", { name: /^Men[uú],/ });
+
+/** The rows of the open menu below the languages ("Settings", "Log out", in the language shown). */
+export const menuItem = (page: Page, name: string) => page.getByRole("menuitem", { name, exact: true });
+
+/**
+ * Opens the menu in the app bar and taps a row: "Settings" or "Log out" in the language shown. Waits until the menu is
+ * gone: while it closes, focus returns to the menu button, and typing into a field in that moment is lost.
+ */
+export async function fromMenu(page: Page, name: string) {
+  await menuButton(page).click();
+  await menuItem(page, name).click();
+  await menuItem(page, name).waitFor({ state: "detached" });
+}
+
+/** Opens the menu in the app bar and picks a language by its own name. */
+export async function languageFromMenu(page: Page, name: string) {
+  await menuButton(page).click();
+  await page.getByRole("radio", { name, exact: true }).click();
+  await page.getByRole("radio", { name, exact: true }).waitFor({ state: "detached" });
+}
+
 export const shot = (page: Page, name: string) => page.screenshot({ path: join(SHOTS, `${name}.png`) });
 
 export const visible = (page: Page, text: string) => page.getByText(text, { exact: true }).first().waitFor({ timeout: 10_000 });

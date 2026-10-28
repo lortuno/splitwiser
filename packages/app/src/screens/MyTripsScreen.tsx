@@ -15,14 +15,10 @@ export function MyTripsScreen({
   user,
   onOpenTrip,
   onNewTrip,
-  onSettings,
-  onLogOut,
 }: {
   user: User;
   onOpenTrip: (tripId: number) => void;
   onNewTrip: () => void;
-  onSettings: () => void;
-  onLogOut: () => void;
 }) {
   const [trips, setTrips] = useState<Trip[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -47,14 +43,6 @@ export function MyTripsScreen({
         <Text style={styles.title} numberOfLines={1}>
           {t("trips.title")}
         </Text>
-        <View style={styles.headerActions}>
-          <Pressable onPress={onSettings} accessibilityRole="button" style={styles.headerButton}>
-            <Text style={styles.headerButtonLabel}>{t("settings.title")}</Text>
-          </Pressable>
-          <Pressable onPress={onLogOut} accessibilityRole="button" style={styles.headerButton}>
-            <Text style={styles.headerButtonLabel}>{t("trips.logOut")}</Text>
-          </Pressable>
-        </View>
       </View>
       {trips === null ? (
         failed ? (
@@ -116,20 +104,15 @@ function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingLeft: space.lg,
-    paddingRight: space.sm,
+    minHeight: size.tapMin,
+    justifyContent: "center",
+    paddingHorizontal: space.lg,
     paddingVertical: space.xs,
     backgroundColor: colors.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: colors.line,
   },
   title: { flexShrink: 1, fontSize: typeScale.title, fontWeight: "700", color: colors.ink },
-  headerActions: { flexDirection: "row", alignItems: "center" },
-  headerButton: { minHeight: size.tapMin, justifyContent: "center", paddingHorizontal: space.sm },
-  headerButtonLabel: { fontSize: typeScale.body, color: colors.accent, fontWeight: "600" },
   list: { flex: 1 },
   content: { padding: space.lg, paddingBottom: space.xl },
   loggedInAs: { fontSize: typeScale.caption, color: colors.inkMuted, marginBottom: space.md },

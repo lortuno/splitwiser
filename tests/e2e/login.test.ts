@@ -10,7 +10,10 @@ import {
   WEB_URL,
   browser,
   euro,
+  fromMenu,
   logInWithForm,
+  menuButton,
+  menuItem,
   noSidewaysScroll,
   open,
   openAs,
@@ -37,7 +40,7 @@ async function tripCards(page: Page): Promise<string[]> {
 }
 
 async function logOutFromMyTrips(page: Page) {
-  await page.getByRole("button", { name: "Log out", exact: true }).click();
+  await fromMenu(page, "Log out");
   await visible(page, "Log in to see your trips.");
 }
 
@@ -69,7 +72,9 @@ describe("epic 2: login and my trips (390x844)", () => {
     await visible(page, "1 Jun 2026 – 7 Jun 2026");
     expect(await sameRow(page, "Total", euro("78,30"))).toBe(true);
     await visible(page, euro("1.915,57"));
-    await page.getByRole("button", { name: "Log out", exact: true }).waitFor();
+    await menuButton(page).click();
+    await menuItem(page, "Log out").waitFor();
+    await page.keyboard.press("Escape");
     expect(await page.getByRole("tab").count()).toBe(0);
     await shot(page, "e2-02-my-trips");
 

@@ -4,10 +4,9 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { logIn } from "../api/auth";
 import { API_URL, ApiError } from "../api/client";
 import { Card } from "../components/Card";
-import { LanguagePicker } from "../components/LanguagePicker";
 import { TextField } from "../components/TextField";
 import type { User } from "../dto";
-import { getLanguage, setLanguage, t } from "../i18n";
+import { t } from "../i18n";
 import { colors, radius, size, space, typeScale } from "../theme";
 
 export function LoginScreen({
@@ -42,9 +41,6 @@ export function LoginScreen({
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.topBar}>
-          <LanguagePicker value={getLanguage()} onChange={(language) => setLanguage(language, { picked: true })} />
-        </View>
         <Text style={styles.title}>{t("auth.appName")}</Text>
         <Text style={styles.intro}>{t("auth.loginIntro")}</Text>
         {sessionEnded && <Text style={styles.info}>{t("auth.sessionEnded")}</Text>}
@@ -115,9 +111,6 @@ export const authStyles = StyleSheet.create({
   link: { minHeight: size.tapMin, justifyContent: "center", alignItems: "center" },
   linkLabel: { fontSize: typeScale.body, color: colors.accent, fontWeight: "600" },
   back: { minHeight: size.tapMin, justifyContent: "center", alignSelf: "flex-start" },
-  // "‹ Log in" (Sign up only) on the left, the language dropdown on the right.
-  topBar: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", marginBottom: space.md },
-  topBarWithBack: { justifyContent: "space-between" },
 });
 
 const styles = authStyles;

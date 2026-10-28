@@ -32,8 +32,9 @@ name" sets the display name.
 
 ```
 ┌──────────────────────────────────────┐
-│ My trips          Your name  Log out │  header: title 20 bold;
-├──────────────────────────────────────┤  two text buttons, 48 high, accent
+│                        [English  ▾] │  app bar (epic 6): its menu
+├──────────────────────────────────────┤  holds "Settings" and "Log out"
+│ My trips                             │  header: title 20 bold
 │ Logged in as Ana                     │  caption, inkMuted (display name)
 │ ┌──────────────────────────────────┐ │
 │ │ Madrid weekend                   │ │  trip cards unchanged
@@ -54,8 +55,8 @@ name" sets the display name.
 └──────────────────────────────────────┘
 ```
 
-- **Your name** (`size.tapMin`): opens "Your name".
-- **Log out**: unchanged from epic 2.
+- **Settings** and **Log out**: rows of the menu in the app bar (`specs/translations/06-translations-specification.md`).
+  "Settings" opens the screen where the display name is changed.
 - **+ New trip** (`size.tapPrimary`, fixed at the bottom, outside the scrolling list): opens "New trip". It shows in
   the empty, loaded and long-list states. It is hidden while the list is loading and in the error state.
 - **Empty state (changed text):** a card "You are not on any trip yet. Start one with "+ New trip", or ask a friend to
@@ -140,12 +141,14 @@ name" sets the display name.
   - `401` → handled by the app shell (Login, "Your session has ended."), as in epic 2.
 - **Loading / empty:** none. The form needs no data beyond the logged-in user, which the app already has.
 
-### Your name (`YourNameScreen`, new)
+### The display name in Settings (`SettingsScreen`, laid out in epic 6)
 
 ```
 ┌──────────────────────────────────────┐
+│                        [English  ▾] │  app bar
+├──────────────────────────────────────┤
 │ ‹ My trips                           │  back text button, 48 high
-│ Your name                            │  title 20 bold
+│ Settings                             │  title 20 bold
 ├──────────────────────────────────────┤
 │ This is how you appear on all your   │  body, inkMuted
 │ trips.                               │
@@ -154,7 +157,9 @@ name" sets the display name.
 │ ┌──────────────────────────────────┐ │  prefilled with the current
 │ │ Ana                              │ │  display name
 │ └──────────────────────────────────┘ │
-│ Enter your name.                     │  FieldError
+│ Fill in this field.                  │  FieldError
+│                                      │
+│ Language  [English  ▾]               │  see epic 6
 │                                      │
 │            (flexible space)          │
 │ ┌──────────────────────────────────┐ │
@@ -309,8 +314,8 @@ Viewport 390x844. Freshly seeded database (`docker compose down -v && docker com
 http://localhost:8081. Every demo password is `travel-demo-2026`. Run the checks in order: checks 2–4 create the trip
 that checks 5 and 6 use, and check 12 renames Ana.
 
-1. 📸 **My trips has "+ New trip".** Log in as `ana@example.com`. "My trips" shows the header "My trips" with "Your
-   name" and "Log out", the cards "Madrid weekend" `78,30 €` and "Lisbon & Porto" `1.915,57 €`, and a full-width 56 px
+1. 📸 **My trips has "+ New trip".** Log in as `ana@example.com`. "My trips" shows the header "My trips", the menu in
+   the app bar lists "Settings" and "Log out", the cards "Madrid weekend" `78,30 €` and "Lisbon & Porto" `1.915,57 €`, and a full-width 56 px
    "+ New trip" button fixed at the bottom of the screen.
 2. 📸 **New trip form.** Tap "+ New trip". The screen shows "‹ My trips", "New trip", an empty "Trip name", start and
    end dates prefilled with today's date as `YYYY-MM-DD`, the fixed row "Ana (you)" without "Remove", one empty person
@@ -349,13 +354,13 @@ that checks 5 and 6 use, and check 12 renames Ana.
     `100,00 €`".
 11. **Empty list text.** Sign up as `zoe@example.com` (any name, `long-enough-1`). The card reads "You are not on any trip
     yet. Start one with "+ New trip", or ask a friend to add you with your email." "+ New trip" is at the bottom.
-12. 📸 **Your name.** Log in as Ana, tap "Your name". The field shows "Ana". Clear it and tap "Save": "Enter your name."
-    under the field. Enter "Ana María" and tap "Save": "My trips" shows "Logged in as Ana María". Open "Lisbon & Porto":
+12. 📸 **The display name.** Log in as Ana and open "Settings" from the menu. The field shows "Ana". Clear it and tap
+    "Save": "Fill in this field." under the field. Enter "Ana María" and tap "Save": "My trips" shows "Logged in as Ana María". Open "Lisbon & Porto":
     "Ana María pays Ben `63,75 €`", and the expense "Airport taxi to Alfama" reads "Recorded by Ana María". Log in as Ben
     and open "Summer in Sicily": "Ben pays Ana María `3,33 €`".
 13. 📸 **API unreachable.** With the API stopped (`docker compose stop api`, or the e2e suite blocking it), on "New trip"
     with a filled-in form tap "Create trip": the owesSoft card "Could not reach the API at http://localhost:8080." shows
-    above the button, the input stays, and "Create trip" can be tapped again. The same happens on "Your name" with
+    above the button, the input stays, and "Create trip" can be tapped again. The same happens on "Settings" with
     "Save". After `docker compose start api`, tapping "Create trip" saves the trip.
 14. **Token required.** In the console, `POST /trips` and `PATCH /me` without `Authorization` answer `401` with code
     `unauthenticated`.
@@ -378,7 +383,7 @@ or password, and marking trips as paid (epic 4).
 - Name fields capitalise words. Email fields show the email keyboard with no auto-capital and no autocorrect. Date
   fields show a keyboard that can type `-`.
 - Today's date in the date fields comes from the device's local date, so it is not a day off near midnight.
-- "Remove", "+ Add person", "Your name" and "Log out" respond across their full 48 px height. With the largest
-  accessibility text size, "My trips", "Your name" and "Log out" still fit in the header without overlapping.
+- "Remove", "+ Add person" and the menu's "Settings" and "Log out" rows respond across their full 48 px height. With
+  the largest accessibility text size, "My trips" still fits in the header.
 - The fixed "+ New trip" and "Create trip" buttons do not sit under the home indicator or Android navigation bar.
 - Both platforms still build: Expo export for `ios` and `android` succeeds in the container.

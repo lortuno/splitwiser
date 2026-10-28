@@ -13,6 +13,8 @@ export const colors = {
   owed: "#2E6B3E",
   owes: "#A6321C",
   owesSoft: "#FBE6E0",
+  /** Dims the screen behind a dialog ("Discard your changes?"): ink at 40 %. */
+  backdrop: "rgba(31, 41, 51, 0.4)",
 };
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 };

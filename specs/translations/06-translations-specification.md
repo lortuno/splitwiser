@@ -11,6 +11,7 @@ Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-
 |---|---|---|---|
 | 2026-10-28 | Build the epic | 2 | 0.33 |
 | 2026-10-28 | Language dropdown at the top right of Login, Sign up and Settings | 2 | 0.25 |
+| 2026-10-28 | One menu at the top for language, Settings and Log out; Discard your changes? | 0.5 | 0.42 |
 
 ## Goal
 
@@ -52,7 +53,7 @@ the language rows.
 
 ```
 ┌──────────────────────────────────────┐
-│                        [English  ▾] │  app bar, 48 high, every screen
+│                        [English  ▾] │  app bar, 56 high, every screen
 ├──────────────────────────────────────┤  but the first "Loading…"
 │ My trips                             │  the screen's own header below
 │ ...                                  │
@@ -74,7 +75,8 @@ Open, logged in:
 │                                      │
 ```
 
-- **App bar:** one row, `size.tapMin` (48 px) high, `paper` background with a `line` border underneath, rendered by
+- **App bar:** one row holding the 48 px (`size.tapMin`) menu button with `space.xs` above and below (56 px in all),
+  `paper` background with a `line` border underneath, rendered by
   `App.tsx` above every route except the first "Loading…" (also above the start screen "Could not reach the API at
   {url}."). It holds only the menu button, at the right. Screens keep their own headers below it.
 - **Menu button:** looks like the `LanguagePicker` button: "English ▾", "Español ▾" or "Français ▾"; accessible name
@@ -111,7 +113,7 @@ language stored in the database applies.
 ├──────────────────────────────────────┤
 │ (the form, dimmed)                   │
 │ ┌──────────────────────────────────┐ │
-│ │ Discard your changes?            │ │  card, title 17 bold
+│ │ Discard your changes?            │ │  card, title 20 bold
 │ │ What you entered on this screen  │ │
 │ │ will be lost.                    │ │
 │ │ ┌──────────────────────────────┐ │ │

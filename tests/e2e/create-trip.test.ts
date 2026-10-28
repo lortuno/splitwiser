@@ -7,7 +7,10 @@ import {
   API_URL,
   VIEWPORT,
   euro,
+  fromMenu,
   logInWithForm,
+  menuButton,
+  menuItem,
   noSidewaysScroll,
   open,
   openAs,
@@ -49,15 +52,15 @@ describe("epic 3: create a trip (390x844)", () => {
   test("check 1: My trips has + New trip at the bottom", async () => {
     const page = await openAs("ana@example.com", "/");
     expect(await tripCards(page)).toEqual(["Madrid weekend", "Lisbon & Porto"]);
-    await button(page, "Settings").waitFor();
-    await button(page, "Log out").waitFor();
     const newTrip = await button(page, "+ New trip").boundingBox();
     expect(newTrip!.height).toBeGreaterThanOrEqual(56);
     expect(newTrip!.width).toBeGreaterThan(VIEWPORT.width - 40);
     expect(VIEWPORT.height - (newTrip!.y + newTrip!.height)).toBeLessThanOrEqual(16);
+    await menuButton(page).click();
     for (const name of ["Settings", "Log out"]) {
-      expect((await button(page, name).boundingBox())!.height).toBeGreaterThanOrEqual(48);
+      expect((await menuItem(page, name).boundingBox())!.height).toBeGreaterThanOrEqual(48);
     }
+    await page.keyboard.press("Escape");
     await shot(page, "e3-01-my-trips-new-trip");
     await page.close();
   }, 30_000);
@@ -255,7 +258,7 @@ describe("epic 3: create a trip (390x844)", () => {
 
   test("check 12: Your name renames Ana on every trip", async () => {
     const page = await openAs("ana@example.com", "/");
-    await button(page, "Settings").click();
+    await fromMenu(page, "Settings");
     const name = field(page, "Name");
     expect(await name.inputValue()).toBe("Ana");
     await name.fill("");
@@ -300,7 +303,7 @@ describe("epic 3: create a trip (390x844)", () => {
     await visible(page, "2 people");
 
     await button(page, "‹ My trips").click();
-    await button(page, "Settings").click();
+    await fromMenu(page, "Settings");
     await page.route(`${API_URL}/**`, (route) => route.abort());
     await button(page, "Save").click();
     await visible(page, `Could not reach the API at ${API_URL}.`);
