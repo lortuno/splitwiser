@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Database\Seeder;
 
-// The local admin login (specs/07-admin-account-specification.md): an ordinary account, created when its email is
+// The local admin login (specs/accounts/07-admin-account-specification.md): an ordinary account, created when its email is
 // free, never changed afterwards.
 
 /** A fresh database seeded and started like `bin/init-db.php` does. */

@@ -1,11 +1,11 @@
 # 01-trip-at-a-glance: test plan
 
-Browser steps that prove each acceptance check in `specs/01-trip-at-a-glance-specification.md`.
+Browser steps that prove each acceptance check in `specs/trips/01-trip-at-a-glance-specification.md`.
 
 **Setup.** Chromium, viewport 390x844 (repeat the 📸 checks at 1440x900 for the wide layout). Freshly seeded database
 (`docker compose down -v && docker compose up`), app at http://localhost:8081, API at http://localhost:8080. Open the
 browser's network tab before starting. Run the checks in order; check 15 must run last because it adds an expense.
-Screenshots go to `specs/01-trip-at-a-glance-screenshots/`, named `{check}-{screen}-{width}.png`.
+Screenshots go to `specs/trips/01-trip-at-a-glance-screenshots/`, named `{check}-{screen}-{width}.png`.
 
 ## 1. 📸 Trip view, demo trip
 1. Open http://localhost:8081/.

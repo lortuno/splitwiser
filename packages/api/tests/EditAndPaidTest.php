@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Editing expenses, marking a trip as paid and reopening it (specs/04-edit-expenses-and-mark-as-paid-specification.md).
+// Editing expenses, marking a trip as paid and reopening it (specs/expenses/04-edit-expenses-and-mark-as-paid-specification.md).
 // Figures are those of trip 7 "Madrid weekend" in the spec's seed section.
 
 /** The response as the app receives it: DTOs turned into plain arrays. */

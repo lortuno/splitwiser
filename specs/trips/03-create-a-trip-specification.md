@@ -1,6 +1,6 @@
 # Epic 3: Create a trip — specification
 
-Source: `specs/roadmap.md`, epic 3. Brainstorming: `specs/03-create-a-trip-brainstorming.md` (rounds 1–4).
+Source: `specs/roadmap.md`, epic 3. Brainstorming: `specs/trips/03-create-a-trip-brainstorming.md` (rounds 1–4).
 Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
 ## Estimate

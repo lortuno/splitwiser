@@ -39,6 +39,26 @@
               "bun",
               "/hooks/estimate-guard.ts"
             ]
+          },
+          {
+            "type": "command",
+            "command": "docker",
+            "args": [
+              "run",
+              "--rm",
+              "-i",
+              "-e",
+              "CLAUDE_PROJECT_DIR=${CLAUDE_PROJECT_DIR}",
+              "-e",
+              "SPECS_DIR=/specs",
+              "-v",
+              "${CLAUDE_PROJECT_DIR}/.claude/hooks:/hooks:ro",
+              "-v",
+              "${CLAUDE_PROJECT_DIR}/specs:/specs:ro",
+              "oven/bun:1.4.3-debian",
+              "bun",
+              "/hooks/spec-guard.ts"
+            ]
           }
         ]
       }

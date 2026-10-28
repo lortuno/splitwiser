@@ -1,4 +1,4 @@
-// Acceptance checks for epic 1 (specs/01-trip-at-a-glance-specification.md) in Chromium at 390x844.
+// Acceptance checks for epic 1 (specs/trips/01-trip-at-a-glance-specification.md) in Chromium at 390x844.
 // Since epic 2 every trip needs a login: each check logs in as the trip's owner (see Seeder::ACCOUNTS).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 

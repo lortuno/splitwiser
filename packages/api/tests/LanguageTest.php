@@ -6,7 +6,7 @@ use App\Database\Connection;
 use App\Database\Schema;
 
 // The account's app language and the params the app needs to word errors itself
-// (specs/06-translations-specification.md).
+// (specs/translations/06-translations-specification.md).
 
 test('an existing database gets users.language, and existing accounts become English', function (): void {
     $pdo = Connection::open(':memory:');

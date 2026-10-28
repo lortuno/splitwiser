@@ -1,5 +1,5 @@
 // Stop hook: during an epic build, reminds Claude to tick the build steps that are done and the checks that
-// passed in specs/{nr}-{name}-progress.md. It only reminds; it never ticks anything. It creates the progress
+// passed in specs/{category}/{nr}-{name}-progress.md. It only reminds; it never ticks anything. It creates the progress
 // file (all unticked) from the specification when it is missing, and never edits the specification.
 // "During an epic build" means: this session works on an epic that is not done (see sessionEpic), and this
 // turn changed files under packages/ or tests/ without touching the progress file. That way the reminder comes once per turn of work, not on

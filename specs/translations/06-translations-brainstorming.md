@@ -203,7 +203,7 @@ Data, API, edge cases and the test data they need.
 ## Decisions made while writing the specification
 
 Round 3 answers: every recommendation was kept. These details were settled in
-`specs/06-translations-specification.md` and can be challenged there:
+`specs/translations/06-translations-specification.md` and can be challenged there:
 
 - **Error texts are keyed by form, field and code** (`error.expense.name.required`), not by code alone: the API uses
   the same code with different wording per form ("Enter a name for the expense." / "… for the trip." / "Enter your

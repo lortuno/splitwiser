@@ -1,12 +1,12 @@
 // Status line: progress of this session's epic (see sessionEpic) and the tokens this session has used, on one line.
-// Progress is the ticked build steps plus the ticked acceptance checks in specs/{nr}-{name}-progress.md, out of
+// Progress is the ticked build steps plus the ticked acceptance checks in specs/{category}/{nr}-{name}-progress.md, out of
 // the spec's build sections plus its acceptance checks. It is read again on every refresh, so each tick moves the bar.
 // Reads the status line JSON from stdin and prints e.g.
 //   01-trip-view  [██████░░░░░░░░░░] 8/21 · 62% left · 48.2k tok · 34% session · 41% ctx · Opus
 // Never fails: on any error it still prints a short line and exits 0.
 // The pure parts are exported for tests and for .claude/hooks/progress-reminder.ts.
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, dirname, join } from "node:path";
 
 export const MAX_WIDTH = 100;
 const BAR_WIDTH = 16;
@@ -99,12 +99,14 @@ export const progressFile = (label: string, steps: string[], checks: Check[]): s
     "",
   ].join("\n");
 
-// Specs in specs/, newest (highest number) first.
+// Specs in specs/ and its category folders (specs/translations/06-translations-specification.md), newest
+// (highest number) first. file is relative to specs/.
 const specs = (root: string): { label: string; nr: number; file: string }[] => {
   const dir = join(root, "specs");
   if (!existsSync(dir)) return [];
-  return readdirSync(dir)
-    .map((file) => ({ file, match: file.match(SPEC) }))
+  return (readdirSync(dir, { recursive: true }) as string[])
+    .filter((file) => file.split("/").length <= 2)
+    .map((file) => ({ file, match: basename(file).match(SPEC) }))
     .filter((entry) => entry.match !== null)
     .map(({ file, match }) => ({ file, nr: Number(match![1]), label: `${match![1]}-${match![2]}` }))
     .sort((a, b) => b.nr - a.nr || b.label.localeCompare(a.label));
@@ -116,7 +118,7 @@ export const epicByNr = (root: string, nr: number): Epic | null => {
   const spec = specs(root).find((candidate) => candidate.nr === nr);
   if (!spec) return null;
   const specPath = join(root, "specs", spec.file);
-  const progressPath = join(root, "specs", `${spec.label}-progress.md`);
+  const progressPath = join(dirname(specPath), `${spec.label}-progress.md`);
   const text = readFileSync(specPath, "utf8");
   const checks = parseChecks(text);
   if (checks.length === 0) return null;
@@ -128,9 +130,9 @@ export const epicByNr = (root: string, nr: number): Epic | null => {
   return { label: spec.label, specPath, progressPath, hasProgress, steps, stepsDone, checks, done };
 };
 
-// "specs/02-export-progress.md", "/spec 2", "epic 2" or "feature 2".
+// "specs/expenses/02-export-progress.md", "/spec 2", "epic 2" or "feature 2".
 const EPIC_REF =
-  /specs\/(\d+)-[\w-]+-(?:brainstorming|specification|progress)\.md|<command-name>\/spec<\/command-name>\s*<command-args>\s*(\d+)|\b(?:epic|feature)\s+#?(\d+)\b/gi;
+  /specs\/(?:[\w-]+\/)?(\d+)-[\w-]+-(?:brainstorming|specification|progress)\.md|<command-name>\/spec<\/command-name>\s*<command-args>\s*(\d+)|\b(?:epic|feature)\s+#?(\d+)\b/gi;
 
 const epicRefs = (text: string): number[] =>
   [...text.matchAll(EPIC_REF)].map((match) => Number(match[1] ?? match[2] ?? match[3]));

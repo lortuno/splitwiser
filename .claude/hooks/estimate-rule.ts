@@ -18,11 +18,12 @@ export type HookInput = {
   cwd: string;
 };
 
-// Specification files by path relative to the project ("specs/02-login-specification.md") and their text.
+// Specification files by path relative to the project ("specs/accounts/02-login-specification.md") and their text.
 export type Specs = Record<string, string>;
 
-export const SPEC_FILE = /^specs\/[^/]+-specification\.md$/;
-export const TOOLING_SPEC = "specs/00-tooling-specification.md";
+// Directly in specs/ or in a category folder; spec-rule.ts decides where a specification may live.
+export const SPEC_FILE = /^specs\/(?:[^/]+\/)?[^/]+-specification\.md$/;
+export const TOOLING_SPEC = "specs/tooling/00-tooling-specification.md";
 const HEADING = "## Estimate";
 const GUARDED = ["packages/", "tests/"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -95,7 +96,7 @@ const noEstimate = (what: string): Decision => ({
   block: true,
   reason:
     `Blocked: ${what} is feature work and needs an open estimate first. Append a row to the ` +
-    `"${HEADING}" table of the feature's specs/{nr}-{name}-specification.md (work outside an epic: ` +
+    `"${HEADING}" table of the feature's specs/{category}/{nr}-{name}-specification.md (work outside an epic: ` +
     `${TOOLING_SPEC}) with the date, the task and the estimated development hours, leaving Actual empty. ${SEE}`,
 });
 
@@ -114,6 +115,17 @@ export const writes = (command: string): boolean => {
     /open\([^)]*['"][wa]|writeFile|write_text|file_put_contents/.test(stripped) ||
     /\bgit\s+(apply|checkout|restore|stash|reset)\b/.test(stripped)
   );
+};
+
+// A single "git mv [options] <source>... <target>" with nothing chained to it, or null. A move keeps the
+// content, so specifications may be moved between category folders this way.
+export const gitMove = (command: string): { sources: string[]; target: string } | null => {
+  if (/[;&|<>`$()\n]/.test(command)) return null;
+  const words = command.trim().split(/\s+/);
+  if (words[0] !== "git" || words[1] !== "mv") return null;
+  const paths = words.slice(2).filter((word) => !word.startsWith("-"));
+  if (paths.length < 2) return null;
+  return { sources: paths.slice(0, -1), target: paths[paths.length - 1] };
 };
 
 const mentionsGuarded = (command: string): boolean =>
@@ -142,7 +154,7 @@ export const decide = (input: HookInput, projectDir: string, specs: Specs): Deci
 
   if (tool_name === "Bash" && tool_input.command && writes(tool_input.command)) {
     const { command } = tool_input;
-    if (command.includes("-specification.md")) {
+    if (command.includes("-specification.md") && !gitMove(command)) {
       return badLog("a specification", "edit it with the Edit or Write tool so its estimates can be checked");
     }
     const insideGuarded = isGuarded(`${path.relative(projectDir, cwd)}/`);

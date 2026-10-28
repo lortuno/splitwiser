@@ -1,4 +1,4 @@
-// Acceptance checks for epic 4 (specs/04-edit-expenses-and-mark-as-paid-specification.md) in Chromium at 390x844.
+// Acceptance checks for epic 4 (specs/expenses/04-edit-expenses-and-mark-as-paid-specification.md) in Chromium at 390x844.
 // The checks run in order on one fresh seed: checks 4–14 build on each other (Madrid is edited, marked as paid and
 // reopened; Lisbon is marked as paid in check 13 and reopened in check 17).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";

@@ -144,5 +144,16 @@ describe("estimate table of a specification", () => {
   test("blocks shell writes to a specification", () => {
     expect(bash(`echo '| 2026-10-27 | X | 4 | |' >> ${SPEC}`, only(closed)).block).toBe(true);
     expect(bash(`sed -i '' 's/| 6 | |/| 6 | 1 |/' ${SPEC}`, only(open)).block).toBe(true);
+    expect(bash(`git mv ${SPEC} specs/trips/ && echo '| x |' >> specs/trips/03-create-a-trip-specification.md`, only(open)).block).toBe(true);
+  });
+
+  test("a plain git mv moves a specification, because it keeps its estimates", () => {
+    expect(bash(`git mv ${SPEC} specs/trips/`, only(open)).block).toBe(false);
+  });
+
+  test("specifications in category folders count", () => {
+    const inFolder = "specs/trips/03-create-a-trip-specification.md";
+    expect(write("/repo/packages/app/src/theme.ts", { [inFolder]: open }).block).toBe(false);
+    expect(editSpec("| Blue theme | 2 |", "| Blue theme | 1 |", { [inFolder]: open }, inFolder).block).toBe(true);
   });
 });

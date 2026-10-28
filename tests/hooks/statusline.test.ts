@@ -58,6 +58,14 @@ describe("status line per fixture", () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  test("a spec and its progress file in a category folder", () => {
+    const root = mkdtempSync(join(tmpdir(), "statusline-"));
+    cpSync(join(fixtures, "six-done/specs"), join(root, "specs/trips"), { recursive: true });
+    const line = run(JSON.stringify({ model: { display_name: "Opus" }, workspace: { project_dir: root }, transcript_path: transcript })).out;
+    expect(line).toBe("01-trip-view  [██████░░░░░░░░░░] 6/17 · 65% left · 48.2k tok · Opus\n");
+    rmSync(root, { recursive: true, force: true });
+  });
+
   test("the checks are counted from the specification, not hardcoded", () => {
     const spec = readFileSync(join(fixtures, "six-done/specs/01-trip-view-specification.md"), "utf8");
     const checks = parseChecks(spec);
@@ -218,6 +226,7 @@ describe("the epic belongs to the session", () => {
     ["feature N in a prompt", jsonl(user([{ type: "text", text: "continue with feature 3" }])), 3],
     ["/spec N", jsonl(user("<command-message>spec</command-message>\n<command-name>/spec</command-name>\n<command-args>4</command-args>")), 4],
     ["a spec file in a tool call", jsonl(toolUse({ file_path: "/p/specs/05-export-progress.md" })), 5],
+    ["a spec file in a category folder", jsonl(toolUse({ file_path: "/p/specs/expenses/05-export-specification.md" })), 5],
     ["the last reference wins", jsonl(user("Build epic 1"), toolUse({ command: "cat specs/02-export-specification.md" })), 2],
     ["tool results do not count", jsonl(user("Build epic 1"), toolResult("02-export-specification.md specs/02-export-progress.md")), 1],
     ["injected context does not count", jsonl(user("Build epic 1"), user("epic 2", { isMeta: true })), 1],

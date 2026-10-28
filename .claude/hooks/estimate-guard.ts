@@ -10,7 +10,8 @@ const projectDir = process.env.CLAUDE_PROJECT_DIR ?? input.cwd;
 const specsDir = process.env.SPECS_DIR ?? join(projectDir, "specs");
 const specs: Specs = {};
 if (existsSync(specsDir)) {
-  for (const file of readdirSync(specsDir)) {
+  // Category folders included: specs/translations/06-translations-specification.md.
+  for (const file of readdirSync(specsDir, { recursive: true }) as string[]) {
     if (SPEC_FILE.test(`specs/${file}`)) specs[`specs/${file}`] = readFileSync(join(specsDir, file), "utf8");
   }
 }

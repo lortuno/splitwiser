@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Creating trips, linking members by email, display names (specs/03-create-a-trip-specification.md).
+// Creating trips, linking members by email, display names (specs/trips/03-create-a-trip-specification.md).
 
 /** A valid POST /trips body; $people as [name, email|null] pairs. */
 function tripInput(array $people = [['Ben', 'ben@example.com'], ['Grandma', null]], string $name = 'Summer in Sicily'): array

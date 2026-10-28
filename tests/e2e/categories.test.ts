@@ -1,4 +1,4 @@
-// Acceptance checks for epic 5 (specs/05-expense-categories-specification.md) in Chromium at 390x844.
+// Acceptance checks for epic 5 (specs/expenses/05-expense-categories-specification.md) in Chromium at 390x844.
 // The checks run in order on one fresh seed: checks 5–10 build on each other (Madrid gets "Dinner and wine", Tapas
 // becomes Drinks, then Madrid is marked as paid).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";

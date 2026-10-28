@@ -1,4 +1,4 @@
-// Acceptance checks for epic 7 (specs/07-admin-account-specification.md) in Chromium at 390x844.
+// Acceptance checks for epic 7 (specs/accounts/07-admin-account-specification.md) in Chromium at 390x844.
 // The checks run in order on one fresh seed: the admin creates trip 9 with Ana (check 4), which check 5 uses, and is
 // renamed and switched to Spanish in check 6.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";

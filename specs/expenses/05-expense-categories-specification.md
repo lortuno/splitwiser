@@ -1,7 +1,7 @@
 # Epic 5: Expense categories and icons — specification
 
 Source: new feature (not in `specs/roadmap.md`; it builds on epic 4, "Edit expenses and mark a trip as paid").
-Brainstorming: `specs/05-expense-categories-brainstorming.md` (rounds 1–3; every recommendation was kept).
+Brainstorming: `specs/expenses/05-expense-categories-brainstorming.md` (rounds 1–3; every recommendation was kept).
 Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
 ## Estimate

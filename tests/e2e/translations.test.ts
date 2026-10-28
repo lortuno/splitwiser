@@ -1,4 +1,4 @@
-// Acceptance checks for epic 6 (specs/06-translations-specification.md) in Chromium at 390x844.
+// Acceptance checks for epic 6 (specs/translations/06-translations-specification.md) in Chromium at 390x844.
 // The checks run in order on one fresh seed: Ana's account goes French (check 3), Spanish (check 8) and French again
 // (check 10); Hugo's goes French in check 15, which check 17 relies on. A "fresh browser" is a new page with nothing
 // stored (harness `open`).

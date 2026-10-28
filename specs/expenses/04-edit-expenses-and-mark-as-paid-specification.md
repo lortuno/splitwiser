@@ -1,6 +1,6 @@
 # Epic 4: Edit expenses and mark a trip as paid — specification
 
-Source: `specs/roadmap.md`, epic 4. Brainstorming: `specs/04-edit-expenses-and-mark-as-paid-brainstorming.md` (rounds
+Source: `specs/roadmap.md`, epic 4. Brainstorming: `specs/expenses/04-edit-expenses-and-mark-as-paid-brainstorming.md` (rounds
 1–3; the answers to rounds 1 and 2 were given in the chat and are recorded at the top of rounds 2 and 3).
 Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 

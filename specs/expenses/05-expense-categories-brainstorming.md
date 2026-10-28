@@ -189,7 +189,7 @@ Data, API, edge cases and the test data they need.
 ## Decisions made while writing the specification
 
 Round 3 answers: every recommendation was kept. These details were settled in
-`specs/05-expense-categories-specification.md` and can be challenged there:
+`specs/expenses/05-expense-categories-specification.md` and can be challenged there:
 
 - **"airport" is in no keyword list.** Round 1 Q6 used "airport → Flights" as an example, but with "first matching
   word wins" the seed expense "Airport taxi to Alfama" would then show ✈️. An airport is a place, not a category, so

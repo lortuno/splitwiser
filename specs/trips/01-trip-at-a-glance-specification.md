@@ -1,6 +1,6 @@
 # Epic 1: Trip at a glance — specification
 
-Source: `specs/roadmap.md` (epic 1) and the decisions in `specs/01-trip-at-a-glance-brainstorming.md`.
+Source: `specs/roadmap.md` (epic 1) and the decisions in `specs/trips/01-trip-at-a-glance-brainstorming.md`.
 Boundaries: `specs/guidelines/architecture.md` and `specs/guidelines/ui.md` apply unchanged.
 
 ## Estimate

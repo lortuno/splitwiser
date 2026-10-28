@@ -1,6 +1,6 @@
 # Epic 6: Translations (English, Spanish, French) — specification
 
-Source: new feature (not in `specs/roadmap.md`). Brainstorming: `specs/06-translations-brainstorming.md` (rounds 1–3;
+Source: new feature (not in `specs/roadmap.md`). Brainstorming: `specs/translations/06-translations-brainstorming.md` (rounds 1–3;
 every recommendation was kept). Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
 ## Estimate

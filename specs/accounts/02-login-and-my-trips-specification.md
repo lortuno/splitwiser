@@ -1,6 +1,6 @@
 # Epic 2: Login and my trips — specification
 
-Source: `specs/roadmap.md`, epic 2. Brainstorming: `specs/02-login-and-my-trips-brainstorming.md` (rounds 1–3).
+Source: `specs/roadmap.md`, epic 2. Brainstorming: `specs/accounts/02-login-and-my-trips-brainstorming.md` (rounds 1–3).
 Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
 ## Estimate

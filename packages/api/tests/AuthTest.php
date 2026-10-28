@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Database\Seeder;
 
-// Sign-up, login, sessions, membership and the recorder (specs/02-login-and-my-trips-specification.md).
+// Sign-up, login, sessions, membership and the recorder (specs/accounts/02-login-and-my-trips-specification.md).
 
 const TRIP_ENDPOINTS = ['/trips', '/trips/1', '/trips/1/expenses', '/trips/1/summary', '/me'];
 

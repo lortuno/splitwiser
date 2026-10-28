@@ -1,4 +1,4 @@
-// Acceptance checks for epic 2 (specs/02-login-and-my-trips-specification.md) in Chromium at 390x844.
+// Acceptance checks for epic 2 (specs/accounts/02-login-and-my-trips-specification.md) in Chromium at 390x844.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Page } from "playwright";
 
@@ -188,7 +188,7 @@ describe("epic 2: login and my trips (390x844)", () => {
     await password.fill("long-enough-1");
     await create.click();
     await visible(page, "Logged in as Zoe");
-    // Text changed in epic 3 (specs/03-create-a-trip-specification.md, check 11).
+    // Text changed in epic 3 (specs/trips/03-create-a-trip-specification.md, check 11).
     const empty = 'You are not on any trip yet. Start one with "+ New trip", or ask a friend to add you with your email.';
     await visible(page, empty);
     await shot(page, "e2-11-sign-up-empty-list");

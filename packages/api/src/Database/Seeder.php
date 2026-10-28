@@ -99,8 +99,8 @@ final readonly class Seeder
     }
 
     /**
-     * Edge-case trips for the acceptance checks in specs/01-trip-at-a-glance-specification.md (trips 2–6) and
-     * specs/02-login-and-my-trips-specification.md (trip 7) and specs/03-create-a-trip-specification.md (trip 8),
+     * Edge-case trips for the acceptance checks in specs/trips/01-trip-at-a-glance-specification.md (trips 2–6) and
+     * specs/accounts/02-login-and-my-trips-specification.md (trip 7) and specs/trips/03-create-a-trip-specification.md (trip 8),
      * created after the demo trip so it keeps id 1.
      * @return list<int> trip ids in fixtures() order
      */

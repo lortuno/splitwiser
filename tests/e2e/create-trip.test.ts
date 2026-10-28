@@ -1,4 +1,4 @@
-// Acceptance checks for epic 3 (specs/03-create-a-trip-specification.md) in Chromium at 390x844.
+// Acceptance checks for epic 3 (specs/trips/03-create-a-trip-specification.md) in Chromium at 390x844.
 // The checks run in order on one fresh seed: checks 2–4 create trip 9, which checks 5 and 6 use; check 12 renames Ana.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Page } from "playwright";

@@ -1,7 +1,7 @@
 # Epic 7: Admin account in the seed — specification
 
 Source: new feature (not in `specs/roadmap.md`; closest to epic 2, "Login and my trips"). Brainstorming:
-`specs/07-admin-account-brainstorming.md` (rounds 1–3). Boundaries: `specs/guidelines/architecture.md`,
+`specs/accounts/07-admin-account-brainstorming.md` (rounds 1–3). Boundaries: `specs/guidelines/architecture.md`,
 `specs/guidelines/ui.md`.
 
 ## Estimate

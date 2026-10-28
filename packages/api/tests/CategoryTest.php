@@ -6,7 +6,7 @@ use App\Database\Connection;
 use App\Database\Schema;
 use App\Service\CategoryGuesser;
 
-// Expense categories (specs/05-expense-categories-specification.md). The fixture list pins every guess: add an entry
+// Expense categories (specs/expenses/05-expense-categories-specification.md). The fixture list pins every guess: add an entry
 // whenever a wrong guess is reported, then fix CategoryKeywords until the list passes again.
 
 /** [expense name, expected category] — "other" means no word matched. */
