@@ -5,13 +5,18 @@ every recommendation was kept). Boundaries: `specs/guidelines/architecture.md`, 
 
 ## Goal
 
-Every text the app writes can be shown in English, Spanish or French. The app starts in English. A person switches
-the language on Login, Sign up or the new "Settings" screen, and the whole app changes at once. The choice is kept on
-the account, so it follows the person to every device, and on the web also on the device, so Login already appears in
-that language. The translations live in one TypeScript file per language inside the project, checked for missing keys
-by the type check and the tests. API errors are worded by the app from their `code`, so the API stays English-only.
-Amounts keep one format ("1.234,56 €") in all languages; month names are translated. No new package, service or
-dependency.
+Every text the app writes can be shown in English, Spanish or French. A new account starts in English. A person
+switches the language on Login, Sign up or the new "Settings" screen, and the whole app changes at once. **Every switch
+is recorded in the database** (`users.language`) and the account's language is the source of truth: each time the app
+starts with a session, it starts in the language stored for that account. On the web the last language is also kept
+on the device, so Login already appears in it.
+
+The translations live in one TypeScript file per language inside the project and are kept **small and maintainable**:
+one key per distinct text, never two keys with the same text; anything that varies (names, amounts, dates, counts,
+limits) is a `{placeholder}` in a single key rather than a separate key per variant; no unused keys. The type check and
+the tests enforce these rules. API errors are worded by the app from their `code` and `params`, so the API stays
+English-only. Amounts keep one format ("1.234,56 €") in all languages; month names are translated. No new package,
+service or dependency.
 
 ## Screens
 
@@ -52,9 +57,10 @@ with `aria-checked`). The parts always read "English", "Español", "Français", 
 - **LanguagePicker** under the form (on Sign up under the password field): tapping a language switches every text on
   the screen at once, without a reload, and keeps the choice on the device (web). Field values and errors already on
   screen stay; their texts switch language.
-- **Log in / Create account:** as today. A language picked on this screen during this visit is sent to the account
-  right after login (`PATCH /me { language }`) or with the sign-up (`POST /auth/signup { …, language }`). Without such
-  a pick, the account's language applies after login and is copied to the device.
+- **Log in / Create account:** as today. Before login there is no account to record the language on, so a language
+  picked on this screen during this visit is recorded in the database right after login (`PATCH /me { language }`)
+  or with the sign-up (`POST /auth/signup { …, language }`). Without such a pick, the account's stored language applies
+  after login and is copied to the device.
 - Loading and error states: as today, translated ("Could not reach the API at {url}.", "Email or password is wrong.").
 
 ### My trips header (`MyTripsScreen`, changed)
@@ -94,9 +100,10 @@ with `aria-checked`). The parts always read "English", "Español", "Français", 
 
 - **Name and Save:** exactly as "Your name" today (`PATCH /me { display_name }`, "Saving…", field errors, back to My
   trips on success).
-- **Language:** tapping a language switches the app at once and saves it right away with `PATCH /me { language }`,
-  without "Save". When that request fails, the app stays in the new language for this visit and shows "Could not reach
-  the API at {url}." (owesSoft card) under the control; the account keeps its old language.
+- **Language:** tapping a language switches the app at once and records it right away with `PATCH /me { language }`,
+  without "Save". While the request runs the control is disabled. When it fails, the switch is undone (the app and the
+  control go back to the stored language) and "Could not reach the API at {url}." (owesSoft card) appears under the
+  control, so the app never shows a language the database does not have. Tapping again retries.
 - **‹ My trips:** back without saving the name.
 
 ### Text that must fit at 390 px
@@ -115,33 +122,50 @@ shorter. The French and Spanish texts the checks rely on are fixed below; the bu
 | `trips.settings` | Settings | Ajustes | Paramètres |
 | `trips.logOut` | Log out | Cerrar sesión | Déconnexion |
 | `trip.back` | ‹ My trips | ‹ Mis viajes | ‹ Mes voyages |
-| `trip.markPaid` | Mark as paid | Marcar pagado | Marquer payé |
+| `common.markPaid` | Mark as paid | Marcar pagado | Marquer payé |
+| `common.cancel` / `common.save` / `common.saving` | Cancel / Save / Saving… | Cancelar / Guardar / Guardando… | Annuler / Enregistrer / Enregistrement… |
 | `trip.totalSpend` | Total trip spend | Gasto total del viaje | Total des dépenses |
 | `trip.expenseCount` (0 / 1 / 20) | 0 expenses / 1 expense / 20 expenses | 0 gastos / 1 gasto / 20 gastos | 0 dépense / 1 dépense / 20 dépenses |
 | `trip.peopleCount` (4) | 4 people | 4 personas | 4 personnes |
 | `balances.transfers` | Who owes whom | Quién debe a quién | Qui doit à qui |
 | `balances.pays` | {from} pays {to} | {from} paga a {to} | {from} paie {to} |
-| `balances.title` | Balances | Saldos | Soldes |
-| `tabs.trip` / `tabs.balances` / `tabs.add` | Trip / Balances / + Add expense | Viaje / Saldos / + Gasto | Voyage / Soldes / + Dépense |
+| `common.balances` (tab and heading) | Balances | Saldos | Soldes |
+| `tabs.trip` / `tabs.add` | Trip / + Add expense | Viaje / + Gasto | Voyage / + Dépense |
 | `add.title` / `edit.title` | Add expense / Edit expense | Nuevo gasto / Editar gasto | Nouvelle dépense / Modifier la dépense |
 | `add.save` / `edit.save` | Save expense / Save changes | Guardar gasto / Guardar cambios | Enregistrer / Enregistrer les modifications |
 | `add.fixErrors` | Please fix the fields marked in red. | Corrige los campos marcados en rojo. | Corrigez les champs en rouge. |
-| `trip.paid` / `trip.paidBy` | ✓ Paid / Marked as paid by {name} on {date}. | ✓ Pagado / Marcado como pagado por {name} el {date}. | ✓ Payé / Marqué comme payé par {name} le {date}. |
+| `common.paid` / `trip.paidBy` | ✓ Paid / Marked as paid by {name} on {date}. | ✓ Pagado / Marcado como pagado por {name} el {date}. | ✓ Payé / Marqué comme payé par {name} le {date}. |
 | `markPaid.title` | Mark this trip as paid? | ¿Marcar este viaje como pagado? | Marquer ce voyage comme payé ? |
-| `settings.title` / `settings.language` / `settings.save` | Settings / Language / Save | Ajustes / Idioma / Guardar | Paramètres / Langue / Enregistrer |
-| `app.loadFailed` | Could not reach the API at {url}. | No se pudo conectar con la API en {url}. | Impossible de joindre l’API à {url}. |
+| `settings.title` / `settings.language` | Settings / Language | Ajustes / Idioma | Paramètres / Langue |
+| `common.loadFailed` | Could not reach the API at {url}. | No se pudo conectar con la API en {url}. | Impossible de joindre l’API à {url}. |
 | `month.6` / `month.10` | Jun / Oct | jun / oct | juin / oct. |
 | `category.*` | Food, Groceries, Drinks, Coffee, Fuel, Transport, Flights, Lodging, Activities, Shopping, Other | Comida, Supermercado, Bebidas, Café, Gasolina, Transporte, Vuelos, Alojamiento, Actividades, Compras, Otros | Repas, Courses, Boissons, Café, Carburant, Transport, Vols, Logement, Activités, Shopping, Autre |
 
-Error texts the checks rely on (see "Error texts" in Data):
+Error texts: the complete list, one key per error, with dynamic values as placeholders (see "Error texts" in Data).
+The English wording of some errors becomes the shared one; "Was" lists the texts each key replaces.
 
-| Error | English | Español | Français |
-|---|---|---|---|
-| expense `name` `required` | Enter a name for the expense. | Escribe un nombre para el gasto. | Saisissez le nom de la dépense. |
-| expense `amount_cents` `invalid_amount` | Enter an amount greater than 0. | Escribe un importe mayor que 0. | Saisissez un montant supérieur à 0. |
-| expense `paid_by` `required` | Choose who paid. | Elige quién pagó. | Choisissez qui a payé. |
-| expense `paid_by` `sum_mismatch` | Paid amounts add up to {paid} but the expense is {amount}. | Los importes pagados suman {paid} pero el gasto es de {amount}. | Les montants payés font {paid} mais la dépense est de {amount}. |
-| sign-up `email` `taken` | This email already has an account. | Este correo ya tiene una cuenta. | Cet e-mail a déjà un compte. |
+| Key | English | Español | Français | Was |
+|---|---|---|---|---|
+| `error.required` | Fill in this field. | Rellena este campo. | Remplissez ce champ. | Enter a name for the expense. / … for the trip. / Enter a name. / Enter your name. / Enter your email. |
+| `error.choosePerson` | Choose at least one person. | Elige al menos una persona. | Choisissez au moins une personne. | Choose who paid. / Choose who shares this expense. / Choose a person. |
+| `error.tooLong` | Use at most {max} characters. | Usa como máximo {max} caracteres. | {max} caractères maximum. | 4 texts (120, 80, 60, 200) |
+| `error.tooShort` | Use at least {min} characters. | Usa al menos {min} caracteres. | {min} caractères minimum. | Use at least 8 characters. |
+| `error.invalidDate` | Enter a date as YYYY-MM-DD. | Escribe una fecha como AAAA-MM-DD. | Saisissez une date au format AAAA-MM-JJ. | 3 identical texts |
+| `error.beforeStart` | The end date is before the start. | La fecha de fin es anterior al inicio. | La date de fin précède le début. | — |
+| `error.invalidAmount` | Enter an amount greater than 0. | Escribe un importe mayor que 0. | Saisissez un montant supérieur à 0. | 3 identical texts |
+| `error.tooLarge` | The amount is too large. | El importe es demasiado alto. | Le montant est trop élevé. | — |
+| `error.invalidEmail` | Enter an email like {example}. | Escribe un correo como {example}. | Saisissez un e-mail comme {example}. | 2 identical texts |
+| `error.taken` | This email already has an account. | Este correo ya tiene una cuenta. | Cet e-mail a déjà un compte. | — |
+| `error.alreadyOnTrip` | This is already on the trip. | Ya está en el viaje. | Déjà dans ce voyage. | This name is … / This email is already on the trip. |
+| `error.tooFew` | Add at least one more person. | Añade al menos una persona más. | Ajoutez au moins une autre personne. | — |
+| `error.tooMany` | A trip can have at most {max} people. | Un viaje puede tener como máximo {max} personas. | Un voyage peut compter {max} personnes au maximum. | — |
+| `error.sumMismatch` | Amounts add up to {sum} but the expense is {amount}. | Los importes suman {sum} pero el gasto es de {amount}. | Les montants font {sum} mais la dépense est de {amount}. | Paid amounts … / Split amounts … |
+| `error.percentMismatch` | Percentages add up to {sum} instead of {total}. | Los porcentajes suman {sum} en lugar de {total}. | Les pourcentages font {sum} au lieu de {total}. | — |
+| `error.invalid` | Check this field. | Revisa este campo. | Vérifiez ce champ. | codes the screens cannot cause (`not_a_member`, expense `duplicate`, `invalid_type`, `invalid_category`, `invalid_language`) |
+
+Errors that already have an app text keep it, with no new key: `invalid_credentials` → `auth.wrongCredentials`,
+`trip_paid` → `add.tripPaid`, split `invalid_value` → `error.invalidAmount` / `add.invalidPercent` /
+`add.invalidShares` (by split type). `already_paid` and `already_open` show no text (the trip view reloads).
 
 French uses a narrow no-break space before "?" and ":" where typography requires it ("compte ? S’inscrire").
 
@@ -165,22 +189,48 @@ it and existing accounts become English. The demo accounts stay English (no seed
   dic).
 - **Money:** `src/money/format.ts` is unchanged in every language.
 - The web page's `<html lang>` follows the language (`en`, `es`, `fr`).
-- **Renamed keys:** the "Your name" keys become `settings.*` and `trips.yourName` becomes `trips.settings`.
+
+**Translation rules** (a new "Translations" section in `specs/guidelines/ui.md`, each rule with its check in
+`tests/unit/i18n`). The goal is the fewest keys that still read naturally in every language:
+
+1. **One key per distinct text.** No two keys in `en.ts` have the same English value. Texts used on several screens
+   live under `common.*` (`common.cancel`, `common.save`, `common.saving`, `common.markPaid`, `common.paid`,
+   `common.balances`, `common.loadFailed`, `common.name`). This merges today's duplicates: `add.cancel` +
+   `markPaid.cancel`, `add.saving` + `yourName.saving`, `trip.markPaid` + `markPaid.confirm`, `trip.paid` +
+   `trips.paid`, `tabs.balances` + `balances.title`, `newTrip.personName` + `yourName.name`, and `auth.name` +
+   `trips.yourName` + `yourName.title` (the last two disappear with "Settings"). Check: a test fails on duplicate
+   English values; an exception needs an entry in a short allow-list with a reason (the list starts empty).
+2. **Dynamic values are placeholders in one key.** Names, amounts, dates, counts and limits are `{placeholders}`
+   (`"Use at most {max} characters."`), never one key per value and never a sentence glued from several keys. Counts use
+   `tCount` with the `.one` variant only. Check: the placeholder test below; a grep finds no `t(…) + t(…)` or template
+   strings joining two `t()` calls.
+3. **No unused keys.** Every key in `en.ts` is used in `packages/app/src`. Keys built at run time are declared once by
+   prefix (`category.*`, `month.*`, `error.*` codes, `split.*`, `*.one`). Check: a test fails on keys no source file
+   uses.
+4. **Same keys, same order, same placeholders.** `es.ts` and `fr.ts` are typed `Record<MessageKey, string>` (a missing
+   or extra key fails `tsc`), list the keys in `en.ts` order, have no empty value, and keep exactly the English
+   `{placeholders}`. Check: unit tests.
+5. **No text outside the translation files.** Screens and components contain no text literals in JSX (numbers, "›",
+   "‹", "✓", "×", "%" and input placeholders like "0,00" are allowed). Check: a grep test over `packages/app/src`.
+6. **Keys are grouped by screen** (`auth.*`, `trips.*`, `trip.*`, `add.*`, `settings.*`, …) plus `common.*` and
+   `error.*`, so a translator sees each screen's texts together.
 
 **Error texts:** the app shows its own text for every API error and never the API's `message`, except as the last
-fallback. The lookup for a field error is `error.{form}.{field}.{code}`, then `error.{code}`, then the API's `message`:
+fallback for a code it does not know. One small mapping (`src/i18n/errors.ts`) turns an error's `code` (and, only
+where needed, its field) into one of the `error.*` keys in the Screens table, filling the placeholders from `params`:
 
-- `{form}` is `expense`, `trip`, `signup` or `name` (the Settings name);
-- `{field}` drops person ids and row numbers: `paid_by.12` → `paid_by.person`, `people.3.email` → `people.email`;
-- the texts cover every code the API sends today (expense: `required`, `too_long`, `invalid_date`, `invalid_amount`,
-  `too_large`, `not_a_member`, `duplicate`, `sum_mismatch`, `invalid_type`, `invalid_value`, `invalid_category`;
-  trip: `required`, `too_long`, `invalid_date`, `before_start`, `too_few`, `too_many`, `duplicate`, `invalid_email`,
-  `duplicate_email`; sign-up and name: `required`, `invalid_email`, `taken`, `too_short`, `too_long`; plus
-  `invalid_credentials`, `trip_paid`, `already_paid`, `already_open`, `invalid_language`).
-- `sum_mismatch` texts take `{paid}` / `{split}` / `{amount}` / `{percent}`, formatted by the app from `params` with
-  `formatCents` and `formatBasisPoints`.
-- A network failure in the expense form shows `app.loadFailed` ("Could not reach the API at {url}.") instead of the raw
-  "TypeError: Failed to fetch".
+- `required` → `error.required`, except on the person-choice fields `paid_by`, `split` and `recorded_by` →
+  `error.choosePerson`;
+- `too_long` → `error.tooLong` with `{max}`; `too_short` → `error.tooShort` with `{min}`; `too_many` →
+  `error.tooMany` with `{max}` (all from `params`);
+- `duplicate` and `duplicate_email` on a trip's people → `error.alreadyOnTrip`;
+- `sum_mismatch` → `error.sumMismatch` with `{sum}` and `{amount}` formatted by `formatCents`, or, for a percentage
+  split, `error.percentMismatch` with `{sum}` and `{total}` formatted by `formatBasisPoints`;
+- `invalid_email` → `error.invalidEmail` with `{example}` = "ana@example.com";
+- every other code as listed in the Screens table.
+
+A network failure in the expense form shows `common.loadFailed` ("Could not reach the API at {url}.") instead of the
+raw "TypeError: Failed to fetch".
 
 **Category keywords (epic 5):** `CategoryKeywords` gains French words and brands, each in one category, at least:
 dîner, déjeuner, phrase "petit dejeuner", repas → `food`; courses, supermarché, Carrefour (exists), Intermarché,
@@ -190,10 +240,18 @@ vol, vols, Air France → `flights` ("air" alone stays in no list); hôtel (exis
 musée, billets, entrée, visite guidée → `activities`; pharmacie, cadeau, cadeaux, vêtements → `shopping`. The guess
 itself does not depend on the app's language.
 
-**Device storage:** web keeps the language under `travel-expenses.language` in `localStorage` (read and written in
-try/catch, like the token). When storage is blocked the app still switches for the visit. iOS and Android keep it in
-memory until login, then use the account's language. A "picked on Login/Sign up this visit" flag decides whether the
-device or the account wins at login.
+**The database is the source of truth.** Every switch made while logged in is written to `users.language` before
+the app shows it as chosen (Settings undoes a switch that could not be saved). At every start with a session, the
+app loads `GET /me` and switches to the account's language before showing "My trips" or a trip. The device copy only
+covers the moments without an account:
+
+- **Web:** the language is kept under `travel-expenses.language` in `localStorage` (read and written in try/catch,
+  like the token). It is used for the loading state at start and for Login and Sign up, and is overwritten with the
+  account's language after every start and login. When storage is blocked, Login starts in English.
+- **iOS and Android:** nothing is kept on the device (no storage dependency, as for the session token), so a cold
+  start opens Login in English; the account's language applies right after login.
+- A language picked on Login or Sign up during this visit is recorded on the account at login (see Screens); without
+  such a pick the stored language wins.
 
 ## API
 
@@ -204,7 +262,7 @@ Errors keep the existing shapes. No money changes.
 | `GET /me`, `POST /auth/login`, `POST /auth/signup` | The user object gets `language` (`en`, `es` or `fr`). |
 | `POST /auth/signup` | Body gains an optional `language`; missing → `en`. |
 | `PATCH /me` | Body `{ display_name?, language? }`. Each is validated when present; a body with neither gives `422 display_name required`, as today. `200` with the user. |
-| `POST` / `PUT /trips/{id}/expenses` (and `?dry_run=1`) | Field errors with code `sum_mismatch` gain `params`: `paid_by` → `{ "paid_cents", "amount_cents" }`; `split` for exact amounts → `{ "split_cents", "amount_cents" }`; `split` for percentages → `{ "basis_points" }`. The `message` stays English. |
+| All endpoints with field errors | Errors whose text has a dynamic value gain `params`, so the app's single key can fill it: `sum_mismatch` on `paid_by` and on an exact `split` → `{ "sum_cents", "amount_cents" }`; `sum_mismatch` on a percentage `split` → `{ "sum_basis_points", "total_basis_points" }`; `too_long` → `{ "max" }`; `too_short` → `{ "min" }`; `too_many` → `{ "max" }`. Every other error has no `params`. The `message` stays English. |
 
 New error: `422` on the field `language`, code `invalid_language`, message "Choose English, Spanish or French.", for
 any value that is not `en`, `es` or `fr` (on `PATCH /me` and `POST /auth/signup`).
@@ -227,19 +285,24 @@ The checks switch languages through the app. The figures they use are the existi
 - **PHP (`packages/api/tests`, run through `tests/functional`):** `users.language` is added to an existing database and
   defaults to `en`; `PATCH /me` with `language` alone, with both fields, with an invalid value (`invalid_language`) and
   with neither; sign-up with and without `language`; `language` in `GET /me`, login and sign-up responses; `params` on
-  each `sum_mismatch`; about 25 French entries added to the epic 5 fixture list (every word listed in Data, plus
+  each `sum_mismatch`, `too_long`, `too_short` and `too_many`, and none on other errors; about 25 French entries added to the epic 5 fixture list (every word listed in Data, plus
   "Dîner au restaurant" → food, "Essence Total" → fuel, "Péage autoroute" → transport, "Total" → other), all exact.
   Existing tests still pass, apart from the new fields.
-- **TypeScript (`tests/unit`):** every language has every key and no empty value; every string keeps the English
-  `{placeholders}`; plural rules (fr 0 → singular); `formatDate` per language; the error lookup (form/field/code,
-  `error.{code}`, API message fallback; ids and row numbers dropped); every code listed in Data has a text in every
-  language; the language store (device storage blocked, "picked this visit" flag); `updateMe` and `signUp` send
-  `language`. A check that no `.tsx` file under `packages/app/src` has text literals in JSX outside `i18n` (a new ui.md
-  rule; numbers, "›", "‹", "✓", "×", "%" and placeholders like "0,00" are allowed).
+- **TypeScript (`tests/unit/i18n`):** one test per translation rule in Data: no duplicate English values (allow-list
+  empty), no unused keys, no sentence glued from two `t()` calls, same keys in the same order with no empty value and
+  the same `{placeholders}` in every language, no text literals in JSX outside `i18n`. Also: plural rules (fr 0 →
+  singular); `formatDate` per language; the error mapping (each API code to its key, `choosePerson` on person fields,
+  `params` filled and formatted, unknown code → API `message`); the language store (DB language applied at start,
+  device copy overwritten, storage blocked → English on Login, "picked this visit" flag); Settings undoes a switch that
+  could not be saved; `updateMe` and `signUp` send `language`.
 - **Playwright (`tests/e2e`, 390x844):** a new `translations.test.ts` with one screenshot per 📸 check, on a fresh
   seed, in the order of the checks. The French walk fails when any of these English texts appears: "Save", "Cancel",
   "Paid by", "Recorded by", "Who owes whom", "Balances", "expenses", "people", "Settings", "Log out", "Mark as paid",
-  "Add expense". Epic 4 check 17 and epic 5 check 13 now expect "Could not reach the API at {url}." in the expense form.
+  "Add expense". Earlier suites change only where they pinned a replaced text: epic 4 check 17 and epic 5 check 13 now
+  expect "Could not reach the API at {url}." in the expense form; "Enter a name for the expense.", "Enter a name for
+  the trip." and "Enter your name." become "Fill in this field."; "This name is already on the trip." and "This email
+  is already on the trip." become "This is already on the trip.". Texts whose words stay the same through a
+  placeholder ("Use at most 80 characters.", "Use at least 8 characters.") are unchanged.
 
 ## Acceptance checks
 
@@ -264,9 +327,9 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
    and the page does not scroll sideways.
 5. 📸 **Add form and field errors in French.** Open "Madrid weekend" and tap "+ Dépense". The form reads "Nouvelle
    dépense", "Annuler", the category chips "Repas … Autre", the split options, and "Enregistrer" at the bottom; every
-   split option and chip is at least 48 px high. Tap "Enregistrer" with the form empty: "Saisissez le nom de la
-   dépense.", "Saisissez un montant supérieur à 0." and "Choisissez qui a payé." appear, with "Corrigez les champs en
-   rouge." above the button. Tap "Annuler".
+   split option and chip is at least 48 px high. Tap "Enregistrer" with the form empty: "Remplissez ce champ." (name),
+   "Saisissez un montant supérieur à 0." and "Choisissez au moins une personne." (Payé par) appear, with "Corrigez les
+   champs en rouge." above the button. Tap "Annuler".
 6. **Edit form in French.** Tap "Tapas at Mercado de San Miguel": "Modifier la dépense" opens with "Enregistrer les
    modifications" at the bottom and "Repas" selected. Tap "Annuler": the total is still `78,30 €`.
 7. 📸 **Balances and Mark as paid in French.** Tap "Soldes": Ana shows `-9,15 €` with "Payé `30,00 €`" and "Part
@@ -276,7 +339,9 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
 8. 📸 **Settings in French, switch to Spanish.** Tap "‹ Mes voyages", then "Paramètres". The screen reads "Paramètres",
    the name field with "Ana", "Langue" with "Français" selected, and "Enregistrer". Tap "Español": without "Enregistrer"
    the screen reads "Ajustes", "Idioma" and "Guardar", and in the console `GET /me` answers `language: "es"`. Reload:
-   still Spanish.
+   still Spanish. **The database decides at start:** in the console, with Ana's token, `PATCH /me { "language": "fr" }`,
+   then reload: the app starts in French although this browser last showed Spanish. `PATCH /me { "language": "es" }`
+   and reload: Spanish again.
 9. **The account's language follows Ana.** Fresh browser: Login is in English. Log in as Ana: "Mis viajes" appears
    in Spanish. Log out ("Cerrar sesión"): Login now reads "Iniciar sesión" (the account's language was copied to the
    device).
@@ -285,7 +350,7 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
 11. 📸 **Spanish walk with a sum error.** Fresh browser, tap "Español" and log in as `ben@example.com`. Open "Lisbon &
     Porto": "Gasto total del viaje", `1.915,57 €`, "Ana paga a Ben `63,75 €`". Tap "+ Gasto", enter the name "Cena",
     the amount `50,00`, choose Ana and Ben under "Pagado por" with `20,00` and `25,00`, and tap "Guardar gasto": "Los
-    importes pagados suman `45,00 €` pero el gasto es de `50,00 €`." appears and nothing is saved. Tap "Cancelar", then
+    importes suman `45,00 €` pero el gasto es de `50,00 €`." appears and nothing is saved. Tap "Cancelar", then
     open "Ajustes": "Español" is selected.
 12. **Sign up in French.** Fresh browser, tap "Français", then "Pas encore de compte ? S’inscrire". The sign-up form is
     French. Sign up as "Lena" with `lena@example.com` and `travel-demo-2026`: "Mes voyages" appears in French and `GET
@@ -294,10 +359,10 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
 13. **Plurals.** As `eva@example.com` in French (switch on Login), "Empty weekend" reads "0 dépense" and "3
     personnes"; in Spanish (switch in "Ajustes") it reads "0 gastos" and "3 personas". As `jon@example.com` in French,
     "Three-way taxi" reads "1 dépense".
-14. 📸 **Saving the language fails.** As `hugo@example.com` (English), open "Settings" and block the API. Tap
-    "Français": the screen switches to French and shows "Impossible de joindre l’API à http://localhost:8080." under the
-    control. Unblock the API and reload: the app is English again (the account kept `en`; the device copy is replaced
-    by the account's language at start).
+14. 📸 **Saving the language fails, nothing changes.** As `hugo@example.com` (English), open "Settings" and block the
+    API. Tap "Français": the switch is undone, the screen stays English with "English" selected, and "Could not reach
+    the API at http://localhost:8080." appears under the control. Unblock the API and tap "Français" again: the screen
+    is French and `GET /me` answers `language: "fr"`. Tap "English": English again, `language: "en"`.
 15. **Network error in the expense form.** As Hugo in English on "Even split", open "+ Add expense", enter a name,
     `10,00` and "Paid by" Hugo, block the API and tap "Save expense": "Could not reach the API at
     http://localhost:8080." appears above the button and the input stays. Unblock, switch to French in Settings, and
@@ -306,12 +371,20 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
     `errors.language.code` `invalid_language`; `{ "language": "es" }` answers `200` with `language: "es"` and the name
     unchanged; `{}` answers `422` with `errors.display_name.code` `required`. `POST /auth/signup` with `language: "fr"`
     returns a user with `language: "fr"`, without it `language: "en"`. With Ana's token, `POST /trips/1/expenses` with
-    `amount_cents` 5000 paid `2000` + `2500` answers `422` with `errors.paid_by.params` `{ "paid_cents": 4500,
-    "amount_cents": 5000 }`; a percentage split of 50 % + 40 % answers `errors.split.params` `{ "basis_points": 9000 }`.
+    `amount_cents` 5000 paid `2000` + `2500` answers `422` with `errors.paid_by.params` `{ "sum_cents": 4500,
+    "amount_cents": 5000 }`; a percentage split of 50 % + 40 % answers `errors.split.params` `{ "sum_basis_points": 9000,
+    "total_basis_points": 10000 }`. With Olga's token, `PATCH /me` with a 61-character `display_name` answers
+    `errors.display_name` with code `too_long` and `params` `{ "max": 60 }`.
 17. **French category suggestions.** As Hugo (French since check 15) on "Even split", tap "+ Dépense" and type,
     waiting a second each time: "Dîner au restaurant" selects "Repas"; "Essence Total" selects "Carburant"; "Péage
     autoroute" selects "Transport"; "Total" selects "Autre". Tap "Annuler".
-18. **Earlier epics still hold.** With a fresh seed, the epic 1–5 checks pass in English with the same figures.
+18. **Earlier epics still hold.** With a fresh seed, the epic 1–5 checks pass in English with the same figures; where
+    they pinned an error text that is now shared, they show the shared wording listed in Tests.
+19. **A maintainable translation repository.** The unit tests for the translation rules pass: `en.ts` has no two keys
+    with the same text, no unused key, and no sentence built from two keys; `es.ts` and `fr.ts` have exactly the keys of
+    `en.ts`, in the same order, with the same placeholders; no screen contains a text literal. The error keys are the 16
+    `error.*` keys of the Screens table, and the 7 groups of duplicate texts in today's `en.ts` are merged into
+    `common.*` keys.
 
 ## Out of scope
 

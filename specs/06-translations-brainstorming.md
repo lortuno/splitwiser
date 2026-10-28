@@ -218,3 +218,22 @@ Round 3 answers: every recommendation was kept. These details were settled in
 - **Check accounts:** Olga's token for the `PATCH /me` API check, so Hugo stays French for the category check; Hugo's
   trip "Even split" for the network error, because Madrid is paid and Ana's account is no longer English by then.
 - **`YourNameScreen` is replaced by `SettingsScreen`**, and the `yourName.*` keys become `settings.*`.
+
+## Changes after review (2026-10-28)
+
+The user asked for two changes after reading the specification; the specification was updated to match:
+
+1. **As few translations as possible, in a maintainable repository.** One key per distinct text; a dynamic value is a
+   `{placeholder}` inside a single key, never one key per variant. This replaces the first decision above: error
+   texts are no longer keyed by form, field and code but by code (16 `error.*` keys; a field decides only between
+   `error.required` and `error.choosePerson`), with `params` from the API for every value (`max`, `min`, `sum_cents`,
+   `amount_cents`, `sum_basis_points`, `total_basis_points`). Some English error wording becomes shared ("Fill in this
+   field.", "This is already on the trip."), and earlier checks that pinned the old wording are updated. Today's 7
+   groups of duplicate texts merge into `common.*` keys. Six translation rules, each with a test, go into
+   `specs/guidelines/ui.md`: no duplicate values, placeholders instead of variants or glued sentences, no unused keys,
+   same keys/order/placeholders in every language, no text in screens, keys grouped by screen. Check 19 covers them.
+2. **Every language switch is recorded in the database, and the app starts in that language.** `users.language` is
+   the source of truth: a switch in Settings is undone when it cannot be saved (check 14 changed accordingly), and
+   every start with a session applies the stored language, even when the device last showed another one (check 8
+   extended). Before login (no account yet) a pick on Login or Sign up is recorded at login. iOS and Android keep
+   nothing on the device, so a cold start shows Login in English until the person logs in.
