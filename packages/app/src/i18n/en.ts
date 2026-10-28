@@ -50,6 +50,7 @@ export const en = {
   "settings.title": "Settings",
   "settings.nameIntro": "This is how you appear on all your trips.",
   "settings.language": "Language",
+  "settings.languageCurrent": "Language: {language}",
   "trip.back": "‹ My trips",
   "trip.totalSpend": "Total trip spend",
   "trip.expenseCount.one": "{count} expense",

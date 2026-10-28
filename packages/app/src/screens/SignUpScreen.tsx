@@ -39,9 +39,12 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
-          <Text style={styles.linkLabel}>{t("auth.backToLogin")}</Text>
-        </Pressable>
+        <View style={[styles.topBar, styles.topBarWithBack]}>
+          <Pressable onPress={onBack} accessibilityRole="button" style={styles.back}>
+            <Text style={styles.linkLabel}>{t("auth.backToLogin")}</Text>
+          </Pressable>
+          <LanguagePicker value={getLanguage()} onChange={(language) => setLanguage(language, { picked: true })} />
+        </View>
         <Text style={[styles.title, styles.titleSpaced]}>{t("auth.signUpTitle")}</Text>
         <TextField
           label={t("auth.name")}
@@ -71,9 +74,6 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
           onSubmitEditing={submit}
           error={errorText(errors.password, "password")}
         />
-        <View style={styles.language}>
-          <LanguagePicker value={getLanguage()} onChange={(language) => setLanguage(language, { picked: true })} />
-        </View>
         {unreachable && (
           <Card style={styles.errorCard}>
             <Text style={styles.errorText} accessibilityRole="alert">

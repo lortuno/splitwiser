@@ -33,6 +33,8 @@ export const size = {
   iconBox: 40,
   /** Width of the currency / "%" / "×" suffix after a field. */
   suffixWidth: 16,
+  /** Width of the language dropdown and its menu. */
+  menuWidth: 160,
   /** The app column is centred on screens wider than this (web). */
   pageMaxWidth: 520,
   /** Space for the status bar / notch; no safe-area library is used. */

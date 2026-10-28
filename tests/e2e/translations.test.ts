@@ -19,6 +19,15 @@ const FR_MONTHS = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "a
 const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 const radio = (page: Page, name: string) => page.getByRole("radio", { name, exact: true });
 const text = (page: Page, value: string) => page.getByText(value, { exact: true });
+/** The language dropdown; its name is "Language: English" in whatever language the screen shows. */
+const languageButton = (page: Page) => page.getByRole("button", { name: /: (English|Español|Français)$/ });
+/** Opens the language dropdown and picks a language by its own name. */
+async function pickLanguage(page: Page, name: string) {
+  await languageButton(page).click();
+  await radio(page, name).click();
+}
+/** The language the dropdown shows as chosen. */
+const shownLanguage = async (page: Page) => (await languageButton(page).getAttribute("aria-label"))!.split(/:\s/)[1];
 /** A category chip by its label; person chips never share these names. */
 const chip = (page: Page, label: string) => page.getByRole("checkbox", { name: new RegExp(`\\s${label}$`) });
 
@@ -71,18 +80,27 @@ describe("epic 6: translations (390x844)", () => {
     const page = await open("/");
     await visible(page, "Travel expenses");
     await visible(page, "Log in to see your trips.");
+    const dropdown = (await languageButton(page).boundingBox())!;
+    expect(dropdown.height).toBeGreaterThanOrEqual(48);
+    expect(dropdown.y).toBeLessThan((await text(page, "Travel expenses").boundingBox())!.y);
+    expect(VIEWPORT.width - (dropdown.x + dropdown.width)).toBeLessThanOrEqual(16);
+    expect(await shownLanguage(page)).toBe("English");
+    await languageButton(page).click();
     for (const name of ["English", "Español", "Français"]) {
       expect((await radio(page, name).boundingBox())!.height).toBeGreaterThanOrEqual(48);
     }
     expect(await radio(page, "English").isChecked()).toBe(true);
+    await shot(page, "e6-01-login-language-menu");
+    await page.keyboard.press("Escape");
+    await radio(page, "English").waitFor({ state: "detached" });
     expect(await pageLang(page)).toBe("en");
     await shot(page, "e6-01-login-english");
 
-    await radio(page, "Français").click();
+    await pickLanguage(page, "Français");
     for (const value of ["Frais de voyage", "Connectez-vous pour voir vos voyages.", "Se connecter", `Pas encore de compte${NNBSP}? S’inscrire`]) {
       await visible(page, value);
     }
-    expect(await radio(page, "Français").isChecked()).toBe(true);
+    expect(await shownLanguage(page)).toBe("Français");
     expect(await pageLang(page)).toBe("fr");
     await shot(page, "e6-02-login-french");
     await page.reload();
@@ -92,7 +110,7 @@ describe("epic 6: translations (390x844)", () => {
 
   test("checks 3 and 4: log in in French, the trip view in French", async () => {
     const page = await open("/");
-    await radio(page, "Français").click();
+    await pickLanguage(page, "Français");
     await logIn(page, "ana@example.com", FR);
     await visible(page, "Mes voyages");
     await button(page, "Paramètres").waitFor();
@@ -171,11 +189,11 @@ describe("epic 6: translations (390x844)", () => {
     await visible(page, "Paramètres");
     expect(await page.getByLabel("Nom", { exact: true }).inputValue()).toBe("Ana");
     await visible(page, "Langue");
-    expect(await radio(page, "Français").isChecked()).toBe(true);
+    expect(await shownLanguage(page)).toBe("Français");
     await button(page, "Enregistrer").waitFor();
     await shot(page, "e6-08-settings-french");
 
-    await radio(page, "Español").click();
+    await pickLanguage(page, "Español");
     await visible(page, "Ajustes");
     await visible(page, "Idioma");
     await button(page, "Guardar").waitFor();
@@ -203,7 +221,7 @@ describe("epic 6: translations (390x844)", () => {
     await page.close();
 
     const other = await open("/");
-    await radio(other, "Français").click();
+    await pickLanguage(other, "Français");
     await logIn(other, "ana@example.com", FR);
     await visible(other, "Mes voyages");
     expect(await accountLanguage(other)).toBe("fr");
@@ -212,7 +230,7 @@ describe("epic 6: translations (390x844)", () => {
 
   test("check 11: Spanish walk with a sum error", async () => {
     const page = await open("/");
-    await radio(page, "Español").click();
+    await pickLanguage(page, "Español");
     await logIn(page, "ben@example.com", ES);
     await text(page, "Lisbon & Porto").click();
     await visible(page, "Gasto total del viaje");
@@ -232,13 +250,13 @@ describe("epic 6: translations (390x844)", () => {
     await visible(page, euro("1.915,57"));
     await button(page, "‹ Mis viajes").click();
     await button(page, "Ajustes").click();
-    expect(await radio(page, "Español").isChecked()).toBe(true);
+    expect(await shownLanguage(page)).toBe("Español");
     await page.close();
   }, 30_000);
 
   test("check 12: sign up in French", async () => {
     const page = await open("/");
-    await radio(page, "Français").click();
+    await pickLanguage(page, "Français");
     await button(page, `Pas encore de compte${NNBSP}? S’inscrire`).click();
     await visible(page, "Créer un compte");
     await page.getByLabel("Votre nom", { exact: true }).fill("Lena");
@@ -260,14 +278,14 @@ describe("epic 6: translations (390x844)", () => {
 
   test("check 13: plurals", async () => {
     const eva = await open("/");
-    await radio(eva, "Français").click();
+    await pickLanguage(eva, "Français");
     await logIn(eva, "eva@example.com", FR);
     await text(eva, "Empty weekend").click();
     await visible(eva, "10 janv. 2026 – 12 janv. 2026 · 0 dépense");
     await visible(eva, "3 personnes");
     await button(eva, "‹ Mes voyages").click();
     await button(eva, "Paramètres").click();
-    await radio(eva, "Español").click();
+    await pickLanguage(eva, "Español");
     await button(eva, "‹ Mis viajes").click();
     await text(eva, "Empty weekend").click();
     await visible(eva, "10 ene 2026 – 12 ene 2026 · 0 gastos");
@@ -275,7 +293,7 @@ describe("epic 6: translations (390x844)", () => {
     await eva.close();
 
     const jon = await open("/");
-    await radio(jon, "Français").click();
+    await pickLanguage(jon, "Français");
     await logIn(jon, "jon@example.com", FR);
     await text(jon, "Three-way taxi").click();
     await visible(jon, "5 mars 2026 – 5 mars 2026 · 1 dépense");
@@ -286,16 +304,16 @@ describe("epic 6: translations (390x844)", () => {
     const page = await openAs("hugo@example.com", "/");
     await button(page, "Settings").click();
     await page.route(`${API_URL}/**`, (route) => route.abort());
-    await radio(page, "Français").click();
+    await pickLanguage(page, "Français");
     await visible(page, `Could not reach the API at ${API_URL}.`);
-    expect(await radio(page, "English").isChecked()).toBe(true);
+    expect(await shownLanguage(page)).toBe("English");
     await visible(page, "Settings");
     await shot(page, "e6-14-language-save-failed");
     await page.unroute(`${API_URL}/**`);
-    await radio(page, "Français").click();
+    await pickLanguage(page, "Français");
     await visible(page, "Paramètres");
     expect(await accountLanguage(page)).toBe("fr");
-    await radio(page, "English").click();
+    await pickLanguage(page, "English");
     await visible(page, "Settings");
     expect(await accountLanguage(page)).toBe("en");
     await page.close();
@@ -319,7 +337,7 @@ describe("epic 6: translations (390x844)", () => {
     await button(page, "Cancel").click();
     await button(page, "‹ My trips").click();
     await button(page, "Settings").click();
-    await radio(page, "Français").click();
+    await pickLanguage(page, "Français");
     await visible(page, "Paramètres");
     await button(page, "‹ Mes voyages").click();
     await attempt({ add: "+ Dépense", save: "Enregistrer", cancel: "Annuler", payer: "Hugo" });

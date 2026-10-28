@@ -99,6 +99,7 @@ describe("epic 7: admin account in the seed (390x844)", () => {
     await button(page, "Save").click();
     await visible(page, "Logged in as Laura");
     await button(page, "Settings").click();
+    await page.getByRole("button", { name: "Language: English", exact: true }).click();
     await page.getByRole("radio", { name: "Español", exact: true }).click();
     await visible(page, "Ajustes");
 

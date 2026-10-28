@@ -50,6 +50,7 @@ export const es: Record<MessageKey, string> = {
   "settings.title": "Ajustes",
   "settings.nameIntro": "Así apareces en todos tus viajes.",
   "settings.language": "Idioma",
+  "settings.languageCurrent": "Idioma: {language}",
   "trip.back": "‹ Mis viajes",
   "trip.totalSpend": "Gasto total del viaje",
   "trip.expenseCount.one": "{count} gasto",

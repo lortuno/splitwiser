@@ -42,6 +42,9 @@ export function LoginScreen({
   return (
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.topBar}>
+          <LanguagePicker value={getLanguage()} onChange={(language) => setLanguage(language, { picked: true })} />
+        </View>
         <Text style={styles.title}>{t("auth.appName")}</Text>
         <Text style={styles.intro}>{t("auth.loginIntro")}</Text>
         {sessionEnded && <Text style={styles.info}>{t("auth.sessionEnded")}</Text>}
@@ -65,9 +68,6 @@ export function LoginScreen({
           autoComplete="current-password"
           onSubmitEditing={submit}
         />
-        <View style={styles.language}>
-          <LanguagePicker value={getLanguage()} onChange={(language) => setLanguage(language, { picked: true })} />
-        </View>
         {error !== null && (
           <Card style={styles.errorCard}>
             <Text style={styles.errorText} accessibilityRole="alert">
@@ -96,7 +96,7 @@ export function LoginScreen({
 // Shared by LoginScreen and SignUpScreen: form at the top, primary action at the bottom in thumb reach.
 export const authStyles = StyleSheet.create({
   screen: { flex: 1 },
-  content: { padding: space.lg, paddingTop: space.xxl },
+  content: { padding: space.lg },
   title: { fontSize: typeScale.display, fontWeight: "700", color: colors.ink, marginBottom: space.xs },
   titleSpaced: { marginBottom: space.xl },
   intro: { fontSize: typeScale.body, color: colors.inkMuted, marginBottom: space.xl },
@@ -115,7 +115,9 @@ export const authStyles = StyleSheet.create({
   link: { minHeight: size.tapMin, justifyContent: "center", alignItems: "center" },
   linkLabel: { fontSize: typeScale.body, color: colors.accent, fontWeight: "600" },
   back: { minHeight: size.tapMin, justifyContent: "center", alignSelf: "flex-start" },
-  language: { marginBottom: space.lg },
+  // "‹ Log in" (Sign up only) on the left, the language dropdown on the right.
+  topBar: { flexDirection: "row", justifyContent: "flex-end", alignItems: "center", marginBottom: space.md },
+  topBarWithBack: { justifyContent: "space-between" },
 });
 
 const styles = authStyles;

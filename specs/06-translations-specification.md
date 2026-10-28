@@ -10,6 +10,7 @@ Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-
 | Date | Task | Estimate (h) | Actual (h) |
 |---|---|---|---|
 | 2026-10-28 | Build the epic | 2 | 0.33 |
+| 2026-10-28 | Language dropdown at the top right of Login, Sign up and Settings | 2 | |
 
 ## Goal
 
@@ -32,14 +33,20 @@ All buttons are at least `size.tapMin` (48 px) high. Primary buttons are `size.t
 bottom. Visible layout changes happen only on Login, Sign up, the "My trips" header and "Settings"; every other screen
 shows its text in the chosen language with no layout change.
 
-**Language control** (new component `LanguagePicker`, `src/components`): a three-part segmented control styled like
-"How to split" (each part `size.tapMin` high, selected part `accent` with `onAccent` text, `accessibilityRole="radio"`
-with `aria-checked`). The parts always read "English", "Español", "Français", whatever the current language.
+**Language control** (new component `LanguagePicker`, `src/components`): a dropdown. A bordered button
+(`size.tapMin` high, `size.menuWidth` wide) shows the current language and "▾"; its accessible name is
+`settings.languageCurrent` ("Language: English"). Tapping it opens a menu right under it with the three languages
+(each option `size.tapMin` high, the chosen one `accent` with `onAccent` text, `accessibilityRole="radio"` with
+`aria-checked`). The options always read "English", "Español", "Français", whatever the current language. Picking an
+option, tapping outside the menu or Escape closes it. "Tap a language" in the checks means: open the dropdown and tap
+that language. (Changed 2026-10-28 from a three-part segmented control under the form.)
 
 ### Login and Sign up (`LoginScreen`, `SignUpScreen`, changed)
 
 ```
 ┌──────────────────────────────────────┐
+│                        [English  ▾] │  LanguagePicker, 48 high,
+│                                      │  top right
 │ Travel expenses                      │
 │ Log in to see your trips.            │
 │                                      │
@@ -52,8 +59,6 @@ with `aria-checked`). The parts always read "English", "Español", "Français", 
 │ │                                  │ │
 │ └──────────────────────────────────┘ │
 │                                      │
-│ [English] [Español] [Français]       │  LanguagePicker, 48 high
-│                                      │
 │            (flexible space)          │
 │ ┌──────────────────────────────────┐ │
 │ │              Log in              │ │  primary, 56 high, bottom
@@ -62,7 +67,7 @@ with `aria-checked`). The parts always read "English", "Español", "Français", 
 └──────────────────────────────────────┘
 ```
 
-- **LanguagePicker** under the form (on Sign up under the password field): tapping a language switches every text on
+- **LanguagePicker** at the top right (on Sign up on the same row as "‹ Log in"): picking a language switches every text on
   the screen at once, without a reload, and keeps the choice on the device (web). Field values and errors already on
   screen stay; their texts switch language.
 - **Log in / Create account:** as today. Before login there is no account to record the language on, so a language
@@ -97,7 +102,7 @@ with `aria-checked`). The parts always read "English", "Español", "Français", 
 │ └──────────────────────────────────┘ │
 │                                      │
 │ Language                             │
-│ [English] [Español] [Français]       │  same control as on Login
+│ [English  ▾]                         │  same dropdown as on Login
 │                                      │
 │            (flexible space)          │
 │ ┌──────────────────────────────────┐ │
@@ -145,6 +150,7 @@ shorter. The French and Spanish texts the checks rely on are fixed below; the bu
 | `common.paid` / `trip.paidBy` | ✓ Paid / Marked as paid by {name} on {date}. | ✓ Pagado / Marcado como pagado por {name} el {date}. | ✓ Payé / Marqué comme payé par {name} le {date}. |
 | `markPaid.title` | Mark this trip as paid? | ¿Marcar este viaje como pagado? | Marquer ce voyage comme payé ? |
 | `settings.title` / `settings.language` | Settings / Language | Ajustes / Idioma | Paramètres / Langue |
+| `settings.languageCurrent` (dropdown's accessible name) | Language: {language} | Idioma: {language} | Langue : {language} |
 | `common.loadFailed` | Could not reach the API at {url}. | No se pudo conectar con la API en {url}. | Impossible de joindre l’API à {url}. |
 | `month.6` / `month.10` | Jun / Oct | jun / oct | juin / oct. |
 | `category.*` | Food, Groceries, Drinks, Coffee, Fuel, Transport, Flights, Lodging, Activities, Shopping, Other | Comida, Supermercado, Bebidas, Café, Gasolina, Transporte, Vuelos, Alojamiento, Actividades, Compras, Otros | Repas, Courses, Boissons, Café, Carburant, Transport, Vols, Logement, Activités, Shopping, Autre |
@@ -319,8 +325,9 @@ Viewport 390x844. Freshly seeded database. App at http://localhost:8081. Every d
 other. "{today}" is the local date of the check in the language shown ("28 oct. 2026", "28 oct 2026").
 
 1. 📸 **Login starts in English.** Fresh browser, open the app. Login reads "Travel expenses", "Log in to see your
-   trips." and shows the language control "English | Español | Français" under the password field, each part at least
-   48 px high, with "English" selected. The page's `lang` is `en`.
+   trips." and shows the language dropdown "English ▾" at the top right, above the title, at least 48 px high. Opened,
+   it lists "English", "Español", "Français", each at least 48 px high, with "English" selected; Escape closes it. The
+   page's `lang` is `en`.
 2. 📸 **Switch Login to French.** Tap "Français". Without a reload the screen reads "Frais de voyage", "Connectez-vous
    pour voir vos voyages.", "Se connecter" and "Pas encore de compte ? S’inscrire"; "Français" is selected and the page's
    `lang` is `fr`. Reload the page: it is still French.
