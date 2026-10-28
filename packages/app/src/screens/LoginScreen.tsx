@@ -4,9 +4,10 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { logIn } from "../api/auth";
 import { API_URL, ApiError } from "../api/client";
 import { Card } from "../components/Card";
+import { LanguagePicker } from "../components/LanguagePicker";
 import { TextField } from "../components/TextField";
 import type { User } from "../dto";
-import { t } from "../i18n";
+import { getLanguage, setLanguage, t } from "../i18n";
 import { colors, radius, size, space, typeScale } from "../theme";
 
 export function LoginScreen({
@@ -33,7 +34,7 @@ export function LoginScreen({
     try {
       onLoggedIn(await logIn(email, password));
     } catch (e) {
-      setError(e instanceof ApiError && e.code === "invalid_credentials" ? t("auth.wrongCredentials") : t("app.loadFailed", { url: API_URL }));
+      setError(e instanceof ApiError && e.code === "invalid_credentials" ? t("auth.wrongCredentials") : t("common.loadFailed", { url: API_URL }));
       setBusy(false);
     }
   }
@@ -64,6 +65,9 @@ export function LoginScreen({
           autoComplete="current-password"
           onSubmitEditing={submit}
         />
+        <View style={styles.language}>
+          <LanguagePicker value={getLanguage()} onChange={(language) => setLanguage(language, { picked: true })} />
+        </View>
         {error !== null && (
           <Card style={styles.errorCard}>
             <Text style={styles.errorText} accessibilityRole="alert">
@@ -111,6 +115,7 @@ export const authStyles = StyleSheet.create({
   link: { minHeight: size.tapMin, justifyContent: "center", alignItems: "center" },
   linkLabel: { fontSize: typeScale.body, color: colors.accent, fontWeight: "600" },
   back: { minHeight: size.tapMin, justifyContent: "center", alignSelf: "flex-start" },
+  language: { marginBottom: space.lg },
 });
 
 const styles = authStyles;

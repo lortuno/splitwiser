@@ -40,9 +40,9 @@ describe("epic 3 requests", () => {
   });
 
   test("updateMe sends PATCH /me with display_name", async () => {
-    answer(200, { id: 1, display_name: "Ana María", email: "ana@example.com" });
+    answer(200, { id: 1, display_name: "Ana María", email: "ana@example.com", language: "en" });
 
-    const user = await updateMe("Ana María");
+    const user = await updateMe({ display_name: "Ana María" });
 
     expect(user.display_name).toBe("Ana María");
     expect(calls[0].url.endsWith("/me")).toBe(true);

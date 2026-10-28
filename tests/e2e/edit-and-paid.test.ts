@@ -139,7 +139,7 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     await nameField(page).fill("");
     await amountField(page).fill("0");
     await button(page, "Save changes").click();
-    await visible(page, "Enter a name for the expense.");
+    await visible(page, "Fill in this field.");
     await visible(page, "Enter an amount greater than 0.");
     await button(page, "Cancel").click();
 
@@ -294,7 +294,7 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     await openExpense(page, "Prado Museum tickets");
     await page.route(`${API_URL}/**`, (route) => route.abort());
     await button(page, "Save changes").click();
-    await visible(page, "TypeError: Failed to fetch");
+    await visible(page, `Could not reach the API at ${API_URL}.`);
     expect(await nameField(page).inputValue()).toBe("Prado Museum tickets");
     await page.unroute(`${API_URL}/**`);
     await button(page, "Save changes").click();

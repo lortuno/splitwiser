@@ -4,9 +4,11 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { signUp } from "../api/auth";
 import { API_URL, ApiError } from "../api/client";
 import { Card } from "../components/Card";
+import { LanguagePicker } from "../components/LanguagePicker";
 import { TextField } from "../components/TextField";
 import type { FieldErrors, User } from "../dto";
-import { t } from "../i18n";
+import { getLanguage, setLanguage, t } from "../i18n";
+import { errorText } from "../i18n/errors";
 import { authStyles as styles } from "./LoginScreen";
 
 export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) => void; onBack: () => void }) {
@@ -25,7 +27,7 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
     setBusy(true);
     setUnreachable(false);
     try {
-      onSignedUp(await signUp(name, email, password));
+      onSignedUp(await signUp(name, email, password, getLanguage()));
     } catch (e) {
       const fieldErrors = e instanceof ApiError ? e.fieldErrors : {};
       setErrors(fieldErrors);
@@ -46,7 +48,7 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
           value={name}
           onChangeText={setName}
           autoComplete="name"
-          error={errors.display_name?.message}
+          error={errorText(errors.display_name, "display_name")}
         />
         <TextField
           label={t("auth.email")}
@@ -57,7 +59,7 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
           autoCapitalize="none"
           autoCorrect={false}
           autoComplete="email"
-          error={errors.email?.message}
+          error={errorText(errors.email, "email")}
         />
         <TextField
           label={t("auth.newPassword")}
@@ -67,12 +69,15 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
           autoCapitalize="none"
           autoComplete="new-password"
           onSubmitEditing={submit}
-          error={errors.password?.message}
+          error={errorText(errors.password, "password")}
         />
+        <View style={styles.language}>
+          <LanguagePicker value={getLanguage()} onChange={(language) => setLanguage(language, { picked: true })} />
+        </View>
         {unreachable && (
           <Card style={styles.errorCard}>
             <Text style={styles.errorText} accessibilityRole="alert">
-              {t("app.loadFailed", { url: API_URL })}
+              {t("common.loadFailed", { url: API_URL })}
             </Text>
           </Card>
         )}

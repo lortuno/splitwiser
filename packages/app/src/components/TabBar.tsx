@@ -22,7 +22,7 @@ export function TabBar({ current, canAdd = true, onChange }: { current: Screen; 
   return (
     <View style={styles.bar} accessibilityRole="tablist">
       {tab("trip", t("tabs.trip"))}
-      {tab("balances", t("tabs.balances"))}
+      {tab("balances", t("common.balances"))}
       {canAdd && (
         <Pressable onPress={() => onChange("add")} accessibilityRole="button" style={styles.add}>
           <Text style={styles.addLabel}>{t("tabs.add")}</Text>

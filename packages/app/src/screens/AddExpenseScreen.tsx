@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { ApiError } from "../api/client";
+import { API_URL, ApiError } from "../api/client";
 import { createExpense, previewSplit, suggestCategory, updateExpense } from "../api/expenses";
 import { Card } from "../components/Card";
 import { Chip } from "../components/Chip";
@@ -11,6 +11,7 @@ import type { Category, Expense, FieldErrors, NewExpense, Person, SplitShare, Sp
 import { CATEGORIES, categoryLabel } from "../expenses/categories";
 import { applySuggestion, emptyForm, formFromExpense } from "../expenses/expenseForm";
 import { t } from "../i18n";
+import { errorText } from "../i18n/errors";
 import { CURRENCY_SYMBOL, formatBasisPoints } from "../money/format";
 import { parseEuroToCents, parsePercentToBasisPoints, parseWholeNumber } from "../money/parse";
 import { colors, radius, size, space, typeScale } from "../theme";
@@ -206,7 +207,8 @@ export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSave
   }
 
   // Errors from the last save attempt, then live split errors from the preview.
-  const errorFor = (key: string) => errors[key]?.message ?? (key.startsWith("split") ? previewErrors[key]?.message : undefined);
+  const errorFor = (key: string) =>
+    errorText(errors[key], key, splitType) ?? (key.startsWith("split") ? errorText(previewErrors[key], key, splitType) : undefined);
   const localAmountError = amountText !== "" && amountCents === null ? t("add.invalidAmount") : undefined;
 
   return (
@@ -214,7 +216,7 @@ export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSave
       <View style={styles.header}>
         <Text style={styles.title}>{t(expense ? "edit.title" : "add.title")}</Text>
         <Pressable onPress={() => onCancel(tripPaid)} accessibilityRole="button" style={styles.cancel}>
-          <Text style={styles.cancelLabel}>{t("add.cancel")}</Text>
+          <Text style={styles.cancelLabel}>{t("common.cancel")}</Text>
         </Pressable>
       </View>
 
@@ -362,14 +364,14 @@ export function AddExpenseScreen({ tripId, members, defaultDate, expense, onSave
             <Text style={styles.tripPaidLabel}>{t("add.tripPaid")}</Text>
           </View>
         )}
-        {Object.keys(errors).length > 0 && <Text style={styles.footerError}>{errors.form?.message ?? t("add.fixErrors")}</Text>}
+        {Object.keys(errors).length > 0 && <Text style={styles.footerError}>{errors.form ? t("common.loadFailed", { url: API_URL }) : t("add.fixErrors")}</Text>}
         <Pressable
           onPress={save}
           disabled={saving}
           accessibilityRole="button"
           style={({ pressed }) => [styles.save, (pressed || saving) && styles.savePressed]}
         >
-          <Text style={styles.saveLabel}>{t(saving ? "add.saving" : expense ? "edit.save" : "add.save")}</Text>
+          <Text style={styles.saveLabel}>{t(saving ? "common.saving" : expense ? "edit.save" : "add.save")}</Text>
         </Pressable>
       </View>
     </View>

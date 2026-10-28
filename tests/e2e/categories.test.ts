@@ -235,7 +235,7 @@ describe("epic 5: expense categories and icons (390x844)", () => {
     await page.getByPlaceholder("0,00").first().fill("10,00");
     await page.getByRole("checkbox", { name: "Ben" }).nth(0).click();
     await page.getByText("Save expense", { exact: true }).click();
-    await visible(page, "TypeError: Failed to fetch");
+    await visible(page, `Could not reach the API at ${API_URL}.`);
     expect(await nameField(page).inputValue()).toBe("Taxi");
     await shot(page, "e5-13-api-unreachable");
     await page.unroute(`${API_URL}/**`);

@@ -1,18 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Platform, StatusBar, StyleSheet, View, useWindowDimensions } from "react-native";
 
 import { getMe, logOut } from "./api/auth";
 import { API_URL, ApiError, setUnauthenticatedHandler } from "./api/client";
+import { applyAccountLanguage } from "./api/language";
 import { getToken } from "./api/session";
 import { StateMessage } from "./components/StateMessage";
 import type { CreatedTrip, User } from "./dto";
-import { t } from "./i18n";
+import { getLanguage, subscribeLanguage, t } from "./i18n";
 import { parseTripParam, type TripParam } from "./navigation/tripParam";
 import { LoginScreen } from "./screens/LoginScreen";
 import { MyTripsScreen } from "./screens/MyTripsScreen";
 import { NewTripScreen } from "./screens/NewTripScreen";
 import { SignUpScreen } from "./screens/SignUpScreen";
-import { YourNameScreen } from "./screens/YourNameScreen";
+import { SettingsScreen } from "./screens/SettingsScreen";
 import { TripView } from "./TripView";
 import { colors, size } from "./theme";
 
@@ -23,7 +24,7 @@ type Route =
   | { kind: "signup" }
   | { kind: "trips" }
   | { kind: "newTrip" }
-  | { kind: "yourName" }
+  | { kind: "settings" }
   | { kind: "trip"; tripId: number | null; created?: CreatedTrip };
 
 // Only the web has a URL; iOS and Android always start on "My trips".
@@ -53,6 +54,8 @@ const TOP_INSET = Platform.select({
 });
 
 export default function App() {
+  // Every text switches at once: the whole tree re-renders when the language changes.
+  useSyncExternalStore(subscribeLanguage, getLanguage);
   const [route, setRoute] = useState<Route>({ kind: "starting" });
   const [user, setUser] = useState<User | null>(null);
   // A `?trip=` link opened while logged out: it opens right after login.
@@ -60,8 +63,8 @@ export default function App() {
   // On screens wider than the app column, edge lines frame it as a panel on the paper.
   const framed = useWindowDimensions().width > size.pageMaxWidth;
 
-  const loggedIn = (who: User) => {
-    setUser(who);
+  const loggedIn = async (who: User) => {
+    setUser(await applyAccountLanguage(who));
     setRoute(routeFor(pendingTrip.current));
     pendingTrip.current = { kind: "default" };
   };
@@ -73,7 +76,7 @@ export default function App() {
       return;
     }
     try {
-      loggedIn(await getMe());
+      await loggedIn(await getMe());
     } catch (error) {
       // A 401 already switched to Login through the unauthenticated handler.
       if (!(error instanceof ApiError && error.status === 401)) {
@@ -108,6 +111,8 @@ export default function App() {
     setRoute({ kind: "trips" });
   };
 
+  const changedAccount = (who: User) => setUser(who);
+
   const backToMyTrips = () => {
     showTripInUrl(null);
     setRoute({ kind: "trips" });
@@ -125,7 +130,7 @@ export default function App() {
         {route.kind === "starting" ? (
           <StateMessage message={t("app.loading")} loading />
         ) : route.kind === "unreachable" ? (
-          <StateMessage message={t("app.loadFailed", { url: API_URL })} action={{ label: t("app.retry"), onPress: start }} />
+          <StateMessage message={t("common.loadFailed", { url: API_URL })} action={{ label: t("app.retry"), onPress: start }} />
         ) : route.kind === "login" ? (
           <LoginScreen sessionEnded={route.sessionEnded} onLoggedIn={loggedIn} onSignUp={() => setRoute({ kind: "signup" })} />
         ) : route.kind === "signup" ? (
@@ -135,13 +140,13 @@ export default function App() {
             user={user}
             onOpenTrip={openTrip}
             onNewTrip={() => setRoute({ kind: "newTrip" })}
-            onYourName={() => setRoute({ kind: "yourName" })}
+            onSettings={() => setRoute({ kind: "settings" })}
             onLogOut={doLogOut}
           />
         ) : route.kind === "newTrip" && user !== null ? (
           <NewTripScreen user={user} onCreated={openCreatedTrip} onBack={backToMyTrips} />
-        ) : route.kind === "yourName" && user !== null ? (
-          <YourNameScreen user={user} onSaved={renamed} onBack={backToMyTrips} />
+        ) : route.kind === "settings" && user !== null ? (
+          <SettingsScreen user={user} onSaved={renamed} onUserChanged={changedAccount} onBack={backToMyTrips} />
         ) : route.kind === "trip" ? (
           <TripView key={route.tripId ?? "invalid"} tripId={route.tripId} created={route.created} onBack={backToMyTrips} />
         ) : null}

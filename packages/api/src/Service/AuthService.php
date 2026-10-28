@@ -12,7 +12,8 @@ use PDO;
 
 /**
  * Sign-up, login and logout with opaque bearer tokens: 32 random bytes as hex, stored only as their SHA-256.
- * Sign-up errors are keyed by form field (display_name, email, password), like ExpenseValidator.
+ * Sign-up errors are keyed by form field (display_name, email, password, language), like ExpenseValidator. Errors whose
+ * text has a number carry it in params, so the app can word them in its own language.
  * A sign-up links every trip person invited with the same email (trip_invites) to the new account.
  */
 final readonly class AuthService
@@ -21,6 +22,7 @@ final readonly class AuthService
     public const int MIN_PASSWORD_LENGTH = 8;
     public const int MAX_PASSWORD_LENGTH = 200;
     private const int MAX_EMAIL_LENGTH = 254;
+    public const array LANGUAGES = ['en', 'es', 'fr'];
 
     public function __construct(
         private PDO $pdo,
@@ -51,9 +53,14 @@ final readonly class AuthService
         }
 
         if (mb_strlen($password) < self::MIN_PASSWORD_LENGTH) {
-            $errors['password'] = ['code' => 'too_short', 'message' => 'Use at least 8 characters.'];
+            $errors['password'] = ['code' => 'too_short', 'message' => 'Use at least 8 characters.', 'params' => ['min' => self::MIN_PASSWORD_LENGTH]];
         } elseif (mb_strlen($password) > self::MAX_PASSWORD_LENGTH) {
-            $errors['password'] = ['code' => 'too_long', 'message' => 'Use at most 200 characters.'];
+            $errors['password'] = ['code' => 'too_long', 'message' => 'Use at most 200 characters.', 'params' => ['max' => self::MAX_PASSWORD_LENGTH]];
+        }
+
+        $language = array_key_exists('language', $input) ? $input['language'] : 'en';
+        if (($languageError = self::languageError($language)) !== null) {
+            $errors['language'] = $languageError;
         }
 
         if ($errors !== []) {
@@ -63,7 +70,7 @@ final readonly class AuthService
         $hash = password_hash($password, PASSWORD_DEFAULT);
         $this->pdo->beginTransaction();
         try {
-            $userId = $this->users->create($name, $email, $hash);
+            $userId = $this->users->create($name, $email, $hash, $language);
             $this->users->touchLastLogin($userId);
             $this->people->linkInvites($email, $userId);
             $token = $this->startSession($userId);
@@ -73,19 +80,37 @@ final readonly class AuthService
             throw $e;
         }
 
-        return [$token, new User($userId, $name, $email)];
+        return [$token, new User($userId, $name, $email, $language)];
     }
 
-    /** PATCH /me: { display_name }. */
-    public function updateDisplayName(User $user, array $input): User
+    /**
+     * PATCH /me: { display_name?, language? }. Each field is validated and saved when present; a body with neither is
+     * the "required" error on display_name, as before languages existed.
+     */
+    public function updateMe(User $user, array $input): User
     {
+        $errors = [];
+        $hasName = array_key_exists('display_name', $input);
+        $hasLanguage = array_key_exists('language', $input);
         $name = self::trimmed($input['display_name'] ?? null);
-        if (($error = self::displayNameError($name)) !== null) {
-            throw new ValidationException(['display_name' => $error]);
+        if (($hasName || !$hasLanguage) && ($error = self::displayNameError($name)) !== null) {
+            $errors['display_name'] = $error;
         }
-        $this->users->updateDisplayName($user->id, $name);
+        if ($hasLanguage && ($error = self::languageError($input['language'])) !== null) {
+            $errors['language'] = $error;
+        }
+        if ($errors !== []) {
+            throw new ValidationException($errors);
+        }
 
-        return new User($user->id, $name, $user->email);
+        if ($hasName) {
+            $this->users->updateDisplayName($user->id, $name);
+        }
+        if ($hasLanguage) {
+            $this->users->updateLanguage($user->id, $input['language']);
+        }
+
+        return new User($user->id, $hasName ? $name : $user->displayName, $user->email, $hasLanguage ? $input['language'] : $user->language);
     }
 
     /** @return array{string, User} a new session token and the user */
@@ -135,9 +160,17 @@ final readonly class AuthService
     {
         return match (true) {
             $name === '' => ['code' => 'required', 'message' => 'Enter your name.'],
-            mb_strlen($name) > self::MAX_NAME_LENGTH => ['code' => 'too_long', 'message' => 'Use at most 60 characters.'],
+            mb_strlen($name) > self::MAX_NAME_LENGTH => ['code' => 'too_long', 'message' => 'Use at most 60 characters.', 'params' => ['max' => self::MAX_NAME_LENGTH]],
             default => null,
         };
+    }
+
+    /** @return array{code: string, message: string}|null */
+    private static function languageError(mixed $language): ?array
+    {
+        return in_array($language, self::LANGUAGES, true)
+            ? null
+            : ['code' => 'invalid_language', 'message' => 'Choose English, Spanish or French.'];
     }
 
     private static function trimmed(mixed $value): string

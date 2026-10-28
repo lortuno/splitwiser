@@ -8,6 +8,7 @@ import { FieldError } from "../components/FieldError";
 import { TextField } from "../components/TextField";
 import type { CreatedTrip, FieldErrors, User } from "../dto";
 import { t } from "../i18n";
+import { errorText } from "../i18n/errors";
 import { newTripBody, todayIso } from "../trips/newTripInput";
 import { colors, radius, size, space, typeScale } from "../theme";
 import { authStyles } from "./LoginScreen";
@@ -89,7 +90,7 @@ export function NewTripScreen({
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
-          error={errors.name?.message}
+          error={errorText(errors.name, "name")}
         />
         <View style={styles.dates}>
           <View style={styles.date}>
@@ -100,7 +101,7 @@ export function NewTripScreen({
               placeholder="2026-06-01"
               maxLength={10}
               autoCorrect={false}
-              error={errors.start_date?.message}
+              error={errorText(errors.start_date, "start_date")}
             />
           </View>
           <View style={styles.date}>
@@ -111,25 +112,25 @@ export function NewTripScreen({
               placeholder="2026-06-01"
               maxLength={10}
               autoCorrect={false}
-              error={errors.end_date?.message}
+              error={errorText(errors.end_date, "end_date")}
             />
           </View>
         </View>
 
         <Text style={styles.label}>{t("newTrip.people")}</Text>
-        <FieldError message={errors.people?.message} />
+        <FieldError message={errorText(errors.people, "people")} />
         <Card style={styles.person}>
           <Text style={styles.you}>{t("newTrip.you", { name: user.display_name })}</Text>
         </Card>
         {people.map((person, index) => (
           <Card key={person.key} style={styles.person}>
             <TextField
-              label={t("newTrip.personName")}
+              label={t("common.name")}
               value={person.name}
               onChangeText={(value) => updatePerson(person.key, { name: value })}
               autoCapitalize="words"
               autoFocus={person.key === focusKey}
-              error={errors[`people.${index}.name`]?.message}
+              error={errorText(errors[`people.${index}.name`], `people.${index}.name`)}
             />
             <TextField
               label={t("newTrip.personEmail")}
@@ -139,7 +140,7 @@ export function NewTripScreen({
               inputMode="email"
               autoCapitalize="none"
               autoCorrect={false}
-              error={errors[`people.${index}.email`]?.message}
+              error={errorText(errors[`people.${index}.email`], `people.${index}.email`)}
             />
             <Pressable onPress={() => removePerson(person.key)} accessibilityRole="button" style={styles.remove}>
               <Text style={authStyles.linkLabel}>{t("newTrip.remove")}</Text>
@@ -160,7 +161,7 @@ export function NewTripScreen({
         {(unreachable || hasErrors) && (
           <Card style={[authStyles.errorCard, styles.footerCard]}>
             <Text style={authStyles.errorText} accessibilityRole="alert">
-              {unreachable ? t("app.loadFailed", { url: API_URL }) : t("add.fixErrors")}
+              {unreachable ? t("common.loadFailed", { url: API_URL }) : t("add.fixErrors")}
             </Text>
           </Card>
         )}

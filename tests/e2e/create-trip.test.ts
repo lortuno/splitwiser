@@ -49,13 +49,13 @@ describe("epic 3: create a trip (390x844)", () => {
   test("check 1: My trips has + New trip at the bottom", async () => {
     const page = await openAs("ana@example.com", "/");
     expect(await tripCards(page)).toEqual(["Madrid weekend", "Lisbon & Porto"]);
-    await button(page, "Your name").waitFor();
+    await button(page, "Settings").waitFor();
     await button(page, "Log out").waitFor();
     const newTrip = await button(page, "+ New trip").boundingBox();
     expect(newTrip!.height).toBeGreaterThanOrEqual(56);
     expect(newTrip!.width).toBeGreaterThan(VIEWPORT.width - 40);
     expect(VIEWPORT.height - (newTrip!.y + newTrip!.height)).toBeLessThanOrEqual(16);
-    for (const name of ["Your name", "Log out"]) {
+    for (const name of ["Settings", "Log out"]) {
       expect((await button(page, name).boundingBox())!.height).toBeGreaterThanOrEqual(48);
     }
     await shot(page, "e3-01-my-trips-new-trip");
@@ -164,10 +164,10 @@ describe("epic 3: create a trip (390x844)", () => {
     await field(page, "Name", 2).fill("ben");
     await button(page, "Create trip").click();
 
-    await visible(page, "Enter a name for the trip.");
+    // Since epic 6 errors share one text per code: two duplicate names and one duplicate email.
+    await visible(page, "Fill in this field.");
     await visible(page, "The end date is before the start.");
-    expect(await page.getByText("This name is already on the trip.", { exact: true }).count()).toBe(2);
-    await visible(page, "This email is already on the trip.");
+    expect(await page.getByText("This is already on the trip.", { exact: true }).count()).toBe(3);
     await visible(page, "Enter an email like ana@example.com.");
     await visible(page, "Please fix the fields marked in red.");
     await shot(page, "e3-07-validation-errors");
@@ -255,12 +255,12 @@ describe("epic 3: create a trip (390x844)", () => {
 
   test("check 12: Your name renames Ana on every trip", async () => {
     const page = await openAs("ana@example.com", "/");
-    await button(page, "Your name").click();
+    await button(page, "Settings").click();
     const name = field(page, "Name");
     expect(await name.inputValue()).toBe("Ana");
     await name.fill("");
     await button(page, "Save").click();
-    await visible(page, "Enter your name.");
+    await visible(page, "Fill in this field.");
     await name.fill("Ana María");
     await shot(page, "e3-12-your-name");
     await button(page, "Save").click();
@@ -300,7 +300,7 @@ describe("epic 3: create a trip (390x844)", () => {
     await visible(page, "2 people");
 
     await button(page, "‹ My trips").click();
-    await button(page, "Your name").click();
+    await button(page, "Settings").click();
     await page.route(`${API_URL}/**`, (route) => route.abort());
     await button(page, "Save").click();
     await visible(page, `Could not reach the API at ${API_URL}.`);

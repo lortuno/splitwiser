@@ -1,12 +1,13 @@
 import type { AuthResult, User } from "../dto";
+import type { Language } from "../i18n/language";
 import { request } from "./client";
 import { clearToken, setToken } from "./session";
 
-/** Creates an account and keeps its session token. */
-export async function signUp(displayName: string, email: string, password: string): Promise<User> {
+/** Creates an account in the given app language and keeps its session token. */
+export async function signUp(displayName: string, email: string, password: string, language: Language): Promise<User> {
   const result = await request<AuthResult>("/auth/signup", {
     method: "POST",
-    body: { display_name: displayName, email, password },
+    body: { display_name: displayName, email, password, language },
   });
   setToken(result.token);
   return result.user;
@@ -30,5 +31,6 @@ export async function logOut(): Promise<void> {
 
 export const getMe = () => request<User>("/me");
 
-/** Renames the account; the new name shows on every trip at once. */
-export const updateMe = (displayName: string) => request<User>("/me", { method: "PATCH", body: { display_name: displayName } });
+/** Renames the account (the new name shows on every trip at once) and/or records its app language. */
+export const updateMe = (changes: { display_name?: string; language?: Language }) =>
+  request<User>("/me", { method: "PATCH", body: changes });

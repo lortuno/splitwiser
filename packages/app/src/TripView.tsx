@@ -120,7 +120,7 @@ export function TripView({
       case "notMember":
         return <StateMessage message={t("app.notMember")} action={toMyTrips} />;
       case "unreachable":
-        return <StateMessage message={t("app.loadFailed", { url: API_URL })} action={{ label: t("app.retry"), onPress: load }} />;
+        return <StateMessage message={t("common.loadFailed", { url: API_URL })} action={{ label: t("app.retry"), onPress: load }} />;
       default:
         return <StateMessage message={t("app.loading")} loading />;
     }
@@ -158,7 +158,7 @@ export function TripView({
               accessibilityRole="button"
               style={styles.headerButton}
             >
-              <Text style={styles.headerButtonLabel}>{t(paid ? "trip.reopen" : "trip.markPaid")}</Text>
+              <Text style={styles.headerButtonLabel}>{t(paid ? "trip.reopen" : "common.markPaid")}</Text>
             </Pressable>
           )}
         </View>
@@ -183,7 +183,7 @@ export function TripView({
             trip={data.trip}
             expenses={data.expenses}
             summary={data.summary}
-            notice={reopenFailed && paid ? t("app.loadFailed", { url: API_URL }) : null}
+            notice={reopenFailed && paid ? t("common.loadFailed", { url: API_URL }) : null}
             onShowAllTransfers={() => setScreen("balances")}
             onOpenExpense={(expense) => setOverlay({ kind: "edit", expense })}
           />

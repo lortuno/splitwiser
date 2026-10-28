@@ -10,11 +10,13 @@ final readonly class User implements \JsonSerializable
         public int $id,
         public string $displayName,
         public string $email,
+        /** The app language the person chose: en, es or fr. */
+        public string $language = 'en',
     ) {
     }
 
     public function jsonSerialize(): array
     {
-        return ['id' => $this->id, 'display_name' => $this->displayName, 'email' => $this->email];
+        return ['id' => $this->id, 'display_name' => $this->displayName, 'email' => $this->email, 'language' => $this->language];
     }
 }

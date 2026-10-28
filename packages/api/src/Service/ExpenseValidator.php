@@ -64,7 +64,7 @@ final class ExpenseValidator
         if ($name === '') {
             $this->fail('name', 'required', 'Enter a name for the expense.');
         } elseif (mb_strlen($name) > 120) {
-            $this->fail('name', 'too_long', 'Use at most 120 characters.');
+            $this->fail('name', 'too_long', 'Use at most 120 characters.', ['max' => 120]);
         }
 
         return $name;
@@ -140,7 +140,7 @@ final class ExpenseValidator
                 'Paid amounts add up to %s but the expense is %s.',
                 Money::format(array_sum($paidBy)),
                 Money::format($amount),
-            ));
+            ), ['sum_cents' => array_sum($paidBy), 'amount_cents' => $amount]);
         }
         ksort($paidBy);
 
@@ -184,13 +184,13 @@ final class ExpenseValidator
                 'Split amounts add up to %s but the expense is %s.',
                 Money::format($sum),
                 Money::format($amount),
-            ));
+            ), ['sum_cents' => $sum, 'amount_cents' => $amount]);
         }
         if ($type === SplitType::Percentage && $sum !== self::PERCENT_TOTAL_BASIS_POINTS) {
             $this->fail('split', 'sum_mismatch', sprintf(
                 'Percentages add up to %s %% instead of 100,00 %%.',
                 number_format($sum / 100, 2, ',', '.'),
-            ));
+            ), ['sum_basis_points' => $sum, 'total_basis_points' => self::PERCENT_TOTAL_BASIS_POINTS]);
         }
 
         return [$type, $entries];
@@ -248,8 +248,9 @@ final class ExpenseValidator
         return false;
     }
 
-    private function fail(string $field, string $code, string $message): void
+    /** @param array<string, int> $params the numbers in the message, for the app's own wording */
+    private function fail(string $field, string $code, string $message, array $params = []): void
     {
-        $this->errors[$field] ??= ['code' => $code, 'message' => $message];
+        $this->errors[$field] ??= ['code' => $code, 'message' => $message] + ($params === [] ? [] : ['params' => $params]);
     }
 }

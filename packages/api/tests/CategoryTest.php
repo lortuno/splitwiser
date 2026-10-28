@@ -41,6 +41,15 @@ const CATEGORY_FIXTURES = [
     ['Tren a Sevilla', 'transport'], ['Alquiler de coche', 'transport'], ['Peaje', 'transport'], ['Vuelo a Lisboa', 'flights'],
     ['Alojamiento', 'lodging'], ['Hostal', 'lodging'], ['Entradas museo', 'activities'], ['Excursión', 'activities'],
     ['Farmacia', 'shopping'], ['Regalos', 'shopping'], ['Ropa', 'shopping'],
+    // French
+    ['Dîner au restaurant', 'food'], ['Déjeuner', 'food'], ['Petit-déjeuner', 'food'], ['Repas du soir', 'food'],
+    ['Courses', 'groceries'], ['Supermarché', 'groceries'], ['Intermarché', 'groceries'], ['Leclerc', 'groceries'],
+    ['Bières', 'drinks'], ['Vin rouge', 'drinks'], ['Apéro', 'drinks'], ['Boulangerie', 'coffee'], ['Croissants', 'coffee'],
+    ['Glace', 'coffee'], ['Essence Total', 'fuel'], ['Carburant', 'fuel'], ['Gazole', 'fuel'], ['TotalEnergies', 'fuel'],
+    ['Péage autoroute', 'transport'], ['Navette aéroport', 'transport'], ['Billets SNCF', 'activities'], ['TGV Paris', 'transport'],
+    ['Vol pour Nice', 'flights'], ['Air France', 'flights'], ['Gîte', 'lodging'], ['Logement', 'lodging'],
+    ['Musée du Louvre', 'activities'], ['Entrée', 'activities'], ['Visite guidée', 'activities'], ['Pharmacie', 'shopping'],
+    ['Cadeaux', 'shopping'], ['Vêtements', 'shopping'], ['Total', 'other'], ['Air', 'other'],
     // Typos
     ['Gasolne Repsol', 'fuel'], ['gasolin', 'fuel'], ['Restaruant', 'food'], ['Abendesen', 'food'], ['Dinnner', 'food'],
     ['Breakfst', 'food'], ['Groceires', 'groceries'], ['Cocktials', 'drinks'], ['Supermarkt Lidl', 'groceries'],

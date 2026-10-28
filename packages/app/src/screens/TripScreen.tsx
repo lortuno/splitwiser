@@ -42,7 +42,7 @@ export function TripScreen({
           )}
           {paid && (
             <Card style={styles.paid}>
-              <Text style={styles.paidTitle}>{t("trip.paid")}</Text>
+              <Text style={styles.paidTitle}>{t("common.paid")}</Text>
               <Text style={styles.state}>{t("trip.paidBy", { name: paid.by.name, date: formatLocalDate(paid.at) })}</Text>
             </Card>
           )}

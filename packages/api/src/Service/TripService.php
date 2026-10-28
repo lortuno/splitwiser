@@ -38,7 +38,7 @@ final readonly class TripService
         if ($name === '') {
             $errors['name'] = self::error('required', 'Enter a name for the trip.');
         } elseif (mb_strlen($name) > self::MAX_NAME_LENGTH) {
-            $errors['name'] = self::error('too_long', 'Use at most 80 characters.');
+            $errors['name'] = self::error('too_long', 'Use at most 80 characters.', ['max' => self::MAX_NAME_LENGTH]);
         }
 
         $startDate = self::date($input['start_date'] ?? null);
@@ -56,7 +56,7 @@ final readonly class TripService
         if ($people === []) {
             $errors['people'] = self::error('too_few', 'Add at least one more person.');
         } elseif (count($people) > self::MAX_PEOPLE - 1) {
-            $errors['people'] = self::error('too_many', 'A trip can have at most 20 people.');
+            $errors['people'] = self::error('too_many', 'A trip can have at most 20 people.', ['max' => self::MAX_PEOPLE]);
         }
 
         // The creator's name and email count as taken; names compare without case, emails are normalised.
@@ -70,7 +70,7 @@ final readonly class TripService
             if ($personName === '') {
                 $errors["people.{$i}.name"] = self::error('required', 'Enter a name.');
             } elseif (mb_strlen($personName) > self::MAX_PERSON_NAME_LENGTH) {
-                $errors["people.{$i}.name"] = self::error('too_long', 'Use at most 60 characters.');
+                $errors["people.{$i}.name"] = self::error('too_long', 'Use at most 60 characters.', ['max' => self::MAX_PERSON_NAME_LENGTH]);
             } elseif (isset($takenNames[mb_strtolower($personName)])) {
                 $errors["people.{$i}.name"] = self::error('duplicate', 'This name is already on the trip.');
             }
@@ -129,8 +129,9 @@ final readonly class TripService
     }
 
     /** @return array{code: string, message: string} */
-    private static function error(string $code, string $message): array
+    /** @param array<string, int> $params the numbers in the message, for the app's own wording */
+    private static function error(string $code, string $message, array $params = []): array
     {
-        return ['code' => $code, 'message' => $message];
+        return ['code' => $code, 'message' => $message] + ($params === [] ? [] : ['params' => $params]);
     }
 }

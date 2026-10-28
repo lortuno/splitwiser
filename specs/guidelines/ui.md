@@ -17,5 +17,15 @@ Travel notebook: cool blue-grey paper, one blue accent (kept clear of the green/
 5. Big tap targets. Check: every `Pressable` has `minHeight` of at least `size.tapMin`; the primary action (Save expense, Save changes, Mark as paid, + Add expense) uses `size.tapPrimary` and sits at the bottom of the screen.
 6. Balances never rely on colour alone. Check: net amounts use `formatSignedCents` (always + or −).
 
+## Translations (`packages/app/src/i18n`)
+English (`en.ts`, which defines the keys), Spanish (`es.ts`) and French (`fr.ts`). The goal is the fewest keys that still read naturally in every language. Each rule is checked in `tests/unit/i18n/translations.test.ts`.
+1. One key per distinct text: no two keys in `en.ts` have the same English value; texts used on several screens live under `common.*`. Check: the duplicate-value test (its allow-list starts empty and needs a reason per entry).
+2. Dynamic values (names, amounts, dates, counts, limits) are `{placeholders}` in one key, never one key per value and never a sentence glued from several `t()` calls; counts use `tCount` and its `.one` variant. Check: the glued-sentence test.
+3. No unused keys; keys built at run time are declared once by prefix (`category.*`, `month.*`, `split.*`, `.one`). Check: the unused-key test.
+4. `es.ts` and `fr.ts` have exactly the keys of `en.ts`, in the same order, no empty value and the same `{placeholders}`. Check: `tsc` (`Record<MessageKey, string>`) and the key test.
+5. No text outside the translation files: screens and components have no text literals in JSX (numbers, symbols and input placeholders like "0,00" are fine). API errors are worded from their `code` and `params` in `i18n/errors.ts`. Check: the JSX literal test.
+6. Keys are grouped by screen (`auth.*`, `trips.*`, `trip.*`, `add.*`, `settings.*`, …), plus `common.*` and `error.*`. Check: the grouping test.
+Amounts keep `money/format.ts` in every language; dates use the language's month names. A new text is added to all three files in the same change; Spanish and French drafts are reviewed by a native speaker before release.
+
 ## Components (`packages/app/src/components`)
-`Card`, `Chip`, `FieldError`, `Money`, `StateMessage`, `TabBar`, `TextField`. Screens: `LoginScreen`, `SignUpScreen`, `MyTripsScreen`, `NewTripScreen`, `YourNameScreen`, `TripScreen`, `BalancesScreen`, `AddExpenseScreen` (also edits an expense), `MarkPaidScreen` (the trip's tabs and its overlays live in `TripView.tsx`).
+`Card`, `Chip`, `FieldError`, `LanguagePicker`, `Money`, `StateMessage`, `TabBar`, `TextField`. Screens: `LoginScreen`, `SignUpScreen`, `MyTripsScreen`, `NewTripScreen`, `SettingsScreen`, `TripScreen`, `BalancesScreen`, `AddExpenseScreen` (also edits an expense), `MarkPaidScreen` (the trip's tabs and its overlays live in `TripView.tsx`).

@@ -15,13 +15,13 @@ export function MyTripsScreen({
   user,
   onOpenTrip,
   onNewTrip,
-  onYourName,
+  onSettings,
   onLogOut,
 }: {
   user: User;
   onOpenTrip: (tripId: number) => void;
   onNewTrip: () => void;
-  onYourName: () => void;
+  onSettings: () => void;
   onLogOut: () => void;
 }) {
   const [trips, setTrips] = useState<Trip[] | null>(null);
@@ -48,8 +48,8 @@ export function MyTripsScreen({
           {t("trips.title")}
         </Text>
         <View style={styles.headerActions}>
-          <Pressable onPress={onYourName} accessibilityRole="button" style={styles.headerButton}>
-            <Text style={styles.headerButtonLabel}>{t("trips.yourName")}</Text>
+          <Pressable onPress={onSettings} accessibilityRole="button" style={styles.headerButton}>
+            <Text style={styles.headerButtonLabel}>{t("settings.title")}</Text>
           </Pressable>
           <Pressable onPress={onLogOut} accessibilityRole="button" style={styles.headerButton}>
             <Text style={styles.headerButtonLabel}>{t("trips.logOut")}</Text>
@@ -58,7 +58,7 @@ export function MyTripsScreen({
       </View>
       {trips === null ? (
         failed ? (
-          <StateMessage message={t("app.loadFailed", { url: API_URL })} action={{ label: t("app.retry"), onPress: load }} />
+          <StateMessage message={t("common.loadFailed", { url: API_URL })} action={{ label: t("app.retry"), onPress: load }} />
         ) : (
           <StateMessage message={t("app.loading")} loading />
         )
@@ -100,7 +100,7 @@ function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
         <Text style={styles.name} numberOfLines={2}>
           {trip.name}
         </Text>
-        {trip.paid && <Text style={styles.paid}>{t("trips.paid")}</Text>}
+        {trip.paid && <Text style={styles.paid}>{t("common.paid")}</Text>}
       </View>
       <Text style={styles.dates}>
         {formatDate(trip.start_date)} – {formatDate(trip.end_date)}

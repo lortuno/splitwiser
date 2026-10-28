@@ -25,6 +25,7 @@ final class Schema
         SQL,
         // Accounts. Emails are stored trimmed and lowercased; only a password_hash() is kept.
         // display_name is the only name the app shows for a linked person; last_login_at is never shown.
+        // language is the app language the person chose (en, es or fr); the app starts in it.
         <<<'SQL'
         CREATE TABLE IF NOT EXISTS users (
             id            INTEGER PRIMARY KEY,
@@ -32,7 +33,8 @@ final class Schema
             email         TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            last_login_at TEXT
+            last_login_at TEXT,
+            language      TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'es', 'fr'))
         )
         SQL,
         // One row per login. Only the SHA-256 of the bearer token is stored.
@@ -147,6 +149,8 @@ final class Schema
      */
     private const array ADDED_COLUMNS = [
         // What the expense was for (App\Dto\Category). NULL only until bin/init-db.php guesses it once.
+        // The app language of the account (en, es, fr); existing accounts become English.
+        'users' => ['language' => "TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'es', 'fr'))"],
         'expenses' => ['category' => "TEXT CHECK (category IS NULL OR category IN ('food', 'groceries', 'drinks', 'coffee', 'fuel', 'transport', 'flights', 'lodging', 'activities', 'shopping', 'other'))"],
     ];
 

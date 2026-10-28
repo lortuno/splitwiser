@@ -69,7 +69,7 @@ export function MarkPaidScreen({
       <View style={authStyles.footer}>
         {failed && (
           <Card style={[authStyles.errorCard, styles.error]}>
-            <Text style={authStyles.errorText}>{t("app.loadFailed", { url: API_URL })}</Text>
+            <Text style={authStyles.errorText}>{t("common.loadFailed", { url: API_URL })}</Text>
           </Card>
         )}
         <Pressable
@@ -78,10 +78,10 @@ export function MarkPaidScreen({
           accessibilityRole="button"
           style={({ pressed }) => [authStyles.primary, (pressed || busy) && authStyles.primaryPressed]}
         >
-          <Text style={authStyles.primaryLabel}>{t(busy ? "markPaid.confirming" : "markPaid.confirm")}</Text>
+          <Text style={authStyles.primaryLabel}>{t(busy ? "markPaid.confirming" : "common.markPaid")}</Text>
         </Pressable>
         <Pressable onPress={onCancel} accessibilityRole="button" style={styles.cancel}>
-          <Text style={styles.cancelLabel}>{t("markPaid.cancel")}</Text>
+          <Text style={styles.cancelLabel}>{t("common.cancel")}</Text>
         </Pressable>
       </View>
     </View>

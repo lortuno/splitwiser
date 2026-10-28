@@ -3,6 +3,14 @@
 Source: new feature (not in `specs/roadmap.md`). Brainstorming: `specs/06-translations-brainstorming.md` (rounds 1–3;
 every recommendation was kept). Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
+## Estimate
+
+Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-only.
+
+| Date | Task | Estimate (h) | Actual (h) |
+|---|---|---|---|
+| 2026-10-28 | Build the epic | 2 | 0.33 |
+
 ## Goal
 
 Every text the app writes can be shown in English, Spanish or French. A new account starts in English. A person

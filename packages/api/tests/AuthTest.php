@@ -27,7 +27,7 @@ test('sign-up returns a token and the user, and the token works', function (): v
 
     assertSame(201, $response->status);
     assertSame(64, strlen($response->data['token']));
-    assertSame(['display_name' => 'Zoe', 'email' => 'zoe@example.com'], array_slice($response->data['user']->jsonSerialize(), 1));
+    assertSame(['display_name' => 'Zoe', 'email' => 'zoe@example.com', 'language' => 'en'], array_slice($response->data['user']->jsonSerialize(), 1));
     assertSame('Zoe', get($app, '/me', $response->data['token'])->data->displayName);
     assertSame([], get($app, '/trips', $response->data['token'])->data, 'A new account has no trips.');
 });

@@ -11,7 +11,7 @@ export function BalancesScreen({ summary }: { summary: TripSummary }) {
   const paid = summary.paid !== null;
   return (
     <ScrollView contentContainerStyle={styles.content}>
-      <Text style={styles.heading}>{t("balances.title")}</Text>
+      <Text style={styles.heading}>{t("common.balances")}</Text>
       {summary.balances.map((balance) => (
         <Card key={balance.person_id} style={styles.card}>
           <View style={styles.row}>

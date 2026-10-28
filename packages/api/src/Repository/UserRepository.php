@@ -14,17 +14,17 @@ final readonly class UserRepository
     }
 
     /** $email must already be trimmed and lowercased. */
-    public function create(string $displayName, string $email, string $passwordHash): int
+    public function create(string $displayName, string $email, string $passwordHash, string $language = 'en'): int
     {
-        $this->pdo->prepare('INSERT INTO users (display_name, email, password_hash) VALUES (?, ?, ?)')
-            ->execute([$displayName, $email, $passwordHash]);
+        $this->pdo->prepare('INSERT INTO users (display_name, email, password_hash, language) VALUES (?, ?, ?, ?)')
+            ->execute([$displayName, $email, $passwordHash, $language]);
 
         return (int) $this->pdo->lastInsertId();
     }
 
     public function find(int $userId): ?User
     {
-        $stmt = $this->pdo->prepare('SELECT id, display_name, email FROM users WHERE id = ?');
+        $stmt = $this->pdo->prepare('SELECT id, display_name, email, language FROM users WHERE id = ?');
         $stmt->execute([$userId]);
         $row = $stmt->fetch();
 
@@ -34,7 +34,7 @@ final readonly class UserRepository
     /** @return array{User, string}|null the user and their password hash */
     public function findWithHashByEmail(string $email): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, display_name, email, password_hash FROM users WHERE email = ?');
+        $stmt = $this->pdo->prepare('SELECT id, display_name, email, language, password_hash FROM users WHERE email = ?');
         $stmt->execute([$email]);
         $row = $stmt->fetch();
 
@@ -55,6 +55,11 @@ final readonly class UserRepository
         $this->pdo->prepare('UPDATE users SET display_name = ? WHERE id = ?')->execute([$displayName, $userId]);
     }
 
+    public function updateLanguage(int $userId, string $language): void
+    {
+        $this->pdo->prepare('UPDATE users SET language = ? WHERE id = ?')->execute([$language, $userId]);
+    }
+
     public function touchLastLogin(int $userId): void
     {
         $this->pdo->prepare('UPDATE users SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$userId]);
@@ -62,6 +67,6 @@ final readonly class UserRepository
 
     private static function toUser(array $row): User
     {
-        return new User((int) $row['id'], $row['display_name'], $row['email']);
+        return new User((int) $row['id'], $row['display_name'], $row['email'], $row['language']);
     }
 }

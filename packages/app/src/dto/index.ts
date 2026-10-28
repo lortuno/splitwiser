@@ -23,9 +23,11 @@ export interface Person {
 
 export interface User {
   id: number;
-  /** The only name the app shows for an account; editable on "Your name". */
+  /** The only name the app shows for an account; editable on "Settings". */
   display_name: string;
   email: string;
+  /** The app language the person chose; the app starts in it. */
+  language: "en" | "es" | "fr";
 }
 
 /** Response of POST /auth/signup and POST /auth/login. */
@@ -138,11 +140,14 @@ export interface CreatedTrip {
 
 export interface FieldError {
   code: string;
+  /** English, for logs and tools: the app words errors itself from code and params (i18n/errors.ts). */
   message: string;
+  /** The numbers in the error, e.g. { max: 60 } or { sum_cents: 4500, amount_cents: 5000 }. */
+  params?: Record<string, number>;
 }
 
 /**
  * Expense keys: name, date, amount_cents, paid_by, paid_by.<id>, split, split.<id>, category. Sign-up keys: display_name, email,
- * password. New trip keys: name, start_date, end_date, people, people.<index>.name, people.<index>.email.
+ * password, language. New trip keys: name, start_date, end_date, people, people.<index>.name, people.<index>.email.
  */
 export type FieldErrors = Record<string, FieldError>;

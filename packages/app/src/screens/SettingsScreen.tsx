@@ -4,20 +4,29 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { updateMe } from "../api/auth";
 import { API_URL, ApiError } from "../api/client";
 import { Card } from "../components/Card";
+import { LanguagePicker } from "../components/LanguagePicker";
 import { TextField } from "../components/TextField";
 import type { FieldErrors, User } from "../dto";
-import { t } from "../i18n";
+import { getLanguage, setLanguage, t, type Language } from "../i18n";
+import { errorText } from "../i18n/errors";
 import { colors, space, typeScale } from "../theme";
 import { authStyles } from "./LoginScreen";
 
-/** Edits the account's display name, the name shown for this account on every trip. */
-export function YourNameScreen({
+/**
+ * The account's display name (shown on every trip, saved with "Save") and app language. A language is recorded on the
+ * account as soon as it is tapped; when that fails the switch is undone, so the app never shows a language the
+ * database does not have.
+ */
+export function SettingsScreen({
   user,
   onSaved,
+  onUserChanged,
   onBack,
 }: {
   user: User;
   onSaved: (user: User) => void;
+  /** The account changed without leaving the screen (a recorded language). */
+  onUserChanged: (user: User) => void;
   onBack: () => void;
 }) {
   const [name, setName] = useState(user.display_name);
@@ -25,6 +34,8 @@ export function YourNameScreen({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [unreachable, setUnreachable] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [languageBusy, setLanguageBusy] = useState(false);
+  const [languageFailed, setLanguageFailed] = useState(false);
 
   async function submit() {
     if (busy) {
@@ -33,7 +44,7 @@ export function YourNameScreen({
     setBusy(true);
     setUnreachable(false);
     try {
-      onSaved(await updateMe(name));
+      onSaved(await updateMe({ display_name: name }));
     } catch (e) {
       // A 401 is handled by the app shell (back to Login).
       const fieldErrors = e instanceof ApiError ? e.fieldErrors : {};
@@ -43,31 +54,58 @@ export function YourNameScreen({
     }
   }
 
+  async function chooseLanguage(language: Language) {
+    const previous = getLanguage();
+    if (language === previous || languageBusy) {
+      return;
+    }
+    setLanguage(language);
+    setLanguageBusy(true);
+    setLanguageFailed(false);
+    try {
+      onUserChanged(await updateMe({ language }));
+    } catch (e) {
+      setLanguage(previous);
+      setLanguageFailed(!(e instanceof ApiError && e.status === 401));
+    } finally {
+      setLanguageBusy(false);
+    }
+  }
+
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
         <Pressable onPress={onBack} accessibilityRole="button" style={authStyles.back}>
           <Text style={authStyles.linkLabel}>{t("trip.back")}</Text>
         </Pressable>
-        <Text style={styles.title}>{t("yourName.title")}</Text>
+        <Text style={styles.title}>{t("settings.title")}</Text>
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={authStyles.intro}>{t("yourName.intro")}</Text>
+        <Text style={authStyles.intro}>{t("settings.nameIntro")}</Text>
         <TextField
-          label={t("yourName.name")}
+          label={t("common.name")}
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
           autoComplete="name"
           onSubmitEditing={submit}
-          error={errors.display_name?.message}
+          error={errorText(errors.display_name, "display_name")}
         />
+        <Text style={styles.label}>{t("settings.language")}</Text>
+        <LanguagePicker value={getLanguage()} onChange={chooseLanguage} disabled={languageBusy} />
+        {languageFailed && (
+          <Card style={[authStyles.errorCard, styles.languageError]}>
+            <Text style={authStyles.errorText} accessibilityRole="alert">
+              {t("common.loadFailed", { url: API_URL })}
+            </Text>
+          </Card>
+        )}
       </ScrollView>
       <View style={authStyles.footer}>
         {unreachable && (
           <Card style={[authStyles.errorCard, styles.footerCard]}>
             <Text style={authStyles.errorText} accessibilityRole="alert">
-              {t("app.loadFailed", { url: API_URL })}
+              {t("common.loadFailed", { url: API_URL })}
             </Text>
           </Card>
         )}
@@ -77,7 +115,7 @@ export function YourNameScreen({
           accessibilityRole="button"
           style={({ pressed }) => [authStyles.primary, (pressed || busy) && authStyles.primaryPressed]}
         >
-          <Text style={authStyles.primaryLabel}>{busy ? t("yourName.saving") : t("yourName.save")}</Text>
+          <Text style={authStyles.primaryLabel}>{busy ? t("common.saving") : t("common.save")}</Text>
         </Pressable>
       </View>
     </View>
@@ -95,5 +133,8 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: typeScale.title, fontWeight: "700", color: colors.ink },
   content: { padding: space.lg },
+  // Same as the TextField label above it.
+  label: { fontSize: typeScale.caption, fontWeight: "700", color: colors.ink, marginTop: space.lg, marginBottom: space.xs },
+  languageError: { marginTop: space.sm },
   footerCard: { marginBottom: space.sm },
 });

@@ -178,7 +178,7 @@ describe("epic 2: login and my trips (390x844)", () => {
 
     await name.fill("");
     await create.click();
-    await visible(page, "Enter your name.");
+    await visible(page, "Fill in this field.");
     await email.fill("zoe");
     await create.click();
     await visible(page, "Enter an email like ana@example.com.");

@@ -173,7 +173,7 @@ test('PATCH /me renames the account everywhere, and validates the name', functio
     $response = call($app, 'PATCH', '/me', ['display_name' => '  Ana María '], $ana);
 
     assertSame(200, $response->status);
-    assertSame(['display_name' => 'Ana María', 'email' => 'ana@example.com'], array_slice($response->data->jsonSerialize(), 1));
+    assertSame(['display_name' => 'Ana María', 'email' => 'ana@example.com', 'language' => 'en'], array_slice($response->data->jsonSerialize(), 1));
     assertSame('Ana María', get($app, '/me', $ana)->data->displayName);
     $lisbon = $app->summaries->forTrip(1);
     assertSame('Ana María pays Ben: 6375', transfersOf($lisbon)[0]);

@@ -41,9 +41,9 @@ final readonly class AuthController
         return new JsonResponse(200, $user);
     }
 
-    /** PATCH body: { display_name } */
+    /** PATCH body: { display_name?, language? } */
     public function updateMe(Request $request, array $params, User $user): JsonResponse
     {
-        return new JsonResponse(200, $this->auth->updateDisplayName($user, $request->json()));
+        return new JsonResponse(200, $this->auth->updateMe($user, $request->json()));
     }
 }
