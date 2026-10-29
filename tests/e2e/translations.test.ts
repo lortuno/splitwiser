@@ -7,14 +7,16 @@ import type { Page } from "playwright";
 
 import {
   API_URL,
+  codeIn,
+  confirmCodeFromEmail,
   DEMO_PASSWORD,
-  TOKEN_KEY,
-  VIEWPORT,
   euro,
   fromMenu,
   languageFromMenu,
+  mailsTo,
   menuButton,
   menuItem,
+  newMail,
   noSidewaysScroll,
   open,
   openAs,
@@ -22,7 +24,9 @@ import {
   shot,
   startServers,
   stopServers,
+  TOKEN_KEY,
   tokenFor,
+  VIEWPORT,
   visible,
 } from "./harness";
 
@@ -301,7 +305,11 @@ describe("epic 6: translations (390x844)", () => {
     await page.getByLabel("Votre nom", { exact: true }).fill("Lena");
     await page.getByLabel("E-mail", { exact: true }).fill("lena@example.com");
     await page.getByLabel("Mot de passe (8 caractères minimum)", { exact: true }).fill(DEMO_PASSWORD);
+    const before = (await mailsTo("lena@example.com")).length;
     await button(page, "Créer le compte").click();
+    await visible(page, "Consultez vos e-mails");
+    expect((await newMail("lena@example.com", before)).subject).toBe("Confirmez votre adresse e-mail");
+    await confirmCodeFromEmail(page, "lena@example.com", before, "Confirmer");
     await visible(page, "Mes groupes");
     expect(await accountLanguage(page)).toBe("fr");
 
@@ -310,8 +318,10 @@ describe("epic 6: translations (390x844)", () => {
     await page.getByLabel("Votre nom", { exact: true }).fill("Ana");
     await page.getByLabel("E-mail", { exact: true }).fill("ana@example.com");
     await page.getByLabel("Mot de passe (8 caractères minimum)", { exact: true }).fill(DEMO_PASSWORD);
+    const anaBefore = (await mailsTo("ana@example.com")).length;
     await button(page, "Créer le compte").click();
-    await visible(page, "Cet e-mail a déjà un compte.");
+    await visible(page, "Consultez vos e-mails");
+    expect((await newMail("ana@example.com", anaBefore)).subject).toBe("Vous avez déjà un compte");
     await page.close();
   }, 30_000);
 
@@ -406,8 +416,15 @@ describe("epic 6: translations (390x844)", () => {
     const long = await patchMe(olga, { display_name: "x".repeat(61) });
     expect([long.data.errors.display_name.code, long.data.errors.display_name.params]).toEqual(["too_long", { max: 60 }]);
 
-    const signUp = async (body: Record<string, string>) =>
-      (await (await fetch(`${API_URL}/auth/signup`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })).json()) as { user: { language: string } };
+    const postJson = (path: string, body: Record<string, string>) =>
+      fetch(`${API_URL}${path}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    // Sign-up answers 202; the user comes with the code from the email (feature 8).
+    const signUp = async (body: Record<string, string>) => {
+      const before = (await mailsTo(body.email)).length;
+      expect((await postJson("/auth/signup", body)).status).toBe(202);
+      const code = codeIn(await newMail(body.email, before));
+      return (await (await postJson("/auth/verify", { email: body.email, code })).json()) as { user: { language: string } };
+    };
     expect((await signUp({ display_name: "Kai", email: "kai@example.com", password: DEMO_PASSWORD, language: "fr" })).user.language).toBe("fr");
     expect((await signUp({ display_name: "Max", email: "max@example.com", password: DEMO_PASSWORD })).user.language).toBe("en");
 

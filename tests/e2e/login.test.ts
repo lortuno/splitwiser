@@ -4,14 +4,13 @@ import type { Page } from "playwright";
 
 import {
   API_URL,
-  DEMO_PASSWORD,
-  TOKEN_KEY,
-  VIEWPORT,
-  WEB_URL,
   browser,
+  confirmCodeFromEmail,
+  DEMO_PASSWORD,
   euro,
   fromMenu,
   logInWithForm,
+  mailsTo,
   menuButton,
   menuItem,
   noSidewaysScroll,
@@ -21,8 +20,11 @@ import {
   shot,
   startServers,
   stopServers,
+  TOKEN_KEY,
   tokenFor,
+  VIEWPORT,
   visible,
+  WEB_URL,
 } from "./harness";
 
 beforeAll(startServers);
@@ -176,8 +178,8 @@ describe("epic 2: login and my trips (390x844)", () => {
     await email.fill("ana@example.com");
     await password.fill("short");
     await create.click();
-    await visible(page, "This email already has an account.");
     await visible(page, "Use at least 8 characters.");
+    expect(await page.getByText("This email already has an account.").count()).toBe(0); // feature 8: never told
     expect(await email.inputValue()).toBe("ana@example.com");
     await shot(page, "e2-10-sign-up-errors");
 
@@ -191,7 +193,10 @@ describe("epic 2: login and my trips (390x844)", () => {
     await name.fill("Zoe");
     await email.fill("zoe@example.com");
     await password.fill("long-enough-1");
+    const before = (await mailsTo("zoe@example.com")).length;
     await create.click();
+    await visible(page, "Check your email");
+    await confirmCodeFromEmail(page, "zoe@example.com", before);
     await visible(page, "Logged in as Zoe");
     // Text changed in epic 3 (specs/groups/03-create-a-group-specification.md, check 11).
     const empty = 'You are not on any group yet. Start one with "+ New group", or ask a friend to add you with your email.';

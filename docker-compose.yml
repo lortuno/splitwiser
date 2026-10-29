@@ -8,13 +8,29 @@ x-dev-image: &dev-image
   volumes:
     - .:/app
     - node_modules:/app/node_modules
+    - api_vendor:/app/packages/api/vendor
     # The SQLite database (DB_PATH=/data/app.sqlite) lives in packages/api/var on the host, so tools outside Docker
     # can open it. The folder is git-ignored. Write to it from the host only while the api service is stopped.
     - ./packages/api/var:/data
+  # Mail and security settings (feature 8). Nothing secret: Mailpit only catches mail locally.
+  environment: &api-env
+    MAILER_DSN: smtp://mailpit:1025
+    MAIL_FROM: Travel expenses <no-reply@travel.local>
+    MAILPIT_URL: http://mailpit:8025
+    APP_ORIGIN: http://localhost:8081
 
 services:
+  # Catches every email the API sends; the inbox is at http://localhost:8025 and the tests read it through its API.
+  mailpit:
+    image: axllent/mailpit:v1.31.5
+    ports:
+      # Set MAILPIT_PORT when 8025 is taken on the host; the API and the tests reach Mailpit inside Docker either way.
+      - "${MAILPIT_PORT:-8025}:8025"
+
   api:
     <<: *dev-image
+    depends_on:
+      - mailpit
     working_dir: /app/packages/api
     command: sh -c "php bin/init-db.php && php -S 0.0.0.0:8080 -t public public/index.php"
     ports:
@@ -34,6 +50,7 @@ services:
     tty: true
     stdin_open: true
     environment:
+      <<: *api-env
       EXPO_PUBLIC_API_URL: http://localhost:8080
     ports:
       - "8081:8081"
@@ -43,3 +60,4 @@ services:
 
 volumes:
   node_modules:
+  api_vendor:

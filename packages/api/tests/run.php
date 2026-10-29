@@ -48,13 +48,65 @@ function validationErrors(Closure $body): array
     throw new AssertionFailed('Expected a ValidationException.');
 }
 
+/** The time for the security rules, moved forward by the tests instead of waiting. */
+final class MovableClock implements App\Clock
+{
+    private DateTimeImmutable $now;
+
+    public function __construct()
+    {
+        $this->now = new DateTimeImmutable('now', new DateTimeZone('UTC'));
+    }
+
+    public function now(): DateTimeImmutable
+    {
+        return $this->now;
+    }
+
+    public function forward(int $seconds): void
+    {
+        $this->now = $this->now->modify("+{$seconds} seconds");
+    }
+}
+
 /** A fresh in-memory database with the schema applied. */
-function app(): Container
+function app(?App\Clock $clock = null): Container
 {
     $pdo = Connection::open(':memory:');
     Schema::apply($pdo);
 
-    return new Container($pdo);
+    return new Container($pdo, $clock ?? new App\SystemClock());
+}
+
+/** Mailpit's HTTP API (MAILPIT_URL); the PHP tests read the emails the API sent from there. */
+function mailpitUrl(): string
+{
+    return rtrim(getenv('MAILPIT_URL') ?: 'http://mailpit:8025', '/');
+}
+
+/**
+ * The emails to $email in Mailpit, newest first. Each test reads only its own recipients; earlier runs may have left
+ * older messages, so tests compare counts before and after or read the newest.
+ * @return list<array{subject: string, text: string}>
+ */
+function mailsTo(string $email): array
+{
+    $search = json_decode((string) file_get_contents(mailpitUrl() . '/api/v1/search?query=' . rawurlencode("to:\"{$email}\"")), true);
+    $mails = [];
+    foreach ($search['messages'] ?? [] as $message) {
+        $full = json_decode((string) file_get_contents(mailpitUrl() . '/api/v1/message/' . $message['ID']), true);
+        $mails[] = ['subject' => $full['Subject'], 'text' => $full['Text']];
+    }
+
+    return $mails;
+}
+
+/** The 6-digit code in the newest email to $email. */
+function latestCodeFor(string $email): string
+{
+    $text = mailsTo($email)[0]['text'] ?? '';
+
+    return preg_match('/^\s+(\d{6})\s*$/m', $text, $m) === 1 ? $m[1] : throw new AssertionFailed("No code in the newest email to {$email}.");
 }
 
 /**
@@ -118,6 +170,11 @@ function netsOf(App\Dto\TripSummary $summary): array
 
 foreach (glob(__DIR__ . '/*Test.php') as $file) {
     require $file;
+}
+
+if (@file_get_contents(mailpitUrl() . '/api/v1/info') === false) {
+    echo 'Mailpit is not running at ' . mailpitUrl() . ".\n";
+    exit(1);
 }
 
 $failed = 0;

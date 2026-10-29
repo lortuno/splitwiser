@@ -69,7 +69,7 @@ final readonly class Seeder
     public function seedAccounts(): void
     {
         foreach (self::ACCOUNTS as $name => $email) {
-            $this->users->create($name, $email, self::demoPasswordHash());
+            $this->users->create($name, $email, self::demoPasswordHash(), verified: true);
         }
     }
 
@@ -88,6 +88,7 @@ final readonly class Seeder
             self::ADMIN['email'],
             password_hash(self::ADMIN['password'], PASSWORD_DEFAULT),
             self::ADMIN['language'],
+            verified: true,
         );
 
         return true;

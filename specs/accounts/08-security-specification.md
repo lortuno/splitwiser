@@ -3,6 +3,14 @@
 Source: new feature (not in `specs/roadmap.md`). Brainstorming: `specs/accounts/08-security-brainstorming.md` (rounds
 1–4). Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
+## Estimate
+
+Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-only.
+
+| Date | Task | Estimate (h) | Actual (h) |
+|---|---|---|---|
+| 2026-10-29 | Build the feature | 1.5 | |
+
 ## Goal
 
 A new account proves it owns its email: sign-up sends a 6-digit code by email, in the language the app shows, and the
@@ -301,7 +309,8 @@ durations (`AUTH_CODE_TTL=60`, `AUTH_LOCK=60`, `AUTH_RESEND_GAP=5`).
    The code from the email now shows the same message.
 3. **Send a new code.** On Nina's screen (e2e durations), wait until "Send a new code" is enabled and tap it: "We sent
    a new code.", the field is empty, and the button reads "Send a new code in 0:05", disabled, counting down. Mailpit
-   has a second email. The first code shows "This code has expired. Send a new code."; the second opens "My groups".
+   has a second email. The first code shows "This code is wrong. 2 tries left." (the new code replaced it); the second
+   opens "My groups".
 4. 📸 **Sign-up with an existing email.** Sign up as "Someone", `ana@example.com`, `another-pass-1`: the same "Check
    your email" screen. Mailpit has "You already have an account" to `ana@example.com` ("Hi Ana,") and no code. Log in
    as Ana with `travel-demo-2026`: "My groups" opens; with `another-pass-1`: "Email or password is wrong.".

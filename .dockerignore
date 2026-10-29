@@ -5,4 +5,5 @@ dist-native
 .git
 .idea
 packages/api/var
+packages/api/vendor
 test-results

@@ -12,6 +12,7 @@ final readonly class Request
         public array $query,
         public string $body,
         public ?string $bearerToken = null,
+        public string $ip = '127.0.0.1',
     ) {
     }
 
@@ -23,6 +24,8 @@ final readonly class Request
             $_GET,
             (string) file_get_contents('php://input'),
             self::bearerTokenFrom(self::authorizationHeader()),
+            // Only the connection's address counts; X-Forwarded-For is ignored until a proxy is set up.
+            (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
         );
     }
 

@@ -2,21 +2,25 @@ import { useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { logIn } from "../api/auth";
-import { API_URL, ApiError } from "../api/client";
+import { ApiError } from "../api/client";
 import { Card } from "../components/Card";
 import { TextField } from "../components/TextField";
-import type { User } from "../dto";
-import { t } from "../i18n";
+import type { CodeTimes, User } from "../dto";
+import { getLanguage, t } from "../i18n";
+import { requestErrorText } from "../i18n/errors";
 import { colors, radius, size, space, typeScale } from "../theme";
 
 export function LoginScreen({
   sessionEnded,
   onLoggedIn,
+  onUnverified,
   onSignUp,
 }: {
   /** Shows "Your session has ended" after a 401 while logged in. */
   sessionEnded: boolean;
   onLoggedIn: (user: User) => void;
+  /** The account exists but its email is not confirmed yet: a new code was sent. */
+  onUnverified: (email: string, times: CodeTimes) => void;
   onSignUp: () => void;
 }) {
   const [email, setEmail] = useState("");
@@ -31,9 +35,13 @@ export function LoginScreen({
     setBusy(true);
     setError(null);
     try {
-      onLoggedIn(await logIn(email, password));
+      onLoggedIn(await logIn(email, password, getLanguage()));
     } catch (e) {
-      setError(e instanceof ApiError && e.code === "invalid_credentials" ? t("auth.wrongCredentials") : t("common.loadFailed", { url: API_URL }));
+      if (e instanceof ApiError && e.code === "unverified") {
+        onUnverified(email, { code_minutes: e.params.code_minutes ?? 0, resend_in_seconds: e.params.resend_in_seconds ?? 0 });
+        return;
+      }
+      setError(requestErrorText(e));
       setBusy(false);
     }
   }

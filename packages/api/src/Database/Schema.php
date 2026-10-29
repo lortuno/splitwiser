@@ -27,6 +27,7 @@ final class Schema
         // Accounts. Emails are stored trimmed and lowercased; only a password_hash() is kept.
         // display_name is the only name the app shows for a linked person; last_login_at is never shown.
         // language is the app language the person chose (en, es or fr); the app starts in it.
+        // verified_at is set once the sign-up code is confirmed; only verified accounts can log in.
         <<<'SQL'
         CREATE TABLE IF NOT EXISTS users (
             id            INTEGER PRIMARY KEY,
@@ -35,7 +36,27 @@ final class Schema
             password_hash TEXT NOT NULL,
             created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             last_login_at TEXT,
-            language      TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'es', 'fr'))
+            language      TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'es', 'fr')),
+            verified_at   TEXT
+        )
+        SQL,
+        // The pending sign-up code of an unverified account, only as its SHA-256; confirming it deletes the row.
+        <<<'SQL'
+        CREATE TABLE IF NOT EXISTS email_codes (
+            user_id    INTEGER PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+            code_hash  TEXT    NOT NULL,
+            tries_left INTEGER NOT NULL,
+            expires_at TEXT    NOT NULL
+        )
+        SQL,
+        // The security log and the source of every limit and of the login lock. Never a password, a code or a token.
+        <<<'SQL'
+        CREATE TABLE IF NOT EXISTS security_events (
+            id    INTEGER PRIMARY KEY,
+            event TEXT NOT NULL CHECK (event IN ('signup', 'code_sent', 'already_registered_sent', 'code_checked', 'verified', 'login', 'login_failed', 'locked')),
+            email TEXT,
+            ip    TEXT NOT NULL,
+            at    TEXT NOT NULL
         )
         SQL,
         // One row per login. Only the SHA-256 of the bearer token is stored.
@@ -129,6 +150,8 @@ final class Schema
 
     private const array INDEXES = [
         'CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id)',
+        'CREATE INDEX IF NOT EXISTS idx_security_events_email ON security_events (email, event, at)',
+        'CREATE INDEX IF NOT EXISTS idx_security_events_ip ON security_events (ip, event, at)',
         'CREATE INDEX IF NOT EXISTS idx_people_user_id ON people (user_id)',
         'CREATE INDEX IF NOT EXISTS idx_group_invites_email ON group_invites (email)',
         'CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members (group_id)',
@@ -151,8 +174,17 @@ final class Schema
     private const array ADDED_COLUMNS = [
         // What the expense was for (App\Dto\Category). NULL only until bin/init-db.php guesses it once.
         // The app language of the account (en, es, fr); existing accounts become English.
-        'users' => ['language' => "TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'es', 'fr'))"],
+        'users' => [
+            'language' => "TEXT NOT NULL DEFAULT 'en' CHECK (language IN ('en', 'es', 'fr'))",
+            // When verification arrived, everyone already using the app counts as verified (ADDED_COLUMN_BACKFILLS).
+            'verified_at' => 'TEXT',
+        ],
         'expenses' => ['category' => "TEXT CHECK (category IS NULL OR category IN ('food', 'groceries', 'drinks', 'coffee', 'fuel', 'transport', 'flights', 'lodging', 'activities', 'shopping', 'other'))"],
+    ];
+
+    /** Run once, right after its column was added to an existing table. "table.column" => SQL. */
+    private const array ADDED_COLUMN_BACKFILLS = [
+        'users.verified_at' => 'UPDATE users SET verified_at = CURRENT_TIMESTAMP',
     ];
 
     /** Views in dependency order. */
@@ -319,6 +351,9 @@ final class Schema
                 foreach ($columns as $column => $definition) {
                     if (!in_array($column, $existing, true)) {
                         $pdo->exec("ALTER TABLE {$table} ADD COLUMN {$column} {$definition}");
+                        if (isset(self::ADDED_COLUMN_BACKFILLS["{$table}.{$column}"])) {
+                            $pdo->exec(self::ADDED_COLUMN_BACKFILLS["{$table}.{$column}"]);
+                        }
                     }
                 }
             }

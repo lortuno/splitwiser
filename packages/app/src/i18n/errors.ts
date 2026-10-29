@@ -3,7 +3,8 @@
 // last fallback, for a code the app does not know yet.
 import type { FieldError, SplitType } from "../dto";
 import { formatBasisPoints, formatCents } from "../money/format";
-import { t } from "./index";
+import { API_URL, ApiError } from "../api/client";
+import { t, tCount } from "./index";
 
 /** Fields where the person chooses people, so "required" means "choose someone", not "fill in". */
 const PERSON_FIELDS = ["paid_by", "split", "recorded_by"];
@@ -27,7 +28,11 @@ export function errorText(error: FieldError | undefined, field: string, splitTyp
     case "too_short":
       return t("error.tooShort", { min: params.min });
     case "too_many":
-      return t("error.tooMany", { max: params.max });
+      return base === "code" ? t("error.codeTooMany") : t("error.tooMany", { max: params.max });
+    case "wrong":
+      return tCount("error.codeWrong", params.tries_left ?? 0);
+    case "expired":
+      return t("error.codeExpired");
     case "invalid_date":
       return t("error.invalidDate");
     case "before_start":
@@ -38,8 +43,6 @@ export function errorText(error: FieldError | undefined, field: string, splitTyp
       return t("error.tooLarge");
     case "invalid_email":
       return t("error.invalidEmail", { example: EXAMPLE_EMAIL });
-    case "taken":
-      return t("error.taken");
     case "too_few":
       return t("error.tooFew");
     case "duplicate":
@@ -65,5 +68,27 @@ export function errorText(error: FieldError | undefined, field: string, splitTyp
       return t("error.invalid");
     default:
       return error.message;
+  }
+}
+
+/**
+ * The card text for a failed sign-up, login or code request that is not a field error: the lock, the limits, the mail
+ * server, wrong login details, or no answer at all.
+ */
+export function requestErrorText(error: unknown): string {
+  if (!(error instanceof ApiError)) {
+    return t("common.loadFailed", { url: API_URL });
+  }
+  switch (error.code) {
+    case "invalid_credentials":
+      return t("auth.wrongCredentials");
+    case "locked":
+      return tCount("auth.locked", error.params.minutes ?? 0);
+    case "too_many_requests":
+      return t("error.tooManyRequests");
+    case "mail_unavailable":
+      return t("error.mailUnavailable");
+    default:
+      return t("common.loadFailed", { url: API_URL });
   }
 }

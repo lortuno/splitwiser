@@ -27,6 +27,8 @@ final class Routes
         $router = new Router();
         $router->add('GET', '/health', static fn (): JsonResponse => new JsonResponse(200, ['ok' => true]));
         $router->add('POST', '/auth/signup', $auth->signUp(...));
+        $router->add('POST', '/auth/verify', $auth->verify(...));
+        $router->add('POST', '/auth/resend-code', $auth->resendCode(...));
         $router->add('POST', '/auth/login', $auth->logIn(...));
         $router->add('POST', '/auth/logout', $auth->logOut(...));
         $router->add('GET', '/me', $loggedIn($auth->me(...)));

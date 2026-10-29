@@ -89,11 +89,12 @@ describe("translation rules", () => {
     expect(order.filter((group, i) => i === 0 || group !== order[i - 1])).toEqual(groups);
   });
 
-  test("the 16 error keys of the specification", () => {
+  test("the error keys of the specifications (epic 6, then feature 8 without error.taken)", () => {
     expect(Object.keys(en).filter((key) => key.startsWith("error."))).toEqual([
       "error.required", "error.choosePerson", "error.tooLong", "error.tooShort", "error.invalidDate", "error.beforeStart",
-      "error.invalidAmount", "error.tooLarge", "error.invalidEmail", "error.taken", "error.alreadyOnTrip", "error.tooFew",
+      "error.invalidAmount", "error.tooLarge", "error.invalidEmail", "error.alreadyOnTrip", "error.tooFew",
       "error.tooMany", "error.sumMismatch", "error.percentMismatch", "error.invalid",
+      "error.codeWrong.one", "error.codeWrong", "error.codeTooMany", "error.codeExpired", "error.tooManyRequests", "error.mailUnavailable",
     ]);
   });
 

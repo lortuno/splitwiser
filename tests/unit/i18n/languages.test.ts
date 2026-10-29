@@ -103,7 +103,7 @@ describe("error texts from code and params", () => {
 
   test("every code the API sends has a text in every language, never the API message", () => {
     const codes = ["required", "too_long", "too_short", "too_many", "invalid_date", "before_start", "invalid_amount",
-      "too_large", "invalid_email", "taken", "too_few", "duplicate", "duplicate_email", "sum_mismatch", "invalid_value",
+      "too_large", "invalid_email", "wrong", "expired", "too_few", "duplicate", "duplicate_email", "sum_mismatch", "invalid_value",
       "invalid_credentials", "trip_paid", "not_a_member", "invalid_type", "invalid_category", "invalid_language"];
     for (const lang of ["en", "es", "fr"] as const) {
       setLanguage(lang);

@@ -13,11 +13,12 @@ final readonly class UserRepository
     {
     }
 
-    /** $email must already be trimmed and lowercased. */
-    public function create(string $displayName, string $email, string $passwordHash, string $language = 'en'): int
+    /** $email must already be trimmed and lowercased. Seeded accounts are created verified, sign-ups are not. */
+    public function create(string $displayName, string $email, string $passwordHash, string $language = 'en', bool $verified = false): int
     {
-        $this->pdo->prepare('INSERT INTO users (display_name, email, password_hash, language) VALUES (?, ?, ?, ?)')
-            ->execute([$displayName, $email, $passwordHash, $language]);
+        $this->pdo->prepare(
+            'INSERT INTO users (display_name, email, password_hash, language, verified_at) VALUES (?, ?, ?, ?, CASE WHEN ? THEN CURRENT_TIMESTAMP END)'
+        )->execute([$displayName, $email, $passwordHash, $language, (int) $verified]);
 
         return (int) $this->pdo->lastInsertId();
     }
@@ -31,14 +32,26 @@ final readonly class UserRepository
         return $row === false ? null : self::toUser($row);
     }
 
-    /** @return array{User, string}|null the user and their password hash */
+    /** @return array{User, string, bool}|null the user, their password hash and whether their email is verified */
     public function findWithHashByEmail(string $email): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, display_name, email, language, password_hash FROM users WHERE email = ?');
+        $stmt = $this->pdo->prepare('SELECT id, display_name, email, language, password_hash, verified_at FROM users WHERE email = ?');
         $stmt->execute([$email]);
         $row = $stmt->fetch();
 
-        return $row === false ? null : [self::toUser($row), $row['password_hash']];
+        return $row === false ? null : [self::toUser($row), $row['password_hash'], $row['verified_at'] !== null];
+    }
+
+    /** A sign-up again before the code: the new name, password and language replace the unverified account's. */
+    public function replaceUnverified(int $userId, string $displayName, string $passwordHash, string $language): void
+    {
+        $this->pdo->prepare('UPDATE users SET display_name = ?, password_hash = ?, language = ? WHERE id = ? AND verified_at IS NULL')
+            ->execute([$displayName, $passwordHash, $language, $userId]);
+    }
+
+    public function markVerified(int $userId): void
+    {
+        $this->pdo->prepare('UPDATE users SET verified_at = CURRENT_TIMESTAMP WHERE id = ?')->execute([$userId]);
     }
 
     public function idByEmail(string $email): ?int

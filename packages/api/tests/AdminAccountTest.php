@@ -19,7 +19,7 @@ function startedApp(): App\Container
 /** Logs in the admin (its password is not the demo password) and returns the token. */
 function adminToken(App\Container $app): string
 {
-    return $app->auth->logIn(['email' => Seeder::ADMIN['email'], 'password' => Seeder::ADMIN['password']])[0];
+    return $app->auth->logIn(['email' => Seeder::ADMIN['email'], 'password' => Seeder::ADMIN['password']], '127.0.0.1')[0];
 }
 
 function adminRow(App\Container $app): array|false
@@ -86,11 +86,15 @@ test('a rename and a language change survive the next start', function (): void 
     assertSame(200, call($app, 'POST', '/auth/login', ['email' => 'admin@travel.local', 'password' => 'admin123'])->status);
 });
 
-test('signing up with the admin email is taken; the seeded figures are unchanged', function (): void {
+test('signing up with the admin email only sends "You already have an account"; the seeded figures are unchanged', function (): void {
     $app = startedApp();
+    $before = count(mailsTo('admin@travel.local'));
 
     $signup = call($app, 'POST', '/auth/signup', ['display_name' => 'Someone', 'email' => 'admin@travel.local', 'password' => 'travel-demo-2026']);
-    assertSame([422, 'taken'], [$signup->status, $signup->data['errors']['email']['code']]);
+    assertSame(202, $signup->status);
+    assertSame($before + 1, count(mailsTo('admin@travel.local')));
+    assertSame('You already have an account', mailsTo('admin@travel.local')[0]['subject']);
+    adminToken($app); // admin123 still logs in
     assertSame(191557, $app->summaries->forTrip(1)->totalCents);
     assertSame(['Ana pays Chloé: 915'], transfersOf($app->summaries->forTrip(7)));
     assertSame([7, 1], array_map(fn ($t) => $t->id, get($app, '/trips', tokenFor($app, 'ana@example.com'))->data));

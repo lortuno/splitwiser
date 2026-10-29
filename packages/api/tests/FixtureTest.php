@@ -10,9 +10,9 @@ use App\Container;
 // plus group 7 from specs/accounts/02-login-and-my-groups-specification.md.
 
 /** A fresh database seeded exactly like `docker compose up`. */
-function seededApp(): Container
+function seededApp(?App\Clock $clock = null): Container
 {
-    $app = app();
+    $app = app($clock);
     $app->seeder()->seedIfEmpty();
 
     return $app;
@@ -40,7 +40,7 @@ function get(Container $app, string $path, ?string $token = null): App\Api\JsonR
 /** Logs in a seeded demo account and returns its token. */
 function tokenFor(Container $app, string $email): string
 {
-    return $app->auth->logIn(['email' => $email, 'password' => App\Database\Seeder::DEMO_PASSWORD])[0];
+    return $app->auth->logIn(['email' => $email, 'password' => App\Database\Seeder::DEMO_PASSWORD], '127.0.0.1')[0];
 }
 
 test('seeded trips have fixed ids', function (): void {

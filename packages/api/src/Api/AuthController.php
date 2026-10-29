@@ -14,18 +14,30 @@ final readonly class AuthController
     {
     }
 
-    /** POST body: { display_name, email, password } */
+    /** POST body: { display_name, email, password, language? }; the session comes with the email code (verify). */
     public function signUp(Request $request, array $params): JsonResponse
     {
-        [$token, $user] = $this->auth->signUp($request->json());
-
-        return new JsonResponse(201, ['token' => $token, 'user' => $user]);
+        return new JsonResponse(202, $this->auth->signUp($request->json(), $request->ip));
     }
 
-    /** POST body: { email, password } */
+    /** POST body: { email, code } */
+    public function verify(Request $request, array $params): JsonResponse
+    {
+        [$token, $user] = $this->auth->verify($request->json(), $request->ip);
+
+        return new JsonResponse(200, ['token' => $token, 'user' => $user]);
+    }
+
+    /** POST body: { email, language? } */
+    public function resendCode(Request $request, array $params): JsonResponse
+    {
+        return new JsonResponse(202, $this->auth->resendCode($request->json(), $request->ip));
+    }
+
+    /** POST body: { email, password, language? } */
     public function logIn(Request $request, array $params): JsonResponse
     {
-        [$token, $user] = $this->auth->logIn($request->json());
+        [$token, $user] = $this->auth->logIn($request->json(), $request->ip);
 
         return new JsonResponse(200, ['token' => $token, 'user' => $user]);
     }

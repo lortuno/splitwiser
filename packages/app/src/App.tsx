@@ -8,7 +8,7 @@ import { getToken } from "./api/session";
 import { AppBar } from "./components/AppBar";
 import { DiscardDialog, type LeaveAction } from "./components/DiscardDialog";
 import { StateMessage } from "./components/StateMessage";
-import type { CreatedTrip, User } from "./dto";
+import type { CodeTimes, CreatedTrip, User } from "./dto";
 import { getLanguage, setLanguage, subscribeLanguage, t, type Language } from "./i18n";
 import { parseTripParam, type TripParam } from "./navigation/tripParam";
 import { hasUnsavedInput, setUnsavedInput } from "./navigation/unsavedInput";
@@ -16,6 +16,7 @@ import { LoginScreen } from "./screens/LoginScreen";
 import { MyTripsScreen } from "./screens/MyTripsScreen";
 import { NewTripScreen } from "./screens/NewTripScreen";
 import { SignUpScreen } from "./screens/SignUpScreen";
+import { VerifyEmailScreen } from "./screens/VerifyEmailScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { TripView } from "./TripView";
 import { colors, size } from "./theme";
@@ -25,6 +26,7 @@ type Route =
   | { kind: "unreachable" }
   | { kind: "login"; sessionEnded: boolean }
   | { kind: "signup" }
+  | { kind: "verify"; email: string; times: CodeTimes }
   | { kind: "trips" }
   | { kind: "newTrip" }
   | { kind: "settings" }
@@ -166,7 +168,7 @@ export default function App() {
   };
 
   const menuActions =
-    user === null || route.kind === "login" || route.kind === "signup"
+    user === null || route.kind === "login" || route.kind === "signup" || route.kind === "verify"
       ? []
       : [
           ...(route.kind === "settings" ? [] : [{ label: t("settings.title"), onPress: () => leave("settings") }]),
@@ -182,9 +184,25 @@ export default function App() {
         ) : route.kind === "unreachable" ? (
           <StateMessage message={t("common.loadFailed", { url: API_URL })} action={{ label: t("app.retry"), onPress: start }} />
         ) : route.kind === "login" ? (
-          <LoginScreen sessionEnded={route.sessionEnded} onLoggedIn={loggedIn} onSignUp={() => setRoute({ kind: "signup" })} />
+          <LoginScreen
+            sessionEnded={route.sessionEnded}
+            onLoggedIn={loggedIn}
+            onUnverified={(email, times) => setRoute({ kind: "verify", email, times })}
+            onSignUp={() => setRoute({ kind: "signup" })}
+          />
         ) : route.kind === "signup" ? (
-          <SignUpScreen onSignedUp={loggedIn} onBack={() => setRoute({ kind: "login", sessionEnded: false })} />
+          <SignUpScreen
+            onCodeSent={({ email, code_minutes, resend_in_seconds }) => setRoute({ kind: "verify", email, times: { code_minutes, resend_in_seconds } })}
+            onBack={() => setRoute({ kind: "login", sessionEnded: false })}
+          />
+        ) : route.kind === "verify" ? (
+          <VerifyEmailScreen
+            key={route.email}
+            email={route.email}
+            times={route.times}
+            onVerified={loggedIn}
+            onBack={() => setRoute({ kind: "login", sessionEnded: false })}
+          />
         ) : route.kind === "trips" && user !== null ? (
           <MyTripsScreen
             user={user}

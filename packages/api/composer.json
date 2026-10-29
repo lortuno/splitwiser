@@ -1,0 +1,16 @@
+{
+    "name": "travel-expenses/api",
+    "description": "Plain PHP API for Travel expenses. symfony/mailer sends the sign-up codes (feature 8, security).",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.4",
+        "symfony/mailer": "8.1.7"
+    },
+    "config": {
+        "platform": {
+            "php": "8.4.27"
+        },
+        "sort-packages": true
+    }
+}

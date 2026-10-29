@@ -5,10 +5,11 @@ import type { Page } from "playwright";
 
 import {
   API_URL,
-  VIEWPORT,
+  confirmCodeFromEmail,
   euro,
   fromMenu,
   logInWithForm,
+  mailsTo,
   menuButton,
   menuItem,
   noSidewaysScroll,
@@ -19,6 +20,7 @@ import {
   startServers,
   stopServers,
   tokenFor,
+  VIEWPORT,
   visible,
 } from "./harness";
 
@@ -230,7 +232,10 @@ describe("epic 3: create a group (390x844)", () => {
     await field(page, "Your name").fill("Inés García");
     await field(page, "Email").fill("ines@example.com");
     await field(page, "Password (at least 8 characters)").fill("long-enough-1");
+    const before = (await mailsTo("ines@example.com")).length;
     await button(page, "Create account").click();
+    await visible(page, "Check your email");
+    await confirmCodeFromEmail(page, "ines@example.com", before);
 
     await visible(page, "Logged in as Inés García");
     expect(await tripCards(page)).toEqual(["Ski week"]);
@@ -249,7 +254,9 @@ describe("epic 3: create a group (390x844)", () => {
     await field(page, "Your name").fill("Zoe");
     await field(page, "Email").fill("zoe@example.com");
     await field(page, "Password (at least 8 characters)").fill("long-enough-1");
+    const before = (await mailsTo("zoe@example.com")).length;
     await button(page, "Create account").click();
+    await confirmCodeFromEmail(page, "zoe@example.com", before);
     await visible(page, 'You are not on any group yet. Start one with "+ New group", or ask a friend to add you with your email.');
     await button(page, "+ New group").waitFor();
     await page.close();

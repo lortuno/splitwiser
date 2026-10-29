@@ -6,8 +6,11 @@ namespace App;
 
 use App\Database\Seeder;
 use App\Repository\BalanceRepository;
+use App\Mail\MailSender;
+use App\Repository\EmailCodeRepository;
 use App\Repository\ExpenseRepository;
 use App\Repository\PersonRepository;
+use App\Repository\SecurityEventRepository;
 use App\Repository\SessionRepository;
 use App\Repository\TripRepository;
 use App\Repository\UserRepository;
@@ -39,14 +42,27 @@ final class Container
     public readonly SummaryService $summaries;
     public readonly DebtService $debts;
 
-    public function __construct(public readonly PDO $pdo)
+    public readonly Settings $settings;
+
+    public function __construct(public readonly PDO $pdo, public readonly Clock $clock = new SystemClock(), ?Settings $settings = null)
     {
+        $this->settings = $settings ?? Settings::fromEnvironment();
         $this->trips = new TripRepository($pdo);
         $this->people = new PersonRepository($pdo);
         $this->expenseRepository = new ExpenseRepository($pdo);
         $this->balances = new BalanceRepository($pdo);
         $this->users = new UserRepository($pdo);
-        $this->auth = new AuthService($pdo, $this->users, new SessionRepository($pdo), $this->people);
+        $this->auth = new AuthService(
+            $pdo,
+            $this->users,
+            new SessionRepository($pdo),
+            $this->people,
+            new EmailCodeRepository($pdo),
+            new SecurityEventRepository($pdo),
+            new MailSender($this->settings->mailerDsn, $this->settings->mailFrom),
+            $this->clock,
+            $this->settings,
+        );
         $this->access = new TripAccess($this->trips);
         $this->tripService = new TripService($pdo, $this->trips, $this->people, $this->users);
         $this->tripStatus = new TripStatusService($this->trips);

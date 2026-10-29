@@ -80,8 +80,9 @@ test('an email without an account waits in trip_invites and is linked at sign-up
 
     assertSame(1, invitesOnTrip($app, 9));
 
-    $signUp = signUp($app, 'Lena Berg', ' Lena@Example.com ', 'long-enough-1');
-    $lena = $signUp->data['token'];
+    assertSame(202, signUp($app, 'Lena Berg', ' Lena@Example.com ', 'long-enough-1')->status);
+    assertSame(1, invitesOnTrip($app, 9), 'Nothing is linked before the code.');
+    $lena = call($app, 'POST', '/auth/verify', ['email' => 'lena@example.com', 'code' => latestCodeFor('lena@example.com')])->data['token'];
 
     assertSame([9], listedTripIds($app, $lena));
     assertSame(['Ana', 'Lena Berg'], array_map(fn ($m) => $m->name, get($app, '/trips/9', $lena)->data->members));
@@ -92,7 +93,7 @@ test('seeded invite: signing up as ines@example.com links Inés on Ski week', fu
     $app = seededApp();
     assertSame(1, (int) $app->pdo->query("SELECT COUNT(*) FROM group_invites WHERE email = 'ines@example.com'")->fetchColumn());
 
-    $ines = signUp($app, 'Inés García', 'ines@example.com', 'long-enough-1')->data['token'];
+    $ines = signUpAndVerify($app, 'Inés García', 'ines@example.com', 'long-enough-1')->data['token'];
 
     assertSame([8], listedTripIds($app, $ines));
     $summary = get($app, '/trips/8/summary', $ines)->data;
@@ -194,7 +195,7 @@ test('login and sign-up set last_login_at; seeded accounts start without one', f
     assertSame(null, $lastLogin('ana@example.com'));
     tokenFor($app, 'ana@example.com');
     assertTrue(is_string($lastLogin('ana@example.com')));
-    signUp($app, 'Zoe', 'zoe@example.com', 'long-enough-1');
+    signUpAndVerify($app, 'Zoe', 'zoe@example.com', 'long-enough-1');
     assertTrue(is_string($lastLogin('zoe@example.com')));
 });
 

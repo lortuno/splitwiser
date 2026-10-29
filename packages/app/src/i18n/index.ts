@@ -19,11 +19,11 @@ export function t(key: MessageKey, params: Record<string, string | number> = {})
   return MESSAGES[getLanguage()][key].replace(/\{(\w+)\}/g, (_, name: string) => String(params[name] ?? `{${name}}`));
 }
 
-type CountKey = "trip.expenseCount" | "trip.peopleCount";
+type CountKey = "trip.expenseCount" | "trip.peopleCount" | "verify.intro" | "error.codeWrong" | "auth.locked";
 
 /** "1 expense" / "3 expenses": uses the key's ".one" variant where the language's plural rule says so. */
-export function tCount(key: CountKey, count: number): string {
-  return t(USES_ONE[getLanguage()](count) ? `${key}.one` : key, { count });
+export function tCount(key: CountKey, count: number, params: Record<string, string | number> = {}): string {
+  return t(USES_ONE[getLanguage()](count) ? `${key}.one` : key, { ...params, count });
 }
 
 /** "2026-06-01" -> "1 Jun 2026" ("1 jun 2026", "1 juin 2026"). */

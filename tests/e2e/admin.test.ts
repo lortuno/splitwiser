@@ -6,20 +6,22 @@ import type { Page } from "playwright";
 
 import {
   API_URL,
-  TOKEN_KEY,
-  VIEWPORT,
   euro,
   firstStartLog,
   fromMenu,
   initDb,
   logInWithForm,
+  mailsTo,
   menuButton,
   menuItem,
+  newMail,
   open,
   shot,
   startServers,
   stopServers,
+  TOKEN_KEY,
   tokenFor,
+  VIEWPORT,
   visible,
 } from "./harness";
 
@@ -78,8 +80,17 @@ describe("epic 7: admin account in the seed (390x844)", () => {
     await field(page, "Your name").fill("Someone");
     await field(page, "Email").fill(ADMIN_EMAIL);
     await field(page, "Password (at least 8 characters)").fill("travel-demo-2026");
+    const before = (await mailsTo(ADMIN_EMAIL)).length;
     await button(page, "Create account").click();
-    await visible(page, "This email already has an account.");
+    await visible(page, "Check your email"); // as for any email (feature 8)
+    const mail = await newMail(ADMIN_EMAIL, before);
+    expect(mail.subject).toBe("You already have an account");
+    expect(mail.text).not.toMatch(/^\s+\d{6}\s*$/m);
+    expect((await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
+    })).status).toBe(200);
     await page.close();
   }, 30_000);
 

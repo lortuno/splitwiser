@@ -16,27 +16,37 @@ function errorCodes(App\Api\JsonResponse $response): array
     return array_map(fn (array $error) => $error['code'], $response->data['errors']);
 }
 
-function signUp(App\Container $app, string $name, string $email, string $password): App\Api\JsonResponse
+function signUp(App\Container $app, string $name, string $email, string $password, string $language = 'en'): App\Api\JsonResponse
 {
-    return call($app, 'POST', '/auth/signup', ['display_name' => $name, 'email' => $email, 'password' => $password]);
+    return call($app, 'POST', '/auth/signup', ['display_name' => $name, 'email' => $email, 'password' => $password, 'language' => $language]);
 }
 
-test('sign-up returns a token and the user, and the token works', function (): void {
-    $app = seededApp();
-    $response = signUp($app, '  Zoe ', ' Zoe@Example.com ', 'long-enough-1');
+/** Signs up and confirms the code from the newest email (Mailpit): the verify response, with token and user. */
+function signUpAndVerify(App\Container $app, string $name, string $email, string $password, string $language = 'en'): App\Api\JsonResponse
+{
+    assertSame(202, signUp($app, $name, $email, $password, $language)->status);
 
-    assertSame(201, $response->status);
+    return call($app, 'POST', '/auth/verify', ['email' => $email, 'code' => latestCodeFor(App\Service\AuthService::normaliseEmail($email))]);
+}
+
+test('sign-up answers 202, and the code from the email returns a token and the user, and the token works', function (): void {
+    $app = seededApp();
+    $response = signUpAndVerify($app, '  Zoe ', ' Zoe@Example.com ', 'long-enough-1');
+
+    assertSame(200, $response->status);
     assertSame(64, strlen($response->data['token']));
     assertSame(['display_name' => 'Zoe', 'email' => 'zoe@example.com', 'language' => 'en'], array_slice($response->data['user']->jsonSerialize(), 1));
     assertSame('Zoe', get($app, '/me', $response->data['token'])->data->displayName);
     assertSame([], get($app, '/trips', $response->data['token'])->data, 'A new account has no trips.');
 });
 
-test('sign-up rejects a taken email, also with other case and spaces', function (): void {
+test('sign-up with an email that has an account answers like any other and changes nothing', function (): void {
     $app = seededApp();
 
-    assertSame(['email' => 'taken'], errorCodes(signUp($app, 'Zoe', 'ana@example.com', 'long-enough-1')));
-    assertSame(['email' => 'taken'], errorCodes(signUp($app, 'Zoe', '  ANA@Example.com ', 'long-enough-1')));
+    $taken = signUp($app, 'Zoe', '  ANA@Example.com ', 'long-enough-1');
+    assertSame(202, $taken->status);
+    assertSame(['email', 'code_minutes', 'resend_in_seconds'], array_keys($taken->data));
+    assertSame(64, strlen(tokenFor($app, 'ana@example.com')), 'The password is unchanged.');
 });
 
 test('sign-up validates name, email and password', function (): void {
@@ -49,13 +59,13 @@ test('sign-up validates name, email and password', function (): void {
     assertSame(['email' => 'invalid_email'], errorCodes(signUp($app, 'Zoe', 'zoe@example', 'long-enough-1')));
     assertSame(['password' => 'too_short'], errorCodes(signUp($app, 'Zoe', 'zoe@example.com', '1234567')));
     assertSame(['password' => 'too_long'], errorCodes(signUp($app, 'Zoe', 'zoe@example.com', str_repeat('a', 201))));
-    assertSame(201, signUp($app, str_repeat('a', 60), 'zoe@example.com', '12345678')->status, '60 characters and 8 characters are fine.');
+    assertSame(202, signUp($app, str_repeat('a', 60), 'zoe@example.com', '12345678')->status, '60 characters and 8 characters are fine.');
 });
 
 test('sign-up allows a name that is already taken', function (): void {
     $app = seededApp();
 
-    assertSame(201, signUp($app, 'Ana', 'another.ana@example.com', 'long-enough-1')->status);
+    assertSame(202, signUp($app, 'Ana', 'another.ana@example.com', 'long-enough-1')->status);
 });
 
 test('login works with the right password, also with a loosely typed email', function (): void {

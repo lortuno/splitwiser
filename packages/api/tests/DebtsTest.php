@@ -73,7 +73,7 @@ test('owing in one group and being owed in another are never netted', function (
 
 test('a new account owes nothing; the endpoint needs a token', function (): void {
     $app = seededApp();
-    $token = signUp($app, 'Yara', 'yara@example.com', 'long-enough-1')->data['token'];
+    $token = signUpAndVerify($app, 'Yara', 'yara@example.com', 'long-enough-1')->data['token'];
 
     assertSame(['owe_cents' => 0, 'owed_cents' => 0, 'groups' => []], jsonOf(get($app, '/me/debts', $token)));
     $response = get($app, '/me/debts');

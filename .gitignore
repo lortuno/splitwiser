@@ -4,6 +4,7 @@ dist/
 dist-native/
 web-build/
 packages/api/var/
+packages/api/vendor/
 .idea/
 .DS_Store
 *.log

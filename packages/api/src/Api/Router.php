@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Api;
 
+use App\Service\ApiException;
 use App\Service\ConflictException;
 use App\Service\ForbiddenException;
 use App\Service\NotFoundException;
@@ -51,6 +52,8 @@ final class Router
             return self::error(403, 'not_a_member', $e->getMessage());
         } catch (NotFoundException $e) {
             return self::error(404, 'not_found', $e->getMessage());
+        } catch (ApiException $e) {
+            return new JsonResponse($e->status, ['error' => ['code' => $e->errorCode, 'message' => $e->getMessage()] + ($e->params === [] ? [] : ['params' => $e->params])]);
         } catch (ConflictException $e) {
             return self::error(409, $e->errorCode, $e->getMessage());
         } catch (\JsonException) {

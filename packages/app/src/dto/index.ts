@@ -30,7 +30,18 @@ export interface User {
   language: "en" | "es" | "fr";
 }
 
-/** Response of POST /auth/signup and POST /auth/login. */
+/** How long a sign-up code is valid and how long until a new one can be sent (feature 8, security). */
+export interface CodeTimes {
+  code_minutes: number;
+  resend_in_seconds: number;
+}
+
+/** Response of POST /auth/signup: the same for every email; the session comes with the code. */
+export interface SignUpResult extends CodeTimes {
+  email: string;
+}
+
+/** Response of POST /auth/verify and POST /auth/login. */
 export interface AuthResult {
   token: string;
   user: User;

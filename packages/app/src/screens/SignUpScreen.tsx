@@ -2,21 +2,22 @@ import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 
 import { signUp } from "../api/auth";
-import { API_URL, ApiError } from "../api/client";
+import { ApiError } from "../api/client";
 import { Card } from "../components/Card";
 import { TextField } from "../components/TextField";
-import type { FieldErrors, User } from "../dto";
+import type { FieldErrors, SignUpResult } from "../dto";
 import { getLanguage, t } from "../i18n";
-import { errorText } from "../i18n/errors";
+import { errorText, requestErrorText } from "../i18n/errors";
 import { authStyles as styles } from "./LoginScreen";
 
-export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) => void; onBack: () => void }) {
+/** Sign-up asks for a code by email; "Check your email" opens with the answer, whatever the email. */
+export function SignUpScreen({ onCodeSent, onBack }: { onCodeSent: (result: SignUpResult) => void; onBack: () => void }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  // Field errors come from the API (422); `unreachable` covers everything else.
+  // Field errors come from the API (422); `failure` is the card for everything else (limits, mail, unreachable).
   const [errors, setErrors] = useState<FieldErrors>({});
-  const [unreachable, setUnreachable] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   async function submit() {
@@ -24,13 +25,13 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
       return;
     }
     setBusy(true);
-    setUnreachable(false);
+    setFailure(null);
     try {
-      onSignedUp(await signUp(name, email, password, getLanguage()));
+      onCodeSent(await signUp(name, email, password, getLanguage()));
     } catch (e) {
       const fieldErrors = e instanceof ApiError ? e.fieldErrors : {};
       setErrors(fieldErrors);
-      setUnreachable(Object.keys(fieldErrors).length === 0);
+      setFailure(Object.keys(fieldErrors).length === 0 ? requestErrorText(e) : null);
       setBusy(false);
     }
   }
@@ -70,10 +71,10 @@ export function SignUpScreen({ onSignedUp, onBack }: { onSignedUp: (user: User) 
           onSubmitEditing={submit}
           error={errorText(errors.password, "password")}
         />
-        {unreachable && (
+        {failure !== null && (
           <Card style={styles.errorCard}>
             <Text style={styles.errorText} accessibilityRole="alert">
-              {t("common.loadFailed", { url: API_URL })}
+              {failure}
             </Text>
           </Card>
         )}

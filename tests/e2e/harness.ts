@@ -20,7 +20,18 @@ export const TOKEN_KEY = "travel-expenses.token";
 export const euro = (text: string) => `${text}${NBSP}€`;
 
 const work = mkdtempSync(join(tmpdir(), "e2e-"));
-const env = { ...process.env, DB_PATH: join(work, "app.sqlite"), EXPO_PUBLIC_API_URL: API_URL };
+// Feature 8: short durations so the checks can wait for a code or a lock to end (code 60 s, lock 60 s, 5 s between
+// codes), the test web server as the only CORS origin, and the emails in Mailpit (MAILER_DSN from docker-compose.yml).
+const env = {
+  ...process.env,
+  DB_PATH: join(work, "app.sqlite"),
+  EXPO_PUBLIC_API_URL: API_URL,
+  APP_ORIGIN: WEB_URL,
+  AUTH_CODE_TTL: "60",
+  AUTH_LOCK: "60",
+  AUTH_RESEND_GAP: "5",
+};
+export const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://mailpit:8025";
 
 function run(cmd: string[], cwd: string): string {
   const result = Bun.spawnSync(cmd, { cwd, env, stdout: "pipe", stderr: "pipe" });
@@ -43,12 +54,7 @@ export let browser: Browser;
 export async function startServers() {
   rmSync(join(work, "app.sqlite"), { force: true });
   firstStartLog = initDb();
-  api = Bun.spawn(["php", "-S", `127.0.0.1:${API_PORT}`, "-t", "public", "public/index.php"], {
-    cwd: join(ROOT, "packages/api"),
-    env,
-    stdout: "ignore",
-    stderr: "ignore",
-  });
+  api = spawnApi();
   web = Bun.serve({
     port: WEB_PORT,
     hostname: "127.0.0.1",
@@ -57,13 +63,34 @@ export async function startServers() {
       return new Response((await file.exists()) ? file : Bun.file(join(work, "web", "index.html")));
     },
   });
+  await apiReady();
+  mkdirSync(SHOTS, { recursive: true });
+  browser = await chromium.launch();
+}
+
+function spawnApi(overrides: Record<string, string> = {}) {
+  return Bun.spawn(["php", "-S", `127.0.0.1:${API_PORT}`, "-t", "public", "public/index.php"], {
+    cwd: join(ROOT, "packages/api"),
+    env: { ...env, ...overrides },
+    stdout: "ignore",
+    stderr: "ignore",
+  });
+}
+
+async function apiReady() {
   for (let attempt = 0; attempt < 50; attempt++) {
     const ready = await fetch(`${API_URL}/health`).then((r) => r.ok).catch(() => false);
     if (ready) break;
     await Bun.sleep(100);
   }
-  mkdirSync(SHOTS, { recursive: true });
-  browser = await chromium.launch();
+}
+
+/** Restarts the API on the same database with some settings changed (e.g. a mail server that is down). */
+export async function restartApi(overrides: Record<string, string> = {}) {
+  api?.kill();
+  await api?.exited;
+  api = spawnApi(overrides);
+  await apiReady();
 }
 
 /** Runs the API's start step (bin/init-db.php) against the test database again, as a restart does; returns its log. */
@@ -158,3 +185,49 @@ export async function sameRow(page: Page, left: string, right: string): Promise<
 }
 
 export const noSidewaysScroll = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
+
+export interface Mail {
+  subject: string;
+  text: string;
+}
+
+/** The emails to `email` in Mailpit, newest first. Earlier runs may have left older ones: compare counts. */
+export async function mailsTo(email: string): Promise<Mail[]> {
+  const search = (await (await fetch(`${MAILPIT_URL}/api/v1/search?query=${encodeURIComponent(`to:"${email}"`)}`)).json()) as {
+    messages: { ID: string }[];
+  };
+  const mails: Mail[] = [];
+  for (const { ID } of search.messages ?? []) {
+    const full = (await (await fetch(`${MAILPIT_URL}/api/v1/message/${ID}`)).json()) as { Subject: string; Text: string };
+    mails.push({ subject: full.Subject, text: full.Text });
+  }
+  return mails;
+}
+
+/** Waits until `email` has more than `before` emails and returns the newest. */
+export async function newMail(email: string, before: number): Promise<Mail> {
+  for (let attempt = 0; attempt < 50; attempt++) {
+    const mails = await mailsTo(email);
+    if (mails.length > before) {
+      return mails[0];
+    }
+    await Bun.sleep(100);
+  }
+  throw new Error(`No new email to ${email}.`);
+}
+
+/** The 6-digit code in an email. */
+export function codeIn(mail: Mail): string {
+  const match = mail.text.match(/^\s+(\d{6})\s*$/m);
+  if (match === null) {
+    throw new Error(`No code in "${mail.subject}".`);
+  }
+  return match[1];
+}
+
+/** On "Check your email": enters the code of the newest email to `email` (sent after `before` emails) and confirms. */
+export async function confirmCodeFromEmail(page: Page, email: string, before: number, confirm = "Confirm") {
+  const code = codeIn(await newMail(email, before));
+  await page.getByLabel(/^(Code|Código)$/).fill(code);
+  await page.getByRole("button", { name: confirm, exact: true }).click();
+}

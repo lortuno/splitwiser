@@ -30,10 +30,11 @@ test('GET /me, login and sign-up return the language; sign-up stores it, English
     $login = call($app, 'POST', '/auth/login', ['email' => 'ana@example.com', 'password' => App\Database\Seeder::DEMO_PASSWORD]);
     assertSame('en', jsonOf($login)['user']['language']);
 
-    $french = call($app, 'POST', '/auth/signup', ['display_name' => 'Lena', 'email' => 'lena@example.com', 'password' => 'travel-demo-2026', 'language' => 'fr']);
-    assertSame([201, 'fr'], [$french->status, jsonOf($french)['user']['language']]);
+    $french = signUpAndVerify($app, 'Lena', 'lena@example.com', 'travel-demo-2026', 'fr');
+    assertSame([200, 'fr'], [$french->status, jsonOf($french)['user']['language']]);
     assertSame('fr', jsonOf(get($app, '/me', $french->data['token']))['language']);
-    $default = call($app, 'POST', '/auth/signup', ['display_name' => 'Max', 'email' => 'max@example.com', 'password' => 'travel-demo-2026']);
+    assertSame(202, call($app, 'POST', '/auth/signup', ['display_name' => 'Max', 'email' => 'max@example.com', 'password' => 'travel-demo-2026'])->status);
+    $default = call($app, 'POST', '/auth/verify', ['email' => 'max@example.com', 'code' => latestCodeFor('max@example.com')]);
     assertSame('en', jsonOf($default)['user']['language']);
 
     $invalid = call($app, 'POST', '/auth/signup', ['display_name' => 'Kai', 'email' => 'kai@example.com', 'password' => 'travel-demo-2026', 'language' => 'de']);

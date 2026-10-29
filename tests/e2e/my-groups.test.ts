@@ -3,7 +3,19 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Page } from "playwright";
 
-import { API_URL, euro, noSidewaysScroll, open, openAs, shot, startServers, stopServers, visible } from "./harness";
+import {
+  API_URL,
+  confirmCodeFromEmail,
+  euro,
+  mailsTo,
+  noSidewaysScroll,
+  open,
+  openAs,
+  shot,
+  startServers,
+  stopServers,
+  visible,
+} from "./harness";
 
 beforeAll(startServers);
 afterAll(stopServers);
@@ -202,7 +214,9 @@ describe("epic 2: I owe, I'm owed and paid groups (390x844)", () => {
     await field(page, "Your name").fill("Yara");
     await field(page, "Email").fill("yara@example.com");
     await field(page, "Password (at least 8 characters)").fill("long-enough-1");
+    const before = (await mailsTo("yara@example.com")).length;
     await button(page, "Create account").click();
+    await confirmCodeFromEmail(page, "yara@example.com", before);
     await visible(page, 'You are not on any group yet. Start one with "+ New group", or ask a friend to add you with your email.');
     expect(await half(page, "I owe").count()).toBe(0);
     expect(await half(page, "I'm owed").count()).toBe(0);

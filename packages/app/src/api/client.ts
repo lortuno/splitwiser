@@ -9,6 +9,8 @@ export class ApiError extends Error {
     readonly fieldErrors: FieldErrors = {},
     /** `error.code` from the API, e.g. "invalid_credentials", "not_a_member". */
     readonly code: string | null = null,
+    /** `error.params`: the numbers in the message, e.g. `{ minutes: 5 }` for "locked". */
+    readonly params: Record<string, number> = {},
   ) {
     super(`API request failed with status ${status}`);
   }
@@ -41,7 +43,7 @@ export async function request<T>(path: string, init: { method?: "GET" | "POST" |
       clearToken();
       onUnauthenticated();
     }
-    throw new ApiError(response.status, data?.errors ?? {}, data?.error?.code ?? null);
+    throw new ApiError(response.status, data?.errors ?? {}, data?.error?.code ?? null, data?.error?.params ?? {});
   }
   return data as T;
 }
