@@ -48,6 +48,28 @@ export interface Trip {
   members?: Person[];
 }
 
+/** One suggested transfer seen from the user's side: they pay `person`, or `person` pays them. */
+export interface DebtTransfer {
+  direction: "pay" | "receive";
+  person: Person;
+  amount_cents: number;
+}
+
+/** What the user owes and is owed on one open group. */
+export interface GroupDebts {
+  trip_id: number;
+  owe_cents: number;
+  owed_cents: number;
+  transfers: DebtTransfer[];
+}
+
+/** Response of GET /me/debts: totals over the user's open groups (never netted) and only groups with a transfer. */
+export interface Debts {
+  owe_cents: number;
+  owed_cents: number;
+  groups: GroupDebts[];
+}
+
 export interface Payer {
   person_id: number;
   name: string;

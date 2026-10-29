@@ -6,10 +6,11 @@ namespace App\Api;
 
 use App\Dto\User;
 use App\Service\AuthService;
+use App\Service\DebtService;
 
 final readonly class AuthController
 {
-    public function __construct(private AuthService $auth)
+    public function __construct(private AuthService $auth, private DebtService $debts)
     {
     }
 
@@ -45,5 +46,11 @@ final readonly class AuthController
     public function updateMe(Request $request, array $params, User $user): JsonResponse
     {
         return new JsonResponse(200, $this->auth->updateMe($user, $request->json()));
+    }
+
+    /** What the user owes and is owed on their open groups ("I owe" / "I'm owed" on My groups). */
+    public function debts(Request $request, array $params, User $user): JsonResponse
+    {
+        return new JsonResponse(200, $this->debts->forUser($user));
     }
 }

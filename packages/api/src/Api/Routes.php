@@ -11,7 +11,7 @@ final class Routes
 {
     public static function build(Container $c): Router
     {
-        $auth = new AuthController($c->auth);
+        $auth = new AuthController($c->auth, $c->debts);
         $trips = new TripController($c->trips, $c->tripService, $c->tripStatus, $c->summaries);
         $expenses = new ExpenseController($c->expenses, $c->summaries);
         $summary = new SummaryController($c->summaries);
@@ -31,6 +31,7 @@ final class Routes
         $router->add('POST', '/auth/logout', $auth->logOut(...));
         $router->add('GET', '/me', $loggedIn($auth->me(...)));
         $router->add('PATCH', '/me', $loggedIn($auth->updateMe(...)));
+        $router->add('GET', '/me/debts', $loggedIn($auth->debts(...)));
         $router->add('GET', '/trips', $loggedIn($trips->list(...)));
         $router->add('POST', '/trips', $loggedIn($trips->create(...)));
         $router->add('GET', '/trips/{tripId}', $member($trips->show(...)));

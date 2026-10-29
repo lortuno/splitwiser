@@ -10,6 +10,7 @@ Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-
 | Date | Task | Estimate (h) | Actual (h) |
 |---|---|---|---|
 | 2026-10-27 | Build the epic | 1 | 1 |
+| 2026-10-29 | Build spec change: I owe / I'm owed and paid groups folded away | 0.75 | 0.17 |
 
 ## Goal
 

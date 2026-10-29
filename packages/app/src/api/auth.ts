@@ -1,4 +1,4 @@
-import type { AuthResult, User } from "../dto";
+import type { AuthResult, Debts, User } from "../dto";
 import type { Language } from "../i18n/language";
 import { request } from "./client";
 import { clearToken, setToken } from "./session";
@@ -34,3 +34,6 @@ export const getMe = () => request<User>("/me");
 /** Renames the account (the new name shows on every trip at once) and/or records its app language. */
 export const updateMe = (changes: { display_name?: string; language?: Language }) =>
   request<User>("/me", { method: "PATCH", body: changes });
+
+/** What the logged-in user owes and is owed on their open groups ("I owe" / "I'm owed" on My groups). */
+export const getDebts = () => request<Debts>("/me/debts");

@@ -13,6 +13,7 @@ use App\Repository\TripRepository;
 use App\Repository\UserRepository;
 use App\Service\AuthService;
 use App\Service\CategoryGuesser;
+use App\Service\DebtService;
 use App\Service\ExpenseService;
 use App\Service\ExpenseValidator;
 use App\Service\SettlementService;
@@ -36,6 +37,7 @@ final class Container
     public readonly TripStatusService $tripStatus;
     public readonly ExpenseService $expenses;
     public readonly SummaryService $summaries;
+    public readonly DebtService $debts;
 
     public function __construct(public readonly PDO $pdo)
     {
@@ -50,6 +52,7 @@ final class Container
         $this->tripStatus = new TripStatusService($this->trips);
         $this->expenses = new ExpenseService($pdo, $this->trips, $this->expenseRepository, new ExpenseValidator(), new CategoryGuesser());
         $this->summaries = new SummaryService($this->trips, $this->balances, new SettlementService());
+        $this->debts = new DebtService($this->trips, $this->summaries);
     }
 
     public function seeder(): Seeder

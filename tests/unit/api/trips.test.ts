@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 
-import { updateMe } from "../../../packages/app/src/api/auth";
+import { getDebts, updateMe } from "../../../packages/app/src/api/auth";
 import { suggestCategory, updateExpense } from "../../../packages/app/src/api/expenses";
 import { createTrip, markPaid, reopenTrip } from "../../../packages/app/src/api/trips";
 import { clearToken, setToken } from "../../../packages/app/src/api/session";
@@ -92,5 +92,16 @@ describe("epic 5 requests", () => {
     expect(result).toEqual({ category: "fuel", source: "keywords" });
     expect(calls[0].method).toBe("GET");
     expect(calls[0].url.endsWith("/trips/7/category-suggestion?name=Gasolne%20%26%20Repsol")).toBe(true);
+  });
+});
+
+describe("I owe / I'm owed", () => {
+  test("getDebts reads GET /me/debts", async () => {
+    const debts = { owe_cents: 7290, owed_cents: 0, groups: [] };
+    answer(200, debts);
+
+    expect(await getDebts()).toEqual(debts);
+    expect(calls[0].url.endsWith("/me/debts")).toBe(true);
+    expect(calls[0].method).toBe("GET");
   });
 });

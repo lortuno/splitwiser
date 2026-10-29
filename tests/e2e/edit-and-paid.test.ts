@@ -26,6 +26,11 @@ const today = (page: Page) =>
 /** Logs in as `email` and opens the trip from "My groups". */
 async function openTrip(email: string, tripName: string): Promise<Page> {
   const page = await openAs(email, "/");
+  await page.getByText(/^Logged in as /).waitFor();
+  if ((await text(page, tripName).count()) === 0) {
+    // A paid group is folded into the closed "Paid groups" section.
+    await page.getByRole("button", { name: /^Paid groups/ }).click();
+  }
   await text(page, tripName).click();
   await visible(page, "Total spent");
   return page;
@@ -197,10 +202,14 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
 
   test("check 10: My groups shows paid", async () => {
     const page = await openAs("ana@example.com", "/");
-    await visible(page, "Madrid weekend");
-    expect(await text(page, "✓ Paid").count()).toBe(1);
+    await visible(page, "Lisbon & Porto");
+    expect(await text(page, "Madrid weekend").count()).toBe(0);
+    expect(await text(page, "✓ Paid").count()).toBe(0);
+    await page.getByRole("button", { name: /^Paid groups \(1\)/ }).click();
+    const madrid = page.getByRole("button").filter({ hasText: "Madrid weekend" });
+    await madrid.waitFor();
     expect(await sameRow(page, "Madrid weekend", "✓ Paid")).toBe(true);
-    expect(await sameRow(page, "Total", euro("80,01"))).toBe(true);
+    expect(await madrid.getByText(euro("80,01"), { exact: true }).count()).toBe(1);
     await page.close();
   }, 30_000);
 
@@ -260,7 +269,10 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     expect(await api("POST", "/trips/7/reopen", await tokenFor("chloe@example.com"))).toEqual([409, "already_open"]);
     await button(page, "‹ My groups").click();
     await visible(page, "Madrid weekend");
-    expect(await text(page, "✓ Paid").count()).toBe(1); // Lisbon, marked in check 13
+    expect(await text(page, "✓ Paid").count()).toBe(0); // Lisbon, marked in check 13, is folded away
+    await page.getByRole("button", { name: /^Paid groups \(1\)/ }).click();
+    await visible(page, "Lisbon & Porto");
+    expect(await text(page, "✓ Paid").count()).toBe(1);
     expect(await sameRow(page, "Madrid weekend", "✓ Paid")).toBe(false);
     await page.close();
   }, 30_000);
@@ -311,6 +323,7 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     await visible(page, "Who owes whom");
 
     await button(page, "‹ My groups").click();
+    await page.getByRole("button", { name: /^Paid groups/ }).click();
     await text(page, "Lisbon & Porto").click();
     await button(page, "Reopen").waitFor();
     await page.route(`${API_URL}/**`, (route) => route.abort());
