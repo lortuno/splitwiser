@@ -1,5 +1,5 @@
-// Acceptance checks for epic 3 (specs/trips/03-create-a-trip-specification.md) in Chromium at 390x844.
-// The checks run in order on one fresh seed: checks 2–4 create trip 9, which checks 5 and 6 use; check 12 renames Ana.
+// Acceptance checks for epic 3 (specs/groups/03-create-a-group-specification.md) in Chromium at 390x844.
+// The checks run in order on one fresh seed: checks 2–4 create group 9, which checks 5 and 6 use; check 12 renames Ana.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Page } from "playwright";
 
@@ -28,7 +28,7 @@ afterAll(stopServers);
 const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 const field = (page: Page, label: string, index = 0) => page.getByLabel(label, { exact: true }).nth(index);
 
-/** The trip names on "My trips", top to bottom. */
+/** The trip names on "My groups", top to bottom. */
 async function tripCards(page: Page): Promise<string[]> {
   await page.getByText(/^Logged in as /).waitFor();
   return page.getByRole("button", { name: /Total/ }).evaluateAll((cards) =>
@@ -36,23 +36,23 @@ async function tripCards(page: Page): Promise<string[]> {
   );
 }
 
-/** Opens "New trip" from "My trips". */
+/** Opens "New group" from "My groups". */
 async function openNewTrip(page: Page) {
-  await button(page, "+ New trip").click();
-  await visible(page, "New trip");
+  await button(page, "+ New group").click();
+  await visible(page, "New group");
 }
 
 async function fillTrip(page: Page, name: string, start: string, end: string) {
-  await field(page, "Trip name").fill(name);
+  await field(page, "Group name").fill(name);
   await field(page, "Start date").fill(start);
   await field(page, "End date").fill(end);
 }
 
-describe("epic 3: create a trip (390x844)", () => {
-  test("check 1: My trips has + New trip at the bottom", async () => {
+describe("epic 3: create a group (390x844)", () => {
+  test("check 1: My groups has + New group at the bottom", async () => {
     const page = await openAs("ana@example.com", "/");
     expect(await tripCards(page)).toEqual(["Madrid weekend", "Lisbon & Porto"]);
-    const newTrip = await button(page, "+ New trip").boundingBox();
+    const newTrip = await button(page, "+ New group").boundingBox();
     expect(newTrip!.height).toBeGreaterThanOrEqual(56);
     expect(newTrip!.width).toBeGreaterThan(VIEWPORT.width - 40);
     expect(VIEWPORT.height - (newTrip!.y + newTrip!.height)).toBeLessThanOrEqual(16);
@@ -68,19 +68,16 @@ describe("epic 3: create a trip (390x844)", () => {
   test("checks 2 and 3: the form, then a trip with three people", async () => {
     const page = await openAs("ana@example.com", "/");
     await openNewTrip(page);
-    const today = await page.evaluate(() => {
-      const now = new Date();
-      return [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((n) => String(n).padStart(2, "0")).join("-");
-    });
-    await visible(page, "‹ My trips");
-    expect(await field(page, "Trip name").inputValue()).toBe("");
-    expect(await field(page, "Start date").inputValue()).toBe(today);
-    expect(await field(page, "End date").inputValue()).toBe(today);
+    await visible(page, "‹ My groups");
+    expect(await field(page, "Group name").inputValue()).toBe("");
+    await visible(page, "Dates (optional)");
+    expect(await field(page, "Start date").inputValue()).toBe("");
+    expect(await field(page, "End date").inputValue()).toBe("");
     await visible(page, "Ana (you)");
     expect(await page.getByLabel("Name", { exact: true }).count()).toBe(1);
     expect(await button(page, "Remove").count()).toBe(1);
     await button(page, "+ Add person").waitFor();
-    const create = await button(page, "Create trip").boundingBox();
+    const create = await button(page, "Create group").boundingBox();
     expect(create!.height).toBeGreaterThanOrEqual(56);
     expect(VIEWPORT.height - (create!.y + create!.height)).toBeLessThanOrEqual(16);
     await shot(page, "e3-02-new-trip-form");
@@ -90,7 +87,7 @@ describe("epic 3: create a trip (390x844)", () => {
     await field(page, "Email (optional)", 0).fill("  BEN@Example.com ");
     await button(page, "+ Add person").click();
     await field(page, "Name", 1).fill("Grandma");
-    await button(page, "Create trip").click();
+    await button(page, "Create group").click();
 
     await visible(page, "Summer in Sicily");
     await visible(page, euro("0,00"));
@@ -128,8 +125,8 @@ describe("epic 3: create a trip (390x844)", () => {
     await visible(page, euro("+6,66"));
     expect(await page.getByText(euro("-3,33"), { exact: true }).count()).toBe(2);
 
-    await page.getByRole("tab", { name: "Trip" }).click();
-    await button(page, "‹ My trips").click();
+    await page.getByRole("tab", { name: "Group" }).click();
+    await button(page, "‹ My groups").click();
     expect(await tripCards(page)).toEqual(["Madrid weekend", "Summer in Sicily", "Lisbon & Porto"]);
     await visible(page, euro("10,00"));
     await page.close();
@@ -149,7 +146,7 @@ describe("epic 3: create a trip (390x844)", () => {
     expect(await tripCards(page)).toEqual(["Madrid weekend", "Lisbon & Porto"]);
     await page.close();
     const direct = await openAs("chloe@example.com", "/?trip=9");
-    await visible(direct, "You are not a member of this trip.");
+    await visible(direct, "You are not a member of this group.");
     await direct.close();
   }, 30_000);
 
@@ -165,17 +162,17 @@ describe("epic 3: create a trip (390x844)", () => {
     await field(page, "Email (optional)", 1).fill("ben@x");
     await button(page, "+ Add person").click();
     await field(page, "Name", 2).fill("ben");
-    await button(page, "Create trip").click();
+    await button(page, "Create group").click();
 
     // Since epic 6 errors share one text per code: two duplicate names and one duplicate email.
     await visible(page, "Fill in this field.");
     await visible(page, "The end date is before the start.");
-    expect(await page.getByText("This is already on the trip.", { exact: true }).count()).toBe(3);
+    expect(await page.getByText("This is already on the group.", { exact: true }).count()).toBe(3);
     await visible(page, "Enter an email like ana@example.com.");
     await visible(page, "Please fix the fields marked in red.");
     await shot(page, "e3-07-validation-errors");
 
-    await button(page, "‹ My trips").click();
+    await button(page, "‹ My groups").click();
     expect(await tripCards(page)).toEqual(["Madrid weekend", "Summer in Sicily", "Lisbon & Porto"]);
     await page.close();
   }, 30_000);
@@ -183,12 +180,12 @@ describe("epic 3: create a trip (390x844)", () => {
   test("check 8: at least one more person", async () => {
     const page = await openAs("ana@example.com", "/");
     await openNewTrip(page);
-    await field(page, "Trip name").fill("Solo");
+    await field(page, "Group name").fill("Solo");
     await button(page, "Remove").click();
     expect(await page.getByLabel("Name", { exact: true }).count()).toBe(0);
-    await button(page, "Create trip").click();
+    await button(page, "Create group").click();
     await visible(page, "Add at least one more person.");
-    await button(page, "‹ My trips").click();
+    await button(page, "‹ My groups").click();
     expect((await tripCards(page)).length).toBe(3);
     await page.close();
   }, 30_000);
@@ -204,21 +201,23 @@ describe("epic 3: create a trip (390x844)", () => {
 
     const long = "A very long trip name that keeps going until it has exactly eighty characters ok";
     expect(long.length).toBe(80);
-    await fillTrip(page, `${long}!`, "2026-08-01", "2026-08-02");
+    await fillTrip(page, `${long}!`, "", "");
     for (let i = 0; i < 19; i++) {
       await field(page, "Name", i).fill(`Person ${i + 1}`);
     }
-    await button(page, "Create trip").click();
+    await button(page, "Create group").click();
     await visible(page, "Use at most 80 characters.");
 
-    await field(page, "Trip name").fill(long);
-    await button(page, "Create trip").click();
+    await field(page, "Group name").fill(long);
+    await button(page, "Create group").click();
     await visible(page, "20 people");
+    await visible(page, "0 expenses"); // no dates before it
+    expect(new URL(page.url()).search).toBe("?trip=10");
     const header = await page.getByText(long, { exact: true }).first().boundingBox();
     expect(header!.height).toBeLessThan(20 * 1.6); // one line with "…"
     expect(await noSidewaysScroll(page)).toBe(true);
 
-    await button(page, "‹ My trips").click();
+    await button(page, "‹ My groups").click();
     const card = await page.getByText(long, { exact: true }).boundingBox();
     expect(card!.height).toBeLessThan(16 * 1.6 * 2 + 1); // at most 2 lines
     expect(await noSidewaysScroll(page)).toBe(true);
@@ -251,8 +250,8 @@ describe("epic 3: create a trip (390x844)", () => {
     await field(page, "Email").fill("zoe@example.com");
     await field(page, "Password (at least 8 characters)").fill("long-enough-1");
     await button(page, "Create account").click();
-    await visible(page, 'You are not on any trip yet. Start one with "+ New trip", or ask a friend to add you with your email.');
-    await button(page, "+ New trip").waitFor();
+    await visible(page, 'You are not on any group yet. Start one with "+ New group", or ask a friend to add you with your email.');
+    await button(page, "+ New group").waitFor();
     await page.close();
   }, 30_000);
 
@@ -285,24 +284,74 @@ describe("epic 3: create a trip (390x844)", () => {
     expect(taxi.recorded_by.name).toBe("Ana María");
   }, 30_000);
 
-  test("check 13: API unreachable on Create trip and Save", async () => {
+  // Before check 13, which saves one more group: "Gifts for Ben" is group 11, as in the spec.
+  test("check 16: a group without dates", async () => {
+    const page = await openAs("ana@example.com", "/");
+    await openNewTrip(page);
+    await field(page, "Group name").fill("Gifts for Ben");
+    await field(page, "Name", 0).fill("Chloé");
+    await field(page, "Email (optional)", 0).fill("chloe@example.com");
+    await button(page, "Create group").click();
+
+    await visible(page, "Gifts for Ben");
+    await visible(page, euro("0,00"));
+    await visible(page, "0 expenses");
+    await visible(page, "2 people");
+    expect(new URL(page.url()).search).toBe("?trip=11");
+    await shot(page, "e3-16-group-without-dates");
+
+    const today = await page.evaluate(() => {
+      const now = new Date();
+      return [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((n) => String(n).padStart(2, "0")).join("-");
+    });
+    await page.getByText("+ Add expense", { exact: true }).click();
+    expect(await page.getByPlaceholder("2026-06-01").inputValue()).toBe(today);
+    await page.getByPlaceholder("Dinner at the harbour").fill("Book");
+    await page.getByPlaceholder("0,00").first().fill("40,00");
+    await page.getByRole("checkbox", { name: "Ana María" }).nth(0).click();
+    await page.getByText("Save expense", { exact: true }).click();
+    await visible(page, "1 expense");
+    expect(await sameRow(page, "Chloé pays Ana María", euro("20,00"))).toBe(true);
+
+    await button(page, "‹ My groups").click();
+    const long = "A very long trip name that keeps going until it has exactly eighty characters ok";
+    expect(await tripCards(page)).toEqual(["Madrid weekend", "Summer in Sicily", "Lisbon & Porto", "Gifts for Ben", long]);
+    await page.close();
+  }, 30_000);
+
+  test("check 17: one date without the other", async () => {
+    const page = await openAs("ana@example.com", "/");
+    await openNewTrip(page);
+    await fillTrip(page, "Half dates", "2026-08-01", "");
+    await field(page, "Name", 0).fill("Zed");
+    await button(page, "Create group").click();
+    await visible(page, "Enter a date as YYYY-MM-DD.");
+    await fillTrip(page, "Half dates", "", "2026-08-01");
+    await button(page, "Create group").click();
+    await visible(page, "Enter a date as YYYY-MM-DD.");
+    await button(page, "‹ My groups").click();
+    expect((await tripCards(page)).length).toBe(5);
+    await page.close();
+  }, 30_000);
+
+  test("check 13: API unreachable on Create group and Save", async () => {
     const page = await openAs("ana@example.com", "/");
     await openNewTrip(page);
     await fillTrip(page, "Offline trip", "2026-08-10", "2026-08-12");
     await field(page, "Name", 0).fill("Ben");
     await page.route(`${API_URL}/**`, (route) => route.abort());
-    await button(page, "Create trip").click();
+    await button(page, "Create group").click();
     await visible(page, `Could not reach the API at ${API_URL}.`);
-    await button(page, "Create trip").waitFor();
-    expect(await field(page, "Trip name").inputValue()).toBe("Offline trip");
+    await button(page, "Create group").waitFor();
+    expect(await field(page, "Group name").inputValue()).toBe("Offline trip");
     await shot(page, "e3-13-api-unreachable-new-trip");
 
     await page.unroute(`${API_URL}/**`);
-    await button(page, "Create trip").click();
+    await button(page, "Create group").click();
     await visible(page, "Offline trip");
     await visible(page, "2 people");
 
-    await button(page, "‹ My trips").click();
+    await button(page, "‹ My groups").click();
     await fromMenu(page, "Settings");
     await page.route(`${API_URL}/**`, (route) => route.abort());
     await button(page, "Save").click();
@@ -311,6 +360,26 @@ describe("epic 3: create a trip (390x844)", () => {
     await page.unroute(`${API_URL}/**`);
     await page.close();
   }, 30_000);
+
+  test("check 18: the API takes groups without dates", async () => {
+    const headers = { "Content-Type": "application/json", Authorization: `Bearer ${await tokenFor("ana@example.com")}` };
+    const create = (body: object) =>
+      fetch(`${API_URL}/trips`, { method: "POST", headers, body: JSON.stringify({ name: "API group", people: [{ name: "Zed" }], ...body }) });
+
+    for (const body of [{ start_date: null, end_date: null }, {}]) {
+      const response = await create(body);
+      expect(response.status).toBe(201);
+      const { trip } = await response.json();
+      expect([trip.start_date, trip.end_date]).toEqual([null, null]);
+    }
+    const half = await create({ start_date: "2026-08-01" });
+    expect(half.status).toBe(422);
+    expect((await half.json()).errors.end_date.code).toBe("invalid_date");
+
+    const listed: { start_date: string | null }[] = await (await fetch(`${API_URL}/trips`, { headers })).json();
+    const firstDateless = listed.findIndex((trip) => trip.start_date === null);
+    expect(listed.slice(firstDateless).every((trip) => trip.start_date === null)).toBe(true);
+  });
 
   test("check 14: POST /trips and PATCH /me need a token", async () => {
     for (const [method, path] of [

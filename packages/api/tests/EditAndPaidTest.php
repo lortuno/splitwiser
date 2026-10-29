@@ -196,8 +196,8 @@ test('marking as paid stores who and when, and the summary keeps the real number
     assertSame(7830, $summary['total_cents']);
     assertSame(915, $summary['transfers'][0]['amount_cents']);
     assertSame($summary['paid'], jsonOf(get($app, '/trips/7/summary', tokenFor($app, 'chloe@example.com')))['paid']);
-    $row = $app->pdo->query('SELECT trip_id, status, changed_by FROM trip_status_changes')->fetchAll();
-    assertSame([[7, 'paid', $app->users->idByEmail('ana@example.com')]], array_map(fn ($r) => [(int) $r['trip_id'], $r['status'], (int) $r['changed_by']], $row));
+    $row = $app->pdo->query('SELECT group_id, status, changed_by FROM group_status_changes')->fetchAll();
+    assertSame([[7, 'paid', $app->users->idByEmail('ana@example.com')]], array_map(fn ($r) => [(int) $r['group_id'], $r['status'], (int) $r['changed_by']], $row));
 });
 
 test('paid.by shows the marker\'s current name on the trip', function (): void {
@@ -236,7 +236,7 @@ test('a paid trip answers 409 trip_paid to new, previewed and edited expenses, b
     ] as $i => $response) {
         assertSame([409, 'trip_paid'], [$response->status, errorCode($response)], "request {$i}");
     }
-    assertSame('This trip is marked as paid. Reopen it to make changes.', call($app, 'POST', '/trips/7/expenses', $valid, $chloe)->data['error']['message']);
+    assertSame('This group is marked as paid. Reopen it to make changes.', call($app, 'POST', '/trips/7/expenses', $valid, $chloe)->data['error']['message']);
     assertSame(2, $app->summaries->forTrip(7)->expenseCount);
     assertSame([], changesOf($app, $m['tapas']->id));
 });
@@ -248,8 +248,8 @@ test('marking twice gives already_paid, reopening an open trip gives already_ope
     assertSame([409, 'already_open'], [($r = call($app, 'POST', '/trips/7/reopen', token: $ana))->status, errorCode($r)]);
     call($app, 'POST', '/trips/7/paid', token: $ana);
     assertSame([409, 'already_paid'], [($r = call($app, 'POST', '/trips/7/paid', token: tokenFor($app, 'chloe@example.com')))->status, errorCode($r)]);
-    assertSame('This trip is already marked as paid.', $r->data['error']['message']);
-    assertSame(1, (int) $app->pdo->query('SELECT COUNT(*) FROM trip_status_changes')->fetchColumn());
+    assertSame('This group is already marked as paid.', $r->data['error']['message']);
+    assertSame(1, (int) $app->pdo->query('SELECT COUNT(*) FROM group_status_changes')->fetchColumn());
 });
 
 test('any member can reopen; afterwards writes work again and the numbers are unchanged', function (): void {
@@ -263,7 +263,7 @@ test('any member can reopen; afterwards writes work again and the numbers are un
     assertSame(200, $response->status);
     assertSame(null, jsonOf($response)['summary']['paid']);
     assertSame(['Ana pays Chloé: 915'], transfersOf($response->data['summary']));
-    $last = $app->pdo->query('SELECT status, changed_by FROM trip_status_changes ORDER BY id DESC LIMIT 1')->fetch();
+    $last = $app->pdo->query('SELECT status, changed_by FROM group_status_changes ORDER BY id DESC LIMIT 1')->fetch();
     assertSame(['open', $app->users->idByEmail('chloe@example.com')], [$last['status'], (int) $last['changed_by']]);
     assertSame(200, call($app, 'PUT', "/trips/7/expenses/{$m['tapas']->id}", ['name' => 'Tapas'] + bodyOf($m['tapas']), $chloe)->status);
     assertSame(201, call($app, 'POST', '/trips/7/expenses', bodyOf($m['prado']), $chloe)->status);
@@ -279,5 +279,5 @@ test('paid and reopen: 401 without a token, 404 for an unknown trip, 403 for a n
         assertSame([404, 'not_found'], [($r = call($app, 'POST', "/trips/999/{$action}", token: $ben))->status, errorCode($r)], $action);
         assertSame([403, 'not_a_member'], [($r = call($app, 'POST', "/trips/7/{$action}", token: $ben))->status, errorCode($r)], $action);
     }
-    assertSame(0, (int) $app->pdo->query('SELECT COUNT(*) FROM trip_status_changes')->fetchColumn());
+    assertSame(0, (int) $app->pdo->query('SELECT COUNT(*) FROM group_status_changes')->fetchColumn());
 });

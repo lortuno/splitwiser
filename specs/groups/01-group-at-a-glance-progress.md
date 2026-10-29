@@ -4,26 +4,26 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 
 ## Steps
 
-- [ ] Screens
+- [x] Screens
 - [x] Data
 - [x] API
 - [x] Seed data
-- [ ] Tests
+- [x] Tests
 
 ## Acceptance checks
 
-- [ ] 1. 📸 **Group view, demo group.** Open `/`. The header shows "Lisbon & Porto". The total card shows "Total spent", `1.915,57 €` in large bold type, "1 Jun 2026 – 7 Jun 2026 · 20 expenses" and "4 people". Below it "Who owes whom" lists exactly: "Ana pays Ben `63,75 €`", "David pays Ben `27,65 €`", "David pays Chloé `27,07 €`". There is no "Show all". The total and all three transfers are visible without scrolling.
-- [ ] 2. **Group view, demo group, expenses.** Scroll down. "Expenses" lists 20 rows, newest first, starting with "Taxi to Porto airport `31,50 €`" (7 Jun 2026, paid by David). The page never scrolls sideways.
-- [ ] 3. **Tab bar.** The tabs read "Group", "Balances" and "+ Add expense". "Group" is selected. "+ Add expense" is the tallest button and sits at the bottom edge.
-- [ ] 4. **Transfer rows are not buttons.** On the demo group, tap "Ana pays Ben". Nothing happens and the screen stays on Group.
+- [x] 1. 📸 **Group view, demo group.** Open `/`. The header shows "Lisbon & Porto". The total card shows "Total spent", `1.915,57 €` in large bold type, "1 Jun 2026 – 7 Jun 2026 · 20 expenses" and "4 people". Below it "Who owes whom" lists exactly: "Ana pays Ben `63,75 €`", "David pays Ben `27,65 €`", "David pays Chloé `27,07 €`". There is no "Show all". The total and all three transfers are visible without scrolling.
+- [x] 2. **Group view, demo group, expenses.** Scroll down. "Expenses" lists 20 rows, newest first, starting with "Taxi to Porto airport `31,50 €`" (7 Jun 2026, paid by David). The page never scrolls sideways.
+- [x] 3. **Tab bar.** The tabs read "Group", "Balances" and "+ Add expense". "Group" is selected. "+ Add expense" is the tallest button and sits at the bottom edge.
+- [x] 4. **Transfer rows are not buttons.** On the demo group, tap "Ana pays Ben". Nothing happens and the screen stays on Group.
 - [x] 5. **Balances unchanged.** Tap "Balances". It shows Ana `-63,75 €`, Ben `+91,40 €`, Chloé `+27,07 €`, David `-54,72 €` and the same three transfers as check 1.
-- [ ] 6. 📸 **Empty group.** Open `/?trip=2`. The header shows "Empty weekend". The total shows `0,00 €`, "10 Jan 2026 – 12 Jan 2026 · 0 expenses", "3 people". There is no "Who owes whom" heading. Under "Expenses": "No expenses yet. Tap + Add expense to record the first one."
+- [x] 6. 📸 **Empty group.** Open `/?trip=2`. The header shows "Empty weekend". The total shows `0,00 €`, "10 Jan 2026 – 12 Jan 2026 · 0 expenses", "3 people". There is no "Who owes whom" heading. Under "Expenses": "No expenses yet. Tap + Add expense to record the first one."
 - [x] 7. 📸 **Everyone even.** Open `/?trip=3`. The total shows `80,00 €`, "2 expenses". "Who owes whom" shows only "Everyone is settled up." Both expenses are listed with `40,00 €`.
 - [x] 8. **Uneven cents.** Open `/?trip=4`. The total shows `10,00 €` and "1 expense" (singular). "Who owes whom" shows "Kim pays Jon `3,33 €`" and "Lea pays Jon `3,33 €`". On Balances, Jon shows `+6,66 €`, Kim `-3,33 €`, Lea `-3,33 €` (`formatSignedCents` prints a plain hyphen-minus).
-- [ ] 9. 📸 **Very large amount and long names.** Open `/?trip=5`. The header shows the group name on one line, ending in "…". The total shows `2,34 M €` on one line, "1 Apr 2026 – 30 Apr 2026 · 3 expenses", "2 people". The transfer row reads "Maximiliane Alexandra von Hohenzollern-Sigmaringen pays Noah": the names wrap and `1.172.839,46 €` stays on one line, right-aligned. The 120-character expense name is cut off after two lines with "…", with `345.678,91 €` beside it. The two other expenses show `1.000.000,00 €` in full.
+- [x] 9. 📸 **Very large amount and long names.** Open `/?trip=5`. The header shows the group name on one line, ending in "…". The total shows `2,34 M €` on one line, "1 Apr 2026 – 30 Apr 2026 · 3 expenses", "2 people". The transfer row reads "Maximiliane Alexandra von Hohenzollern-Sigmaringen pays Noah": the names wrap and `1.172.839,46 €` stays on one line, right-aligned. The 120-character expense name is cut off after two lines with "…", with `345.678,91 €` beside it. The two other expenses show `1.000.000,00 €` in full.
 - [x] 10. 📸 **More than three transfers.** Open `/?trip=6`. The total shows `90,00 €`. "Who owes whom" shows exactly "Quinn pays Olga `20,00 €`", "Rosa pays Olga `20,00 €`" and "Sam pays Olga `10,00 €`", followed by "Show all 4".
 - [x] 11. **Show all.** On `/?trip=6`, tap "Show all 4". The Balances tab opens and lists all four transfers, including "Tara pays Paul `10,00 €`".
-- [ ] 12. 📸 **Unknown group.** Open `/?trip=999`. The screen shows "This group does not exist." and an "Open the demo group" button. Tap it: the URL no longer has `?trip=` and the demo group from check 1 is shown.
-- [ ] 13. **Invalid group id.** Open `/?trip=abc`, then `/?trip=0`. Both show "This group does not exist." The browser's network tab shows no request to `/trips/abc` or `/trips/0`.
-- [ ] 14. 📸 **API unreachable.** Run `docker compose stop api`, then reload `/`. The screen shows "Could not reach the API at http://localhost:8080." and "Try again". Run `docker compose start api` and tap "Try again": the demo group from check 1 is shown.
-- [ ] 15. **The hero updates after adding.** Open `/?trip=4` and tap "+ Add expense". Pick Kim under "Recorded by", enter "Coffee", amount `3,00`, paid by Kim, split equally between Jon, Kim and Lea, and save. Back on Group, the total shows `13,00 €`, "2 expenses", and "Who owes whom" shows "Lea pays Jon `4,33 €`" and "Kim pays Jon `1,33 €`". The page was not reloaded.
+- [x] 12. 📸 **Unknown group.** Open `/?trip=999`. The screen shows "This group does not exist." and an "Open the demo group" button. Tap it: the URL no longer has `?trip=` and the demo group from check 1 is shown.
+- [x] 13. **Invalid group id.** Open `/?trip=abc`, then `/?trip=0`. Both show "This group does not exist." The browser's network tab shows no request to `/trips/abc` or `/trips/0`.
+- [x] 14. 📸 **API unreachable.** Run `docker compose stop api`, then reload `/`. The screen shows "Could not reach the API at http://localhost:8080." and "Try again". Run `docker compose start api` and tap "Try again": the demo group from check 1 is shown.
+- [x] 15. **The hero updates after adding.** Open `/?trip=4` and tap "+ Add expense". Pick Kim under "Recorded by", enter "Coffee", amount `3,00`, paid by Kim, split equally between Jon, Kim and Lea, and save. Back on Group, the total shows `13,00 €`, "2 expenses", and "Who owes whom" shows "Lea pays Jon `4,33 €`" and "Kim pays Jon `1,33 €`". The page was not reloaded.

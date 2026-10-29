@@ -104,7 +104,7 @@ final class ExpenseValidator
             return 0;
         }
         if (!in_array($value, $memberIds, true)) {
-            $this->fail($field, 'not_a_member', 'This person is not on the trip.');
+            $this->fail($field, 'not_a_member', 'This person is not on the group.');
         }
 
         return $value;
@@ -226,7 +226,7 @@ final class ExpenseValidator
     {
         $personId = is_array($entry) ? ($entry['person_id'] ?? null) : null;
         if (!is_int($personId) || !in_array($personId, $memberIds, true)) {
-            $this->fail($field, 'not_a_member', 'Only people on the trip can be chosen.');
+            $this->fail($field, 'not_a_member', 'Only people on the group can be chosen.');
             return null;
         }
         if (array_key_exists($personId, $seen)) {

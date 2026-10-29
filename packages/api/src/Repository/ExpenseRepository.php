@@ -23,7 +23,7 @@ final readonly class ExpenseRepository
     public function insert(int $tripId, NewExpense $expense, Category $category): int
     {
         $this->pdo->prepare(
-            'INSERT INTO expenses (trip_id, name, spent_on, amount_cents, recorded_by, split_type, category)
+            'INSERT INTO expenses (group_id, name, spent_on, amount_cents, recorded_by, split_type, category)
              VALUES (?, ?, ?, ?, ?, ?, ?)'
         )->execute([
             $tripId,

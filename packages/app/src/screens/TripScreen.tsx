@@ -7,6 +7,7 @@ import { categoryIcon, categoryLabel } from "../expenses/categories";
 import { formatDate, formatLocalDate, joinNames, t, tCount } from "../i18n";
 import { formatCents } from "../money/format";
 import { colors, radius, size, space, typeScale } from "../theme";
+import { dateRange } from "../trips/dates";
 
 /** The hero shows this many transfers; "Show all" leads to the Balances tab for the rest. */
 const VISIBLE_TRANSFERS = 3;
@@ -50,7 +51,7 @@ export function TripScreen({
             <Text style={styles.totalLabel}>{t("trip.totalSpend")}</Text>
             <Money cents={summary.total_cents} compact style={styles.totalAmount} />
             <Text style={styles.muted}>
-              {formatDate(trip.start_date)} – {formatDate(trip.end_date)} · {tCount("trip.expenseCount", summary.expense_count)}
+              {[dateRange(trip), tCount("trip.expenseCount", summary.expense_count)].filter((part) => part !== null).join(" · ")}
             </Text>
             <Text style={styles.muted}>{tCount("trip.peopleCount", trip.members?.length ?? 0)}</Text>
           </Card>

@@ -1,4 +1,4 @@
-// Acceptance checks for epic 2 (specs/accounts/02-login-and-my-trips-specification.md) in Chromium at 390x844.
+// Acceptance checks for epic 2 (specs/accounts/02-login-and-my-groups-specification.md) in Chromium at 390x844.
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import type { Page } from "playwright";
 
@@ -30,9 +30,9 @@ afterAll(stopServers);
 
 const search = (page: Page) => new URL(page.url()).search;
 
-/** The trip names on "My trips", top to bottom. */
+/** The trip names on "My groups", top to bottom. */
 async function tripCards(page: Page): Promise<string[]> {
-  await visible(page, "My trips");
+  await visible(page, "My groups");
   await page.getByText(/^Logged in as /).waitFor();
   return page.getByRole("button", { name: /Total/ }).evaluateAll((cards) =>
     cards.map((card) => card.querySelector("div")?.textContent ?? ""),
@@ -41,14 +41,14 @@ async function tripCards(page: Page): Promise<string[]> {
 
 async function logOutFromMyTrips(page: Page) {
   await fromMenu(page, "Log out");
-  await visible(page, "Log in to see your trips.");
+  await visible(page, "Log in to see your groups.");
 }
 
 describe("epic 2: login and my trips (390x844)", () => {
   test("check 1: the login screen", async () => {
     const page = await open("/");
     await visible(page, "Travel expenses");
-    await visible(page, "Log in to see your trips.");
+    await visible(page, "Log in to see your groups.");
     await page.getByLabel("Email", { exact: true }).waitFor();
     await page.getByLabel("Password", { exact: true }).waitFor();
     const logIn = await page.getByRole("button", { name: "Log in", exact: true }).boundingBox();
@@ -79,18 +79,18 @@ describe("epic 2: login and my trips (390x844)", () => {
     await shot(page, "e2-02-my-trips");
 
     await page.getByText("Lisbon & Porto", { exact: true }).click();
-    await visible(page, "‹ My trips");
+    await visible(page, "‹ My groups");
     await visible(page, euro("1.915,57"));
     for (const who of ["Ana pays Ben", "David pays Ben", "David pays Chloé"]) {
       await visible(page, who);
     }
     expect(search(page)).toBe("?trip=1");
-    const back = await page.getByRole("button", { name: "‹ My trips" }).boundingBox();
+    const back = await page.getByRole("button", { name: "‹ My groups" }).boundingBox();
     const name = await page.getByText("Lisbon & Porto", { exact: true }).boundingBox();
     expect(back!.height).toBeGreaterThanOrEqual(48);
     expect(back!.y).toBeLessThan(name!.y);
 
-    await page.getByRole("button", { name: "‹ My trips" }).click();
+    await page.getByRole("button", { name: "‹ My groups" }).click();
     expect(await tripCards(page)).toEqual(["Madrid weekend", "Lisbon & Porto"]);
     expect(search(page)).toBe("");
     await page.close();
@@ -123,10 +123,10 @@ describe("epic 2: login and my trips (390x844)", () => {
       if (response.url() === `${API_URL}/trips/7`) statuses.push(response.status());
     });
     await page.goto(`${WEB_URL}/?trip=7`);
-    await visible(page, "You are not a member of this trip.");
+    await visible(page, "You are not a member of this group.");
     expect(statuses).toContain(403);
     await shot(page, "e2-06-not-a-member");
-    await page.getByText("Go to My trips", { exact: true }).click();
+    await page.getByText("Go to My groups", { exact: true }).click();
     expect(await tripCards(page)).toEqual(["Lisbon & Porto"]);
     expect(search(page)).toBe("");
     await page.close();
@@ -134,15 +134,15 @@ describe("epic 2: login and my trips (390x844)", () => {
 
   test("check 7: unknown and invalid trip ids", async () => {
     const page = await openAs("ben@example.com", "/?trip=999");
-    await visible(page, "This trip does not exist.");
-    await page.getByRole("button", { name: "Go to My trips" }).waitFor();
+    await visible(page, "This group does not exist.");
+    await page.getByRole("button", { name: "Go to My groups" }).waitFor();
 
     const tripCalls: string[] = [];
     page.on("request", (request) => {
       if (request.url().startsWith(`${API_URL}/trips/`)) tripCalls.push(request.url());
     });
     await page.goto(`${WEB_URL}/?trip=abc`);
-    await visible(page, "This trip does not exist.");
+    await visible(page, "This group does not exist.");
     expect(tripCalls).toEqual([]);
     await page.close();
   }, 30_000);
@@ -193,8 +193,8 @@ describe("epic 2: login and my trips (390x844)", () => {
     await password.fill("long-enough-1");
     await create.click();
     await visible(page, "Logged in as Zoe");
-    // Text changed in epic 3 (specs/trips/03-create-a-trip-specification.md, check 11).
-    const empty = 'You are not on any trip yet. Start one with "+ New trip", or ask a friend to add you with your email.';
+    // Text changed in epic 3 (specs/groups/03-create-a-group-specification.md, check 11).
+    const empty = 'You are not on any group yet. Start one with "+ New group", or ask a friend to add you with your email.';
     await visible(page, empty);
     await shot(page, "e2-11-sign-up-empty-list");
 
@@ -234,7 +234,7 @@ describe("epic 2: login and my trips (390x844)", () => {
     await visible(page, "Logged in as Ana");
     await page.reload();
     await visible(page, "Logged in as Ana");
-    expect(await page.getByText("Log in to see your trips.", { exact: true }).count()).toBe(0);
+    expect(await page.getByText("Log in to see your groups.", { exact: true }).count()).toBe(0);
 
     const token = await page.evaluate((key) => localStorage.getItem(key), TOKEN_KEY);
     expect(token).toHaveLength(64);
@@ -253,7 +253,7 @@ describe("epic 2: login and my trips (390x844)", () => {
     const token = await page.evaluate((key) => localStorage.getItem(key), TOKEN_KEY);
     await fetch(`${API_URL}/auth/logout`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
 
-    await page.getByRole("button", { name: "‹ My trips" }).click();
+    await page.getByRole("button", { name: "‹ My groups" }).click();
     await visible(page, "Your session has ended. Please log in again.");
     expect(search(page)).toBe("");
     await shot(page, "e2-18-session-ended");
@@ -269,17 +269,17 @@ describe("epic 2: login and my trips (390x844)", () => {
 
   test("check 19: a trip link opened while logged out opens after login", async () => {
     const page = await open("/?trip=1");
-    await visible(page, "Log in to see your trips.");
+    await visible(page, "Log in to see your groups.");
     await logInWithForm(page, "ben@example.com");
     await visible(page, euro("1.915,57"));
-    await visible(page, "‹ My trips");
+    await visible(page, "‹ My groups");
     expect(search(page)).toBe("?trip=1");
     await page.close();
   }, 30_000);
 
   test("check 20: the API is unreachable on Login", async () => {
     const page = await open("/");
-    await visible(page, "Log in to see your trips.");
+    await visible(page, "Log in to see your groups.");
     await page.route(`${API_URL}/**`, (route) => route.abort());
     await logInWithForm(page, "ana@example.com");
     await visible(page, `Could not reach the API at ${API_URL}.`);
@@ -350,7 +350,7 @@ describe("epic 2: login and my trips (390x844)", () => {
     await visible(page, "Recorded by Ana · Split between 2");
     await shot(page, "e2-14-add-expense-as-me");
 
-    await page.getByRole("button", { name: "‹ My trips" }).click();
+    await page.getByRole("button", { name: "‹ My groups" }).click();
     await visible(page, "Logged in as Ana");
     expect(await sameRow(page, "Total", euro("84,30"))).toBe(true);
     await page.close();

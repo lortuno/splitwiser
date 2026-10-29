@@ -14,7 +14,7 @@ final readonly class TripAccess
     {
     }
 
-    /** @return int the user's person id on the trip */
+    /** @return int the user's person id on the group */
     public function personFor(int $tripId, User $user): int
     {
         if (!$this->trips->exists($tripId)) {
@@ -22,6 +22,6 @@ final readonly class TripAccess
         }
 
         return $this->trips->personForUser($tripId, $user->id)
-            ?? throw new ForbiddenException('You are not a member of this trip.');
+            ?? throw new ForbiddenException('You are not a member of this group.');
     }
 }

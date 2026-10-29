@@ -28,12 +28,12 @@ afterAll(stopServers);
 
 const ADMIN_EMAIL = "admin@travel.local";
 const ADMIN_PASSWORD = "admin123";
-const EMPTY = 'You are not on any trip yet. Start one with "+ New trip", or ask a friend to add you with your email.';
+const EMPTY = 'You are not on any group yet. Start one with "+ New group", or ask a friend to add you with your email.';
 
 const button = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
 const field = (page: Page, label: string, index = 0) => page.getByLabel(label, { exact: true }).nth(index);
 
-/** The trip names on "My trips", top to bottom. */
+/** The trip names on "My groups", top to bottom. */
 async function tripCards(page: Page): Promise<string[]> {
   await page.getByText(/^Logged in as /).waitFor();
   return page.getByRole("button", { name: /Total/ }).evaluateAll((cards) => cards.map((card) => card.querySelector("div")?.textContent ?? ""));
@@ -59,7 +59,7 @@ describe("epic 7: admin account in the seed (390x844)", () => {
     await logInWithForm(page, ADMIN_EMAIL, ADMIN_PASSWORD);
     await visible(page, "Logged in as Admin");
     await visible(page, EMPTY);
-    const newTrip = (await button(page, "+ New trip").boundingBox())!;
+    const newTrip = (await button(page, "+ New group").boundingBox())!;
     expect(VIEWPORT.height - (newTrip.y + newTrip.height)).toBeLessThanOrEqual(16);
     await menuButton(page).click();
     await menuItem(page, "Settings").waitFor();
@@ -86,13 +86,13 @@ describe("epic 7: admin account in the seed (390x844)", () => {
   test("checks 4 and 5: the admin creates a trip with Ana, and Ana sees it", async () => {
     const page = await open("/");
     await logInWithForm(page, ADMIN_EMAIL, ADMIN_PASSWORD);
-    await button(page, "+ New trip").click();
-    await field(page, "Trip name").fill("Team lunch");
+    await button(page, "+ New group").click();
+    await field(page, "Group name").fill("Team lunch");
     await field(page, "Start date").fill("2026-11-03");
     await field(page, "End date").fill("2026-11-03");
     await field(page, "Name").fill("Ana");
     await field(page, "Email (optional)").fill("ana@example.com");
-    await button(page, "Create trip").click();
+    await button(page, "Create group").click();
     await visible(page, "Team lunch");
     await visible(page, euro("0,00"));
     await visible(page, "3 Nov 2026 – 3 Nov 2026 · 0 expenses");
@@ -100,7 +100,7 @@ describe("epic 7: admin account in the seed (390x844)", () => {
     expect(new URL(page.url()).search).toBe("?trip=9");
     await shot(page, "e7-04-admin-created-trip");
 
-    await button(page, "‹ My trips").click();
+    await button(page, "‹ My groups").click();
     await logOut(page);
     await logInWithForm(page, "ana@example.com");
     expect(await tripCards(page)).toEqual(["Team lunch", "Madrid weekend", "Lisbon & Porto"]);

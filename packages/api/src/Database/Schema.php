@@ -16,11 +16,12 @@ final class Schema
 {
     private const array TABLES = [
         <<<'SQL'
-        CREATE TABLE IF NOT EXISTS trips (
+        CREATE TABLE IF NOT EXISTS groups (
             id         INTEGER PRIMARY KEY,
             name       TEXT NOT NULL,
-            start_date TEXT NOT NULL,
-            end_date   TEXT NOT NULL
+            start_date TEXT,
+            end_date   TEXT,
+            CHECK ((start_date IS NULL) = (end_date IS NULL))
         )
         SQL,
         // Accounts. Emails are stored trimmed and lowercased; only a password_hash() is kept.
@@ -46,8 +47,8 @@ final class Schema
             expires_at TEXT NOT NULL
         )
         SQL,
-        // user_id links a trip member to an account; NULL for people without one.
-        // name is what the trip's creator typed; a linked person shows users.display_name instead.
+        // user_id links a group member to an account; NULL for people without one.
+        // name is what the group's creator typed; a linked person shows users.display_name instead.
         <<<'SQL'
         CREATE TABLE IF NOT EXISTS people (
             id      INTEGER PRIMARY KEY,
@@ -57,22 +58,22 @@ final class Schema
         SQL,
         // An email typed for a person that has no account yet. The first sign-up with it links the person.
         <<<'SQL'
-        CREATE TABLE IF NOT EXISTS trip_invites (
+        CREATE TABLE IF NOT EXISTS group_invites (
             person_id INTEGER PRIMARY KEY REFERENCES people (id) ON DELETE CASCADE,
             email     TEXT NOT NULL
         )
         SQL,
         <<<'SQL'
-        CREATE TABLE IF NOT EXISTS trip_members (
-            trip_id   INTEGER NOT NULL REFERENCES trips (id),
+        CREATE TABLE IF NOT EXISTS group_members (
+            group_id  INTEGER NOT NULL REFERENCES groups (id),
             person_id INTEGER NOT NULL REFERENCES people (id),
-            PRIMARY KEY (trip_id, person_id)
+            PRIMARY KEY (group_id, person_id)
         )
         SQL,
         <<<'SQL'
         CREATE TABLE IF NOT EXISTS expenses (
             id           INTEGER PRIMARY KEY,
-            trip_id      INTEGER NOT NULL REFERENCES trips (id),
+            group_id     INTEGER NOT NULL REFERENCES groups (id),
             name         TEXT    NOT NULL,
             spent_on     TEXT    NOT NULL,
             amount_cents INTEGER NOT NULL CHECK (amount_cents > 0),
@@ -80,7 +81,7 @@ final class Schema
             split_type   TEXT    NOT NULL CHECK (split_type IN ('equal', 'exact', 'percentage', 'shares')),
             created_at   TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP,
             category     TEXT    CHECK (category IS NULL OR category IN ('food', 'groceries', 'drinks', 'coffee', 'fuel', 'transport', 'flights', 'lodging', 'activities', 'shopping', 'other')),
-            FOREIGN KEY (trip_id, recorded_by) REFERENCES trip_members (trip_id, person_id)
+            FOREIGN KEY (group_id, recorded_by) REFERENCES group_members (group_id, person_id)
         )
         SQL,
         // "Paid by": who handed over money, and how much.
@@ -114,11 +115,11 @@ final class Schema
             after_json  TEXT    NOT NULL
         )
         SQL,
-        // Marking a trip as paid or reopening it. The latest row is the trip's status (v_trip_status); no row means open.
+        // Marking a group as paid or reopening it. The latest row is the group's status (v_trip_status); no row means open.
         <<<'SQL'
-        CREATE TABLE IF NOT EXISTS trip_status_changes (
+        CREATE TABLE IF NOT EXISTS group_status_changes (
             id         INTEGER PRIMARY KEY,
-            trip_id    INTEGER NOT NULL REFERENCES trips (id),
+            group_id   INTEGER NOT NULL REFERENCES groups (id),
             status     TEXT    NOT NULL CHECK (status IN ('paid', 'open')),
             changed_by INTEGER NOT NULL REFERENCES users (id),
             changed_at TEXT    NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -129,18 +130,18 @@ final class Schema
     private const array INDEXES = [
         'CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id)',
         'CREATE INDEX IF NOT EXISTS idx_people_user_id ON people (user_id)',
-        'CREATE INDEX IF NOT EXISTS idx_trip_invites_email ON trip_invites (email)',
-        'CREATE INDEX IF NOT EXISTS idx_trip_members_trip_id ON trip_members (trip_id)',
-        'CREATE INDEX IF NOT EXISTS idx_trip_members_person_id ON trip_members (person_id)',
-        'CREATE INDEX IF NOT EXISTS idx_expenses_trip_id ON expenses (trip_id)',
-        'CREATE INDEX IF NOT EXISTS idx_expenses_trip_id_spent_on ON expenses (trip_id, spent_on)',
+        'CREATE INDEX IF NOT EXISTS idx_group_invites_email ON group_invites (email)',
+        'CREATE INDEX IF NOT EXISTS idx_group_members_group_id ON group_members (group_id)',
+        'CREATE INDEX IF NOT EXISTS idx_group_members_person_id ON group_members (person_id)',
+        'CREATE INDEX IF NOT EXISTS idx_expenses_group_id ON expenses (group_id)',
+        'CREATE INDEX IF NOT EXISTS idx_expenses_group_id_spent_on ON expenses (group_id, spent_on)',
         'CREATE INDEX IF NOT EXISTS idx_expenses_recorded_by ON expenses (recorded_by)',
         'CREATE INDEX IF NOT EXISTS idx_expense_payers_expense_id ON expense_payers (expense_id)',
         'CREATE INDEX IF NOT EXISTS idx_expense_payers_person_id ON expense_payers (person_id)',
         'CREATE INDEX IF NOT EXISTS idx_expense_splits_expense_id ON expense_splits (expense_id)',
         'CREATE INDEX IF NOT EXISTS idx_expense_splits_person_id ON expense_splits (person_id)',
         'CREATE INDEX IF NOT EXISTS idx_expense_changes_expense_id ON expense_changes (expense_id)',
-        'CREATE INDEX IF NOT EXISTS idx_trip_status_changes_trip_id ON trip_status_changes (trip_id)',
+        'CREATE INDEX IF NOT EXISTS idx_group_status_changes_group_id ON group_status_changes (group_id)',
     ];
 
     /**
@@ -171,7 +172,7 @@ final class Schema
         CREATE VIEW v_expense_shares AS
         WITH weighted AS (
             SELECT e.id AS expense_id,
-                   e.trip_id,
+                   e.group_id AS trip_id,
                    s.person_id,
                    e.amount_cents,
                    CASE e.split_type WHEN 'equal' THEN 1 ELSE s.split_value END AS weight
@@ -201,50 +202,50 @@ final class Schema
         SELECT t.id                             AS trip_id,
                COALESCE(SUM(e.amount_cents), 0) AS total_cents,
                COUNT(e.id)                      AS expense_count
-        FROM trips t
-        LEFT JOIN expenses e ON e.trip_id = t.id
+        FROM groups t
+        LEFT JOIN expenses e ON e.group_id = t.id
         GROUP BY t.id
         SQL,
         'v_member_balances' => <<<'SQL'
         CREATE VIEW v_member_balances AS
         WITH paid AS (
-            SELECT e.trip_id, p.person_id, SUM(p.amount_cents) AS paid_cents
+            SELECT e.group_id AS trip_id, p.person_id, SUM(p.amount_cents) AS paid_cents
             FROM expense_payers p
             JOIN expenses e ON e.id = p.expense_id
-            GROUP BY e.trip_id, p.person_id
+            GROUP BY e.group_id, p.person_id
         ),
         shared AS (
             SELECT trip_id, person_id, SUM(share_cents) AS share_cents
             FROM v_expense_shares
             GROUP BY trip_id, person_id
         )
-        SELECT m.trip_id,
+        SELECT m.group_id AS trip_id,
                m.person_id,
                pe.name,
                COALESCE(paid.paid_cents, 0)                                  AS paid_cents,
                COALESCE(shared.share_cents, 0)                               AS share_cents,
                COALESCE(paid.paid_cents, 0) - COALESCE(shared.share_cents, 0) AS net_cents
-        FROM trip_members m
+        FROM group_members m
         JOIN v_person_names pe ON pe.person_id = m.person_id
-        LEFT JOIN paid ON paid.trip_id = m.trip_id AND paid.person_id = m.person_id
-        LEFT JOIN shared ON shared.trip_id = m.trip_id AND shared.person_id = m.person_id
+        LEFT JOIN paid ON paid.trip_id = m.group_id AND paid.person_id = m.person_id
+        LEFT JOIN shared ON shared.trip_id = m.group_id AND shared.person_id = m.person_id
         SQL,
-        // Each trip's current status: its latest status change, or 'open' without one.
+        // Each group's current status: its latest status change, or 'open' without one.
         'v_trip_status' => <<<'SQL'
         CREATE VIEW v_trip_status AS
         SELECT t.id                       AS trip_id,
                COALESCE(s.status, 'open') AS status,
                s.changed_by,
                s.changed_at
-        FROM trips t
-        LEFT JOIN trip_status_changes s
-               ON s.id = (SELECT MAX(id) FROM trip_status_changes WHERE trip_id = t.id)
+        FROM groups t
+        LEFT JOIN group_status_changes s
+               ON s.id = (SELECT MAX(id) FROM group_status_changes WHERE group_id = t.id)
         SQL,
         // Read model for listing expenses: one row per expense with its people as JSON arrays.
         'v_expense_list' => <<<'SQL'
         CREATE VIEW v_expense_list AS
         SELECT e.id,
-               e.trip_id,
+               e.group_id AS trip_id,
                e.name,
                e.spent_on,
                e.amount_cents,
@@ -272,10 +273,44 @@ final class Schema
         SQL,
     ];
 
-    public static function apply(PDO $pdo): void
+    /** The tables and columns renamed when trips became groups. old table => [new table, [old column => new]]. */
+    private const array RENAMED_TABLES = [
+        'trips' => ['groups', []],
+        'trip_members' => ['group_members', ['trip_id' => 'group_id']],
+        'trip_invites' => ['group_invites', []],
+        'trip_status_changes' => ['group_status_changes', ['trip_id' => 'group_id']],
+        'expenses' => ['expenses', ['trip_id' => 'group_id']],
+    ];
+
+    /** Indexes named after trip_id; INDEXES creates their group_id successors. */
+    private const array RENAMED_INDEXES = [
+        'idx_trip_invites_email',
+        'idx_trip_members_trip_id',
+        'idx_trip_members_person_id',
+        'idx_expenses_trip_id',
+        'idx_expenses_trip_id_spent_on',
+        'idx_trip_status_changes_trip_id',
+    ];
+
+    /**
+     * Creates or updates the schema in one transaction. A database from before groups (it still has a trips table)
+     * is renamed in place first, keeping every id and row. Returns true when it was renamed.
+     */
+    public static function apply(PDO $pdo): bool
     {
+        $rename = self::hasTable($pdo, 'trips');
+        if ($rename) {
+            // Rebuilding groups drops the table the others point at; the keys are checked before the commit instead.
+            $pdo->exec('PRAGMA foreign_keys = OFF');
+        }
         $pdo->beginTransaction();
         try {
+            foreach (array_reverse(array_keys(self::VIEWS)) as $view) {
+                $pdo->exec("DROP VIEW IF EXISTS {$view}");
+            }
+            if ($rename) {
+                self::renameTripsToGroups($pdo);
+            }
             foreach (self::TABLES as $sql) {
                 $pdo->exec($sql);
             }
@@ -290,16 +325,57 @@ final class Schema
             foreach (self::INDEXES as $sql) {
                 $pdo->exec($sql);
             }
-            foreach (array_reverse(array_keys(self::VIEWS)) as $view) {
-                $pdo->exec("DROP VIEW IF EXISTS {$view}");
-            }
             foreach (self::VIEWS as $sql) {
                 $pdo->exec($sql);
+            }
+            if ($rename && $pdo->query('PRAGMA foreign_key_check')->fetch() !== false) {
+                throw new \RuntimeException('Renaming trips to groups left a broken foreign key.');
             }
             $pdo->commit();
         } catch (\Throwable $e) {
             $pdo->rollBack();
             throw $e;
+        } finally {
+            if ($rename) {
+                $pdo->exec('PRAGMA foreign_keys = ON');
+            }
         }
+
+        return $rename;
+    }
+
+    /**
+     * Renames the trip tables and columns (the other tables' foreign keys follow), then rebuilds groups once so its
+     * dates may be empty: a new table takes the rows and the name, so the foreign keys keep pointing at groups.
+     */
+    private static function renameTripsToGroups(PDO $pdo): void
+    {
+        foreach (self::RENAMED_INDEXES as $index) {
+            $pdo->exec("DROP INDEX IF EXISTS {$index}");
+        }
+        // A table a very old database never had is created by apply() afterwards.
+        foreach (self::RENAMED_TABLES as $old => [$new, $columns]) {
+            if (!self::hasTable($pdo, $old)) {
+                continue;
+            }
+            if ($old !== $new) {
+                $pdo->exec("ALTER TABLE {$old} RENAME TO {$new}");
+            }
+            foreach ($columns as $oldColumn => $newColumn) {
+                $pdo->exec("ALTER TABLE {$new} RENAME COLUMN {$oldColumn} TO {$newColumn}");
+            }
+        }
+        $pdo->exec(str_replace('EXISTS groups (', 'EXISTS groups_rebuilt (', self::TABLES[0]));
+        $pdo->exec('INSERT INTO groups_rebuilt (id, name, start_date, end_date) SELECT id, name, start_date, end_date FROM groups');
+        $pdo->exec('DROP TABLE groups');
+        $pdo->exec('ALTER TABLE groups_rebuilt RENAME TO groups');
+    }
+
+    private static function hasTable(PDO $pdo, string $table): bool
+    {
+        $stmt = $pdo->prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?");
+        $stmt->execute([$table]);
+
+        return $stmt->fetchColumn() !== false;
     }
 }

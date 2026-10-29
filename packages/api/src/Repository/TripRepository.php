@@ -15,9 +15,9 @@ final readonly class TripRepository
     {
     }
 
-    public function create(string $name, string $startDate, string $endDate): int
+    public function create(string $name, ?string $startDate, ?string $endDate): int
     {
-        $this->pdo->prepare('INSERT INTO trips (name, start_date, end_date) VALUES (?, ?, ?)')
+        $this->pdo->prepare('INSERT INTO groups (name, start_date, end_date) VALUES (?, ?, ?)')
             ->execute([$name, $startDate, $endDate]);
 
         return (int) $this->pdo->lastInsertId();
@@ -25,13 +25,13 @@ final readonly class TripRepository
 
     public function addMember(int $tripId, int $personId): void
     {
-        $this->pdo->prepare('INSERT INTO trip_members (trip_id, person_id) VALUES (?, ?)')
+        $this->pdo->prepare('INSERT INTO group_members (group_id, person_id) VALUES (?, ?)')
             ->execute([$tripId, $personId]);
     }
 
     public function count(): int
     {
-        return (int) $this->pdo->query('SELECT COUNT(*) FROM trips')->fetchColumn();
+        return (int) $this->pdo->query('SELECT COUNT(*) FROM groups')->fetchColumn();
     }
 
     /** @return list<Trip> */
@@ -39,28 +39,28 @@ final readonly class TripRepository
     {
         $rows = $this->pdo->query(
             "SELECT t.*, v.total_cents, s.status = 'paid' AS paid
-             FROM trips t
+             FROM groups t
              JOIN v_trip_totals v ON v.trip_id = t.id
              JOIN v_trip_status s ON s.trip_id = t.id
-             ORDER BY t.start_date DESC, t.id DESC"
+             ORDER BY t.start_date IS NULL, t.start_date DESC, t.id DESC"
         )->fetchAll();
 
         return array_map(fn (array $row): Trip => $this->toTrip($row), $rows);
     }
 
-    /** @return list<Trip> trips where one of the members is linked to $userId, newest first */
+    /** @return list<Trip> groups where one of the members is linked to $userId: dated ones newest first, then the others newest first */
     public function findForUser(int $userId): array
     {
         $stmt = $this->pdo->prepare(
             "SELECT t.*, v.total_cents, s.status = 'paid' AS paid
-             FROM trips t
+             FROM groups t
              JOIN v_trip_totals v ON v.trip_id = t.id
              JOIN v_trip_status s ON s.trip_id = t.id
              WHERE EXISTS (
-                 SELECT 1 FROM trip_members m JOIN people p ON p.id = m.person_id
-                 WHERE m.trip_id = t.id AND p.user_id = ?
+                 SELECT 1 FROM group_members m JOIN people p ON p.id = m.person_id
+                 WHERE m.group_id = t.id AND p.user_id = ?
              )
-             ORDER BY t.start_date DESC, t.id DESC"
+             ORDER BY t.start_date IS NULL, t.start_date DESC, t.id DESC"
         );
         $stmt->execute([$userId]);
 
@@ -69,7 +69,7 @@ final readonly class TripRepository
 
     public function exists(int $tripId): bool
     {
-        $stmt = $this->pdo->prepare('SELECT 1 FROM trips WHERE id = ?');
+        $stmt = $this->pdo->prepare('SELECT 1 FROM groups WHERE id = ?');
         $stmt->execute([$tripId]);
 
         return $stmt->fetchColumn() !== false;
@@ -79,8 +79,8 @@ final readonly class TripRepository
     public function personForUser(int $tripId, int $userId): ?int
     {
         $stmt = $this->pdo->prepare(
-            'SELECT p.id FROM trip_members m JOIN people p ON p.id = m.person_id
-             WHERE m.trip_id = ? AND p.user_id = ?
+            'SELECT p.id FROM group_members m JOIN people p ON p.id = m.person_id
+             WHERE m.group_id = ? AND p.user_id = ?
              ORDER BY p.id
              LIMIT 1'
         );
@@ -94,7 +94,7 @@ final readonly class TripRepository
     {
         $stmt = $this->pdo->prepare(
             "SELECT t.*, v.total_cents, s.status = 'paid' AS paid
-             FROM trips t
+             FROM groups t
              JOIN v_trip_totals v ON v.trip_id = t.id
              JOIN v_trip_status s ON s.trip_id = t.id
              WHERE t.id = ?"
@@ -110,9 +110,9 @@ final readonly class TripRepository
     {
         $stmt = $this->pdo->prepare(
             'SELECT n.person_id AS id, n.name
-             FROM trip_members m
+             FROM group_members m
              JOIN v_person_names n ON n.person_id = m.person_id
-             WHERE m.trip_id = ?
+             WHERE m.group_id = ?
              ORDER BY n.person_id'
         );
         $stmt->execute([$tripId]);
@@ -147,7 +147,7 @@ final readonly class TripRepository
         $stmt = $this->pdo->prepare(
             "SELECT n.person_id, n.name, strftime('%Y-%m-%dT%H:%M:%SZ', s.changed_at) AS at
              FROM v_trip_status s
-             JOIN trip_members m ON m.trip_id = s.trip_id
+             JOIN group_members m ON m.group_id = s.trip_id
              JOIN people p ON p.id = m.person_id AND p.user_id = s.changed_by
              JOIN v_person_names n ON n.person_id = p.id
              WHERE s.trip_id = ? AND s.status = 'paid'
@@ -160,10 +160,10 @@ final readonly class TripRepository
         return $row === false ? null : new TripPaid(new Person((int) $row['person_id'], $row['name']), $row['at']);
     }
 
-    /** Appends a status row ('paid' or 'open'); the latest row is the trip's status. */
+    /** Appends a status row ('paid' or 'open'); the latest row is the group's status. */
     public function addStatusChange(int $tripId, string $status, int $userId): void
     {
-        $this->pdo->prepare('INSERT INTO trip_status_changes (trip_id, status, changed_by) VALUES (?, ?, ?)')
+        $this->pdo->prepare('INSERT INTO group_status_changes (group_id, status, changed_by) VALUES (?, ?, ?)')
             ->execute([$tripId, $status, $userId]);
     }
 

@@ -72,15 +72,15 @@ describe("error texts from code and params", () => {
     expect(errorText(error("required"), "paid_by")).toBe("Choose at least one person.");
     expect(errorText(error("required"), "split")).toBe("Choose at least one person.");
     expect(errorText(error("invalid_amount"), "paid_by.12")).toBe("Enter an amount greater than 0.");
-    expect(errorText(error("duplicate"), "people.3.name")).toBe("This is already on the trip.");
-    expect(errorText(error("duplicate_email"), "people.0.email")).toBe("This is already on the trip.");
+    expect(errorText(error("duplicate"), "people.3.name")).toBe("This is already on the group.");
+    expect(errorText(error("duplicate_email"), "people.0.email")).toBe("This is already on the group.");
     expect(errorText(error("duplicate"), "paid_by")).toBe("Check this field.");
   });
 
   test("params fill the placeholders, amounts formatted by the app", () => {
     expect(errorText(error("too_long", { max: 80 }), "name")).toBe("Use at most 80 characters.");
     expect(errorText(error("too_short", { min: 8 }), "password")).toBe("Use at least 8 characters.");
-    expect(errorText(error("too_many", { max: 20 }), "people")).toBe("A trip can have at most 20 people.");
+    expect(errorText(error("too_many", { max: 20 }), "people")).toBe("A group can have at most 20 people.");
     expect(errorText(error("sum_mismatch", { sum_cents: 4500, amount_cents: 5000 }), "paid_by")).toBe(
       `Amounts add up to 45,00${NBSP}€ but the expense is 50,00${NBSP}€.`,
     );

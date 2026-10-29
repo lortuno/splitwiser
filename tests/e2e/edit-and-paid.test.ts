@@ -23,11 +23,11 @@ const today = (page: Page) =>
     return `${now.getDate()} ${month} ${now.getFullYear()}`;
   });
 
-/** Logs in as `email` and opens the trip from "My trips". */
+/** Logs in as `email` and opens the trip from "My groups". */
 async function openTrip(email: string, tripName: string): Promise<Page> {
   const page = await openAs(email, "/");
   await text(page, tripName).click();
-  await visible(page, "Total trip spend");
+  await visible(page, "Total spent");
   return page;
 }
 
@@ -53,7 +53,7 @@ async function api(method: string, path: string, token: string | null, body?: un
 describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
   test("check 1: open trip view with tappable rows", async () => {
     const page = await openTrip("ana@example.com", "Madrid weekend");
-    await button(page, "‹ My trips").waitFor();
+    await button(page, "‹ My groups").waitFor();
     const markPaid = await button(page, "Mark as paid").boundingBox();
     expect(markPaid!.height).toBeGreaterThanOrEqual(48);
     // Since epic 5 a row's name starts with its category ("Food, Tapas at …").
@@ -128,7 +128,7 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     expect(await sameRow(page, "Ana pays Chloé", euro("16,01"))).toBe(true);
     expect(await text(page, "Edited").count()).toBe(2);
     await visible(page, "Recorded by Ana · Split between 2");
-    await button(page, "‹ My trips").click();
+    await button(page, "‹ My groups").click();
     expect(await sameRow(page, "Total", euro("80,01"))).toBe(true);
     await page.close();
   }, 30_000);
@@ -152,9 +152,9 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     const page = await openTrip("ana@example.com", "Madrid weekend");
     await button(page, "Mark as paid").click();
     for (const value of [
-      "Mark this trip as paid?",
+      "Mark this group as paid?",
       "These payments will be treated as done:",
-      "Nobody can add or change expenses until the trip is reopened.",
+      "Nobody can add or change expenses until the group is reopened.",
     ]) {
       await visible(page, value);
     }
@@ -195,7 +195,7 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     await page.close();
   }, 30_000);
 
-  test("check 10: My trips shows paid", async () => {
+  test("check 10: My groups shows paid", async () => {
     const page = await openAs("ana@example.com", "/");
     await visible(page, "Madrid weekend");
     expect(await text(page, "✓ Paid").count()).toBe(1);
@@ -239,7 +239,7 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
 
     await amountField(ben).fill("32,00");
     await button(ben, "Save changes").click();
-    await visible(ben, "This trip is marked as paid. Reopen it to make changes.");
+    await visible(ben, "This group is marked as paid. Reopen it to make changes.");
     expect(await amountField(ben).inputValue()).toBe("32,00");
     await shot(ben, "e4-13-paid-while-editing");
     await button(ben, "Cancel").click();
@@ -258,7 +258,7 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     expect(await text(page, "Edited").count()).toBe(2);
     await button(page, "Mark as paid").waitFor();
     expect(await api("POST", "/trips/7/reopen", await tokenFor("chloe@example.com"))).toEqual([409, "already_open"]);
-    await button(page, "‹ My trips").click();
+    await button(page, "‹ My groups").click();
     await visible(page, "Madrid weekend");
     expect(await text(page, "✓ Paid").count()).toBe(1); // Lisbon, marked in check 13
     expect(await sameRow(page, "Madrid weekend", "✓ Paid")).toBe(false);
@@ -298,7 +298,7 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     expect(await nameField(page).inputValue()).toBe("Prado Museum tickets");
     await page.unroute(`${API_URL}/**`);
     await button(page, "Save changes").click();
-    await visible(page, "Total trip spend");
+    await visible(page, "Total spent");
 
     await button(page, "Mark as paid").click();
     await page.route(`${API_URL}/**`, (route) => route.abort());
@@ -310,7 +310,7 @@ describe("epic 4: edit expenses and mark a trip as paid (390x844)", () => {
     await button(page, "Mark as paid").waitFor();
     await visible(page, "Who owes whom");
 
-    await button(page, "‹ My trips").click();
+    await button(page, "‹ My groups").click();
     await text(page, "Lisbon & Porto").click();
     await button(page, "Reopen").waitFor();
     await page.route(`${API_URL}/**`, (route) => route.abort());

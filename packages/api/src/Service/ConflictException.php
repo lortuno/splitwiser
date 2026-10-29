@@ -14,16 +14,16 @@ final class ConflictException extends \RuntimeException
 
     public static function tripPaid(): self
     {
-        return new self('trip_paid', 'This trip is marked as paid. Reopen it to make changes.');
+        return new self('trip_paid', 'This group is marked as paid. Reopen it to make changes.');
     }
 
     public static function alreadyPaid(): self
     {
-        return new self('already_paid', 'This trip is already marked as paid.');
+        return new self('already_paid', 'This group is already marked as paid.');
     }
 
     public static function alreadyOpen(): self
     {
-        return new self('already_open', 'This trip is already open.');
+        return new self('already_open', 'This group is already open.');
     }
 }

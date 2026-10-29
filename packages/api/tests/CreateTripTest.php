@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-// Creating trips, linking members by email, display names (specs/trips/03-create-a-trip-specification.md).
+// Creating groups, linking members by email, display names (specs/groups/03-create-a-group-specification.md).
 
 /** A valid POST /trips body; $people as [name, email|null] pairs. */
 function tripInput(array $people = [['Ben', 'ben@example.com'], ['Grandma', null]], string $name = 'Summer in Sicily'): array
@@ -32,7 +32,7 @@ function createErrors(App\Container $app, array $body, string $token): array
 
 function invitesOnTrip(App\Container $app, int $tripId): int
 {
-    $stmt = $app->pdo->prepare('SELECT COUNT(*) FROM trip_invites i JOIN trip_members m ON m.person_id = i.person_id WHERE m.trip_id = ?');
+    $stmt = $app->pdo->prepare('SELECT COUNT(*) FROM group_invites i JOIN group_members m ON m.person_id = i.person_id WHERE m.group_id = ?');
     $stmt->execute([$tripId]);
 
     return (int) $stmt->fetchColumn();
@@ -40,7 +40,7 @@ function invitesOnTrip(App\Container $app, int $tripId): int
 
 function tripCount(App\Container $app): int
 {
-    return (int) $app->pdo->query('SELECT COUNT(*) FROM trips')->fetchColumn();
+    return (int) $app->pdo->query('SELECT COUNT(*) FROM groups')->fetchColumn();
 }
 
 test('creating a trip adds the creator first, linked, and returns the trip with an empty summary', function (): void {
@@ -90,7 +90,7 @@ test('an email without an account waits in trip_invites and is linked at sign-up
 
 test('seeded invite: signing up as ines@example.com links Inés on Ski week', function (): void {
     $app = seededApp();
-    assertSame(1, (int) $app->pdo->query("SELECT COUNT(*) FROM trip_invites WHERE email = 'ines@example.com'")->fetchColumn());
+    assertSame(1, (int) $app->pdo->query("SELECT COUNT(*) FROM group_invites WHERE email = 'ines@example.com'")->fetchColumn());
 
     $ines = signUp($app, 'Inés García', 'ines@example.com', 'long-enough-1')->data['token'];
 
@@ -207,4 +207,36 @@ test('POST /trips and PATCH /me need a token', function (): void {
         assertSame('unauthenticated', $response->data['error']['code']);
     }
     assertSame(8, tripCount($app));
+});
+
+test('a group without dates: dates missing, null or empty; one date alone is invalid_date on the other', function (): void {
+    $app = seededApp();
+    $ana = tokenFor($app, 'ana@example.com');
+    $body = tripInput();
+    unset($body['start_date'], $body['end_date']);
+
+    foreach ([$body, ['start_date' => null, 'end_date' => null] + $body, ['start_date' => '', 'end_date' => ' '] + $body] as $i => $input) {
+        $response = call($app, 'POST', '/trips', ['name' => "No dates {$i}"] + $input, $ana);
+        assertSame(201, $response->status, "Variant {$i}");
+        $trip = jsonOf($response)['trip'];
+        assertSame([null, null], [$trip['start_date'], $trip['end_date']], "Variant {$i}");
+    }
+    assertSame(['end_date' => 'invalid_date'], createErrors($app, ['start_date' => '2026-08-01'] + $body, $ana));
+    assertSame(['start_date' => 'invalid_date'], createErrors($app, ['start_date' => '', 'end_date' => '2026-08-01'] + $body, $ana));
+    assertSame(11, tripCount($app), 'Nothing saved on 422.');
+});
+
+test('My groups lists dated groups newest start first, then the groups without dates, highest id first', function (): void {
+    $app = seededApp();
+    $ana = tokenFor($app, 'ana@example.com');
+    $dateless = tripInput();
+    unset($dateless['start_date'], $dateless['end_date']);
+
+    call($app, 'POST', '/trips', ['name' => 'Gifts for Ben'] + $dateless, $ana);
+    call($app, 'POST', '/trips', tripInput(), $ana);
+    call($app, 'POST', '/trips', ['name' => 'Flat'] + $dateless, $ana);
+
+    assertSame([7, 10, 1, 11, 9], listedTripIds($app, $ana), 'Madrid, Sicily, Lisbon, then Flat and Gifts for Ben.');
+    $all = array_map(fn ($t) => $t->id, $app->trips->findAll());
+    assertSame([11, 9], array_slice($all, -2), 'findAll also puts the groups without dates last.');
 });

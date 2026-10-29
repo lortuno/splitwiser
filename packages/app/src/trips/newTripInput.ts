@@ -1,6 +1,6 @@
 import type { NewTrip } from "../dto";
 
-/** What the "New trip" form holds while it is being filled in. The creator is not part of it. */
+/** What the "New group" form holds while it is being filled in. The creator is not part of it. */
 export interface NewTripForm {
   name: string;
   startDate: string;
@@ -9,14 +9,14 @@ export interface NewTripForm {
 }
 
 /**
- * The POST /trips body for the form: text trimmed, an empty email sent as null, people in form order.
+ * The POST /trips body for the form: text trimmed, an empty email or date sent as null, people in form order.
  * Validation (required fields, dates, duplicates) is left to the API.
  */
 export function newTripBody(form: NewTripForm): NewTrip {
   return {
     name: form.name.trim(),
-    start_date: form.startDate.trim(),
-    end_date: form.endDate.trim(),
+    start_date: form.startDate.trim() || null,
+    end_date: form.endDate.trim() || null,
     people: form.people.map((person) => {
       const email = person.email.trim();
       return { name: person.name.trim(), email: email === "" ? null : email };

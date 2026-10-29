@@ -1,4 +1,4 @@
-// Acceptance checks for epic 1 (specs/trips/01-trip-at-a-glance-specification.md) in Chromium at 390x844.
+// Acceptance checks for epic 1 (specs/groups/01-group-at-a-glance-specification.md) in Chromium at 390x844.
 // Since epic 2 every trip needs a login: each check logs in as the trip's owner (see Seeder::ACCOUNTS).
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 
@@ -49,7 +49,7 @@ describe("epic 1: trip at a glance (390x844)", () => {
   test("check 1: demo trip shows the total and who owes whom above the fold", async () => {
     const page = await open("/?trip=1");
     await visible(page, euro("1.915,57"));
-    for (const text of ["Lisbon & Porto", "Total trip spend", "1 Jun 2026 – 7 Jun 2026 · 20 expenses", "4 people", "Who owes whom"]) {
+    for (const text of ["Lisbon & Porto", "Total spent", "1 Jun 2026 – 7 Jun 2026 · 20 expenses", "4 people", "Who owes whom"]) {
       await visible(page, text);
     }
     for (const [who, amount] of [
@@ -91,7 +91,7 @@ describe("epic 1: trip at a glance (390x844)", () => {
   test("check 3: the tab bar", async () => {
     const page = await open("/?trip=1");
     await visible(page, euro("1.915,57"));
-    const trip = page.getByRole("tab", { name: "Trip" });
+    const trip = page.getByRole("tab", { name: "Group" });
     const balances = page.getByRole("tab", { name: "Balances" });
     const add = page.getByRole("button", { name: "+ Add expense" });
     expect(await trip.getAttribute("aria-selected")).toBe("true");
@@ -110,8 +110,8 @@ describe("epic 1: trip at a glance (390x844)", () => {
     expect(await page.getByRole("button", { name: /Ana pays Ben/ }).count()).toBe(0);
     await page.getByText("Ana pays Ben", { exact: true }).click();
     await Bun.sleep(300);
-    expect(await page.getByRole("tab", { name: "Trip" }).getAttribute("aria-selected")).toBe("true");
-    await visible(page, "Total trip spend");
+    expect(await page.getByRole("tab", { name: "Group" }).getAttribute("aria-selected")).toBe("true");
+    await visible(page, "Total spent");
     expect(new URL(page.url()).search).toBe("?trip=1");
     await page.close();
   }, 30_000);
@@ -195,11 +195,11 @@ describe("epic 1: trip at a glance (390x844)", () => {
     await page.close();
   }, 30_000);
 
-  test("check 12: unknown trip, then back to My trips", async () => {
+  test("check 12: unknown trip, then back to My groups", async () => {
     const page = await open("/?trip=999");
-    await visible(page, "This trip does not exist.");
+    await visible(page, "This group does not exist.");
     await shot(page, "12-unknown-trip");
-    await page.getByText("Go to My trips", { exact: true }).click();
+    await page.getByText("Go to My groups", { exact: true }).click();
     await visible(page, "Lisbon & Porto");
     await visible(page, euro("1.915,57"));
     expect(new URL(page.url()).search).toBe("");
@@ -214,7 +214,7 @@ describe("epic 1: trip at a glance (390x844)", () => {
         if (request.url().startsWith(`${API_URL}/trips`)) tripCalls.push(request.url());
       });
       await page.goto(`${WEB_URL}/?trip=${value}`);
-      await visible(page, "This trip does not exist.");
+      await visible(page, "This group does not exist.");
       expect(tripCalls).toEqual([]);
       await page.close();
     }
@@ -248,7 +248,7 @@ describe("epic 1: trip at a glance (390x844)", () => {
       await visible(page, euro(net));
       expect(await sameRow(page, name, euro(net))).toBe(true);
     }
-    await page.getByRole("tab", { name: "Trip" }).click();
+    await page.getByRole("tab", { name: "Group" }).click();
     await visible(page, euro("10,00"));
 
     await page.getByText("+ Add expense", { exact: true }).click();

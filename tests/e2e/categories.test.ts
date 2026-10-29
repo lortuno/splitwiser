@@ -36,7 +36,7 @@ async function selected(page: Page, label: string, timeout = 3_000) {
 async function openTrip(email: string, tripName: string): Promise<Page> {
   const page = await openAs(email, "/");
   await text(page, tripName).click();
-  await visible(page, "Total trip spend");
+  await visible(page, "Total spent");
   return page;
 }
 

@@ -6,8 +6,8 @@ use App\Api\Request;
 use App\Api\Routes;
 use App\Container;
 
-// Pins the numbers the acceptance checks in specs/trips/01-trip-at-a-glance-specification.md rely on,
-// plus trip 7 from specs/accounts/02-login-and-my-trips-specification.md.
+// Pins the numbers the acceptance checks in specs/groups/01-group-at-a-glance-specification.md rely on,
+// plus group 7 from specs/accounts/02-login-and-my-groups-specification.md.
 
 /** A fresh database seeded exactly like `docker compose up`. */
 function seededApp(): Container

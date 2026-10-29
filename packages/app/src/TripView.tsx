@@ -13,6 +13,7 @@ import { BalancesScreen } from "./screens/BalancesScreen";
 import { MarkPaidScreen } from "./screens/MarkPaidScreen";
 import { TripScreen } from "./screens/TripScreen";
 import { colors, size, space, typeScale } from "./theme";
+import { newExpenseDate } from "./trips/dates";
 import { todayIso } from "./trips/newTripInput";
 
 interface TripData {
@@ -135,7 +136,7 @@ export function TripView({
         key={editing?.id ?? "new"}
         tripId={data.trip.id}
         members={data.trip.members ?? []}
-        defaultDate={clampToTrip(todayIso(), data.trip)}
+        defaultDate={newExpenseDate(todayIso(), data.trip)}
         expense={editing}
         onSaved={onSaved}
         onCancel={onFormCancel}
@@ -194,11 +195,6 @@ export function TripView({
       {!confirming && <TabBar current={screen} canAdd={!paid} onChange={setScreen} />}
     </>
   );
-}
-
-/** Today when it falls inside the trip, otherwise the nearest trip day (ISO dates compare as strings). */
-function clampToTrip(date: string, trip: Trip): string {
-  return date < trip.start_date ? trip.start_date : date > trip.end_date ? trip.end_date : date;
 }
 
 /** Newest date first, matching the API's order (date desc, id desc). */

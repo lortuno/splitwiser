@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use App\Database\Seeder;
 
-// Sign-up, login, sessions, membership and the recorder (specs/accounts/02-login-and-my-trips-specification.md).
+// Sign-up, login, sessions, membership and the recorder (specs/accounts/02-login-and-my-groups-specification.md).
 
 const TRIP_ENDPOINTS = ['/trips', '/trips/1', '/trips/1/expenses', '/trips/1/summary', '/me'];
 
@@ -156,7 +156,7 @@ test('a trip the user is not a member of answers 403 not_a_member, after 404 for
     foreach (['/trips/7', '/trips/7/expenses', '/trips/7/summary', '/trips/2'] as $path) {
         $response = get($app, $path, $ben);
         assertSame(403, $response->status, $path);
-        assertSame(['code' => 'not_a_member', 'message' => 'You are not a member of this trip.'], $response->data['error']);
+        assertSame(['code' => 'not_a_member', 'message' => 'You are not a member of this group.'], $response->data['error']);
     }
     assertSame(403, call($app, 'POST', '/trips/7/expenses', [], $ben)->status);
     assertSame(404, get($app, '/trips/999', $ben)->status);

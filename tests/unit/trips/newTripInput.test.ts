@@ -38,7 +38,13 @@ describe("newTripBody", () => {
   test("empty and invalid input is passed on for the API to validate", () => {
     const body = newTripBody({ name: "", startDate: "10.07.2026", endDate: "", people: [{ name: "", email: "ben@x" }] });
 
-    expect(body).toEqual({ name: "", start_date: "10.07.2026", end_date: "", people: [{ name: "", email: "ben@x" }] });
+    expect(body).toEqual({ name: "", start_date: "10.07.2026", end_date: null, people: [{ name: "", email: "ben@x" }] });
+  });
+
+  test("empty dates are sent as null: a group without dates", () => {
+    const body = newTripBody({ name: "Gifts for Ben", startDate: " ", endDate: "", people: [{ name: "Chloé", email: "" }] });
+
+    expect([body.start_date, body.end_date]).toEqual([null, null]);
   });
 });
 

@@ -10,7 +10,7 @@ import type { CreatedTrip, FieldErrors, User } from "../dto";
 import { t } from "../i18n";
 import { errorText } from "../i18n/errors";
 import { useUnsavedInput } from "../navigation/useUnsavedInput";
-import { newTripBody, todayIso } from "../trips/newTripInput";
+import { newTripBody } from "../trips/newTripInput";
 import { colors, radius, size, space, typeScale } from "../theme";
 import { authStyles } from "./LoginScreen";
 
@@ -33,10 +33,10 @@ export function NewTripScreen({
   onBack: () => void;
 }) {
   const [name, setName] = useState("");
-  const [startDate, setStartDate] = useState(todayIso);
-  const [endDate, setEndDate] = useState(todayIso);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [people, setPeople] = useState<PersonCard[]>([{ key: 0, name: "", email: "" }]);
-  const [opened] = useState(() => ({ name: "", startDate: todayIso(), endDate: todayIso(), people: [{ name: "", email: "" }] }));
+  const [opened] = useState(() => ({ name: "", startDate: "", endDate: "", people: [{ name: "", email: "" }] }));
   useUnsavedInput(opened, { name, startDate, endDate, people: people.map((p) => ({ name: p.name, email: p.email })) });
   // Field errors come from the API (422); `unreachable` covers everything else.
   const [errors, setErrors] = useState<FieldErrors>({});
@@ -95,6 +95,7 @@ export function NewTripScreen({
           autoCapitalize="words"
           error={errorText(errors.name, "name")}
         />
+        <Text style={styles.optional}>{t("newTrip.datesOptional")}</Text>
         <View style={styles.dates}>
           <View style={styles.date}>
             <TextField
@@ -192,6 +193,7 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: typeScale.title, fontWeight: "700", color: colors.ink },
   content: { padding: space.lg, paddingBottom: space.xl },
+  optional: { fontSize: typeScale.caption, color: colors.inkMuted, marginTop: space.md },
   dates: { flexDirection: "row", gap: space.md },
   date: { flex: 1 },
   label: { fontSize: typeScale.caption, color: colors.ink, fontWeight: "700", marginBottom: space.xs },

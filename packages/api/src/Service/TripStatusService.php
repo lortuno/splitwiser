@@ -9,7 +9,7 @@ use App\Repository\TripRepository;
 
 /**
  * Marks a trip as paid once everyone has settled up outside the app, or reopens it. Any member may do either; who did
- * it and when is kept in trip_status_changes. A paid trip takes no new or edited expenses (ExpenseService).
+ * it and when is kept in group_status_changes. A paid trip takes no new or edited expenses (ExpenseService).
  */
 final readonly class TripStatusService
 {

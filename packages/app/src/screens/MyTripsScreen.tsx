@@ -7,8 +7,9 @@ import { Card } from "../components/Card";
 import { Money } from "../components/Money";
 import { StateMessage } from "../components/StateMessage";
 import type { Trip, User } from "../dto";
-import { formatDate, t } from "../i18n";
+import { t } from "../i18n";
 import { colors, radius, size, space, typeScale } from "../theme";
+import { dateRange } from "../trips/dates";
 import { authStyles } from "./LoginScreen";
 
 export function MyTripsScreen({
@@ -82,6 +83,7 @@ export function MyTripsScreen({
 }
 
 function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
+  const dates = dateRange(trip);
   return (
     <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}>
       <View style={styles.nameRow}>
@@ -90,9 +92,7 @@ function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
         </Text>
         {trip.paid && <Text style={styles.paid}>{t("common.paid")}</Text>}
       </View>
-      <Text style={styles.dates}>
-        {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
-      </Text>
+      {dates !== null && <Text style={styles.dates}>{dates}</Text>}
       <View style={styles.totalRow}>
         <Text style={styles.totalLabel}>{t("trips.total")}</Text>
         <Money cents={trip.total_cents} style={styles.total} />

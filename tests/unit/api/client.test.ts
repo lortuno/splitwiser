@@ -72,7 +72,7 @@ describe("request", () => {
 
   test("a 403 keeps the token and carries the error code", async () => {
     setToken("abc");
-    answer(403, { error: { code: "not_a_member", message: "You are not a member of this trip." } });
+    answer(403, { error: { code: "not_a_member", message: "You are not a member of this group." } });
 
     const error = (await request("/trips/7").catch((e: unknown) => e)) as ApiError;
 

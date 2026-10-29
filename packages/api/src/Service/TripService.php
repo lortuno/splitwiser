@@ -12,9 +12,10 @@ use App\Repository\UserRepository;
 use PDO;
 
 /**
- * Creates a trip: the logged-in user is always the first member, linked to their account. Every other person is a
+ * Creates a group: the logged-in user is always the first member, linked to their account. Every other person is a
  * typed name with an optional email. An email of an existing account links the person at once; any other email is
- * kept in trip_invites until it signs up. The response never tells which of the two happened.
+ * kept in group_invites until it signs up. The response never tells which of the two happened.
+ * A group has both dates or none: a missing, null or empty date is no date.
  * Errors are keyed like the form: name, start_date, end_date, people, people.{i}.name, people.{i}.email.
  */
 final readonly class TripService
@@ -36,27 +37,31 @@ final readonly class TripService
         $errors = [];
         $name = self::trimmed($input['name'] ?? null);
         if ($name === '') {
-            $errors['name'] = self::error('required', 'Enter a name for the trip.');
+            $errors['name'] = self::error('required', 'Enter a name for the group.');
         } elseif (mb_strlen($name) > self::MAX_NAME_LENGTH) {
             $errors['name'] = self::error('too_long', 'Use at most 80 characters.', ['max' => self::MAX_NAME_LENGTH]);
         }
 
-        $startDate = self::date($input['start_date'] ?? null);
-        $endDate = self::date($input['end_date'] ?? null);
-        if ($startDate === null) {
-            $errors['start_date'] = self::error('invalid_date', 'Enter a date as YYYY-MM-DD.');
-        }
-        if ($endDate === null) {
-            $errors['end_date'] = self::error('invalid_date', 'Enter a date as YYYY-MM-DD.');
-        } elseif ($startDate !== null && $endDate < $startDate) {
-            $errors['end_date'] = self::error('before_start', 'The end date is before the start.');
+        $startInput = self::trimmed($input['start_date'] ?? null);
+        $endInput = self::trimmed($input['end_date'] ?? null);
+        $startDate = self::date($startInput);
+        $endDate = self::date($endInput);
+        if ($startInput !== '' || $endInput !== '') {
+            if ($startDate === null) {
+                $errors['start_date'] = self::error('invalid_date', 'Enter a date as YYYY-MM-DD.');
+            }
+            if ($endDate === null) {
+                $errors['end_date'] = self::error('invalid_date', 'Enter a date as YYYY-MM-DD.');
+            } elseif ($startDate !== null && $endDate < $startDate) {
+                $errors['end_date'] = self::error('before_start', 'The end date is before the start.');
+            }
         }
 
         $people = is_array($input['people'] ?? null) && array_is_list($input['people']) ? $input['people'] : [];
         if ($people === []) {
             $errors['people'] = self::error('too_few', 'Add at least one more person.');
         } elseif (count($people) > self::MAX_PEOPLE - 1) {
-            $errors['people'] = self::error('too_many', 'A trip can have at most 20 people.', ['max' => self::MAX_PEOPLE]);
+            $errors['people'] = self::error('too_many', 'A group can have at most 20 people.', ['max' => self::MAX_PEOPLE]);
         }
 
         // The creator's name and email count as taken; names compare without case, emails are normalised.
@@ -72,14 +77,14 @@ final readonly class TripService
             } elseif (mb_strlen($personName) > self::MAX_PERSON_NAME_LENGTH) {
                 $errors["people.{$i}.name"] = self::error('too_long', 'Use at most 60 characters.', ['max' => self::MAX_PERSON_NAME_LENGTH]);
             } elseif (isset($takenNames[mb_strtolower($personName)])) {
-                $errors["people.{$i}.name"] = self::error('duplicate', 'This name is already on the trip.');
+                $errors["people.{$i}.name"] = self::error('duplicate', 'This name is already on the group.');
             }
             $takenNames[mb_strtolower($personName)] = true;
 
             if ($email !== '' && !AuthService::isPlausibleEmail($email)) {
                 $errors["people.{$i}.email"] = self::error('invalid_email', 'Enter an email like ana@example.com.');
             } elseif ($email !== '' && isset($takenEmails[$email])) {
-                $errors["people.{$i}.email"] = self::error('duplicate_email', 'This email is already on the trip.');
+                $errors["people.{$i}.email"] = self::error('duplicate_email', 'This email is already on the group.');
             }
             if ($email !== '') {
                 $takenEmails[$email] = true;

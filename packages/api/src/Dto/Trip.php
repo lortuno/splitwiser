@@ -10,8 +10,8 @@ final readonly class Trip implements \JsonSerializable
     public function __construct(
         public int $id,
         public string $name,
-        public string $startDate,
-        public string $endDate,
+        public ?string $startDate,
+        public ?string $endDate,
         public int $totalCents,
         public bool $paid = false,
         public ?array $members = null,

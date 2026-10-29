@@ -14,7 +14,7 @@ use PDO;
  * Sign-up, login and logout with opaque bearer tokens: 32 random bytes as hex, stored only as their SHA-256.
  * Sign-up errors are keyed by form field (display_name, email, password, language), like ExpenseValidator. Errors whose
  * text has a number carry it in params, so the app can word them in its own language.
- * A sign-up links every trip person invited with the same email (trip_invites) to the new account.
+ * A sign-up links every trip person invited with the same email (group_invites) to the new account.
  */
 final readonly class AuthService
 {

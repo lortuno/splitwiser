@@ -39,8 +39,9 @@ export interface AuthResult {
 export interface Trip {
   id: number;
   name: string;
-  start_date: string;
-  end_date: string;
+  /** Both null for a group without dates. */
+  start_date: string | null;
+  end_date: string | null;
   total_cents: number;
   /** True once a member marked the trip as paid (until someone reopens it). */
   paid: boolean;
@@ -127,8 +128,8 @@ export interface CategorySuggestion {
 /** Body of POST /trips. The creator is never sent: the API adds them as the first member. */
 export interface NewTrip {
   name: string;
-  start_date: string;
-  end_date: string;
+  start_date: string | null;
+  end_date: string | null;
   people: { name: string; email: string | null }[];
 }
 
