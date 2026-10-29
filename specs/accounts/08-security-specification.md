@@ -9,7 +9,8 @@ Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-
 
 | Date | Task | Estimate (h) | Actual (h) |
 |---|---|---|---|
-| 2026-10-29 | Build the feature | 1.5 | |
+| 2026-10-29 | Build the feature | 1.5 | 1 |
+| 2026-10-29 | Build spec change: documented, time-limited audit exception | 0.25 | |
 
 ## Goal
 
