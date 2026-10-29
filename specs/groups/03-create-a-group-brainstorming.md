@@ -331,3 +331,155 @@ No trip can be marked as paid yet (epic 4), so "a trip already marked as paid" d
 - Each e2e file starts on a fresh seed, because the epic 3 checks change Ana's and Ben's lists and Ana's name.
 - Figures (`300,00 €` → two × `100,00 €`; `10,00 €` → `3,34 / 3,33 / 3,33`, two × `3,33 €`) come from the real API
   code on an in-memory database.
+
+# Change: a trip becomes a group
+
+The user's request: "rename trip to group, so a group can hold a trip, gifts or any other shared expenses; at table and
+translation level". Agreed before this round: this is a change to this feature (03), every other spec only follows
+in wording, checks and paths, and `specs/trips/` becomes `specs/groups/` (`01-group-at-a-glance`, `03-create-a-group`)
+with `git mv` when the specification is written.
+
+### What the specification says today
+
+- **Tables** (`packages/api/src/Database/Schema.php`): `trips (id, name, start_date NOT NULL, end_date NOT NULL)`,
+  `trip_members (trip_id, person_id)`, `trip_invites`, `trip_status_changes (trip_id, …)`, `expenses.trip_id`, the
+  views (`v_trip_totals`, balances) and indexes on `trip_id`. The live database is kept on the host in
+  `packages/api/var/app.sqlite` (with the admin account and its changes).
+- **API and app code:** `/trips`, `/trips/{tripId}/…`, JSON fields `trip`, `trip_id`, the web link `?trip=8`, classes
+  and files `TripController`, `TripService`, `TripView`, `MyTripsScreen`, `NewTripScreen`, …
+- **Texts:** 38 English keys say "trip" ("My trips", "+ New trip", "Trip name", "Create trip", "Total trip spend",
+  "This trip does not exist.", "You are not a member of this trip.", the tab "Trip", "Mark this trip as paid?", "A trip
+  can have at most {max} people.", …), and the same in Spanish ("viaje") and French ("voyage").
+- **New trip form:** name (required, 80 characters), start and end date **required**, prefilled with today; the end
+  date may not be before the start. The trip view and the cards show "1 Jun 2026 – 7 Jun 2026".
+- **Seed:** 8 trips ("Lisbon & Porto", "Madrid weekend", …) whose figures every spec's checks pin.
+
+## Round 5
+
+### Q1. How far does the rename go?
+- [x] **Tables and texts, as asked:** tables, columns, indexes and views say `group` (`groups`, `group_members`,
+  `group_invites`, `group_status_changes`, `expenses.group_id`), and every text in English, Spanish and French says
+  group. The API paths (`/trips`), JSON fields (`trip`, `trip_id`), the `?trip=` link and the code names stay as they
+  are, so the build stays small; the API is only used by this app (Recommended)
+- [ ] **Everything:** also `/groups` paths, JSON fields `group` / `group_id`, the link `?group=8`, and code names
+  (`GroupController`, `GroupView`, `MyGroupsScreen`, …). Bigger build, every API test and e2e test changes, no mixed
+  naming left
+- [ ] **Tables, texts and the API**, but not code names: `/groups` and `group_id` in JSON, `?group=8`; classes and files
+  keep "Trip"
+
+### Q2. The existing database (`packages/api/var/app.sqlite`)
+- [x] Renamed in place at the next start (`bin/init-db.php`): each table and column is renamed and the views are
+  recreated, so every group, expense, account and the admin's changes stay; a fresh database is created with the new
+  names. The start log says "Renamed trips to groups." once (Recommended)
+- [ ] Deleted and seeded again (the admin's changes and anything entered by hand are lost)
+
+### Q3. Is there a kind of group (trip, gifts, other)?
+- [x] No kind: a group is a name, its people and its expenses; "Gifts for Ben" and "Lisbon & Porto" work the same way
+  (Recommended: what the rename needs; a kind can come later)
+- [ ] A kind chosen on "New group" (Trip, Gifts, Other), stored on the group and shown on the card with an icon
+
+### Q4. Dates of a group
+A trip has a start and an end; a gift collection usually has none.
+- [x] Optional: both dates empty, or both valid with the end not before the start. "New group" opens with both empty.
+  Without dates, the card and the group header show no date line ("20 expenses" alone), and a new expense's date is
+  today (Recommended)
+- [ ] Required as today (prefilled with today's date)
+- [ ] No dates at all: removed from the form, the cards and the database
+
+New group with optional dates (correct it directly here):
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │  app bar
+├──────────────────────────────────────┤
+│ ‹ My groups                          │
+│ New group                            │  title 20 bold
+├──────────────────────────────────────┤
+│ Group name                           │
+│ ┌──────────────────────────────────┐ │
+│ │ Gifts for Ben                    │ │
+│ └──────────────────────────────────┘ │
+│ Dates (optional)                     │  caption, inkMuted
+│ ┌───────────────┐  ┌───────────────┐ │
+│ │ Start date    │  │ End date      │ │  both empty
+│ └───────────────┘  └───────────────┘ │
+│ People                               │
+│ Ana (you)                            │
+│ ...                                  │
+│ ┌──────────────────────────────────┐ │
+│ │           Create group           │ │  primary, 56 high, bottom
+│ └──────────────────────────────────┘ │
+└──────────────────────────────────────┘
+```
+
+My groups with a group without dates:
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │
+├──────────────────────────────────────┤
+│ My groups                            │
+│ Logged in as Ana                     │
+│ ┌──────────────────────────────────┐ │
+│ │ Gifts for Ben                    │ │  no date line
+│ │ Total                    40,00 € │ │
+│ └──────────────────────────────────┘ │
+│ ┌──────────────────────────────────┐ │
+│ │ Lisbon & Porto                   │ │
+│ │ 1 Jun 2026 – 7 Jun 2026          │ │
+│ │ Total                 1.915,57 € │ │
+│ └──────────────────────────────────┘ │
+│ ┌──────────────────────────────────┐ │
+│ │            + New group           │ │
+│ └──────────────────────────────────┘ │
+└──────────────────────────────────────┘
+```
+
+### Q5. Order of "My groups" when some have no dates
+Today the newest start date comes first.
+- [x] Groups with dates by newest start date first, then groups without dates, newest created first
+  (Recommended)
+- [ ] Newest created first for every group, dates ignored
+
+### Q6. The words in each language
+- [x] **group / grupo / groupe:** "My groups" / "Mis grupos" / "Mes groupes", "+ New group" / "+ Nuevo grupo" /
+  "+ Nouveau groupe", "Group name" / "Nombre del grupo" / "Nom du groupe", "Create group" / "Crear grupo" / "Créer le
+  groupe", the tab "Group" / "Grupo" / "Groupe", "Total spent" / "Gasto total" / "Total des dépenses", "This group does
+  not exist.", "Mark this group as paid?", "A group can have at most {max} people." (Recommended)
+- [ ] Another word (write it below, in each language)
+
+### Q7. Seed data
+- [x] No seed change: the 8 seeded trips become groups with the same names, dates and figures, so no check's amount
+  moves. A group without dates is created through "New group" in the checks (Recommended)
+- [ ] Add a seeded group without dates (it would add a card to someone's list and change checks that count cards)
+
+### Q8. Spec file names outside `specs/trips/`
+- [x] `specs/accounts/02-login-and-my-trips-*` becomes `02-login-and-my-groups-*` too, with `git mv` (Recommended)
+- [ ] Keep it; only the contents change
+
+- [x] Round 5 answered (tick this when you have answered every question above)
+
+### Decisions made while changing the specifications
+
+Every round 5 recommendation was kept. These details were settled in the specifications and can be challenged there:
+
+- **The views keep their names** (`v_trip_totals`, `v_trip_status`) and output columns (`trip_id`), so the API code
+  stays as it is (round 5 Q1); only what they read changes.
+- **The rename runs in one transaction** in `bin/init-db.php`; `groups` is rebuilt once (SQLite cannot drop `NOT NULL`
+  in place), keeping every id. A failure leaves the database as it was and stops the start.
+- **One date without the other** is `invalid_date` ("Enter a date as YYYY-MM-DD.") on the empty field: no new error
+  code or text.
+- **New key `newTrip.datesOptional`** ("Dates (optional)" / "Fechas (opcional)" / "Dates (facultatif)"); translation
+  keys keep their code names (`trips.*`, `newTrip.*`, `trip.*`), only their texts say group.
+- **"Total trip spend" becomes "Total spent"** ("Gasto total"; French already read "Total des dépenses").
+- **The app name stays** "Travel expenses" / "Gastos de viaje" / "Frais de voyage": it has no "trip" and the round did
+  not ask about it. Listed under Out of scope.
+- **Checks:** in 03, checks 1–13 changed in wording and the new dates; 16 (a group without dates and the list order),
+  17 (one date only), 18 (API) and 19 (renaming an existing database) are new. Every other spec's checks changed only
+  in wording; their progress files are unticked where a check changed, with Screens and Tests (and Data and API in 03).
+- **Spec 01** had "Out of scope" and "Check on iOS and Android" headings with extra words, which the spec guard did not
+  accept; they now use the exact headings.
+- **Spec guard (tooling):** renaming a feature's files one at a time with `git mv` was blocked; the guard now allows a
+  rename inside the feature's own folder, and leaves the tooling estimates alone during `/spec`.
+- **Not renamed:** `specs/roadmap.md` (the big picture, written with trips) and the estimate rows in spec 01, which are
+  append-only and still name `specs/01-trip-at-a-glance-*`.

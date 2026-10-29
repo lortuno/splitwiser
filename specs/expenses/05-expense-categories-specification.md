@@ -1,6 +1,6 @@
 # Epic 5: Expense categories and icons — specification
 
-Source: new feature (not in `specs/roadmap.md`; it builds on epic 4, "Edit expenses and mark a trip as paid").
+Source: new feature (not in `specs/roadmap.md`; it builds on epic 4, "Edit expenses and mark a group as paid").
 Brainstorming: `specs/expenses/05-expense-categories-brainstorming.md` (rounds 1–3; every recommendation was kept).
 Boundaries: `specs/guidelines/architecture.md`, `specs/guidelines/ui.md`.
 
@@ -17,7 +17,7 @@ Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-
 Every expense has one of 11 categories, shown as an emoji icon on its row, so a list of expenses can be scanned at a
 glance. While a person types the name of a new expense, the API suggests a category from the words in the name. It
 understands English, German and Spanish, common brand names and typos, and it learns from the names already used on
-the same trip. The person keeps the suggestion or taps another category before saving, and can change it later by
+the same group. The person keeps the suggestion or taps another category before saving, and can change it later by
 editing the expense. Existing expenses get their category guessed once. No new package, service or dependency, and
 nothing leaves the app: the matcher is plain PHP.
 
@@ -45,7 +45,7 @@ bottom. One new token: `size.iconBox 40` (`theme.ts` and `ui.md`).
 The code → emoji map lives in one app file (`src/expenses/categories.ts`); it is display only, like
 `money/format.ts`.
 
-### Trip view, expense rows (`TripScreen`, changed; open and paid trips)
+### Group view, expense rows (`TripScreen`, changed; open and paid groups)
 
 ```
 ┌──────────────────────────────────────┐
@@ -59,12 +59,12 @@ The code → emoji map lives in one app file (`src/expenses/categories.ts`); it 
 ```
 
 - **Icon box** (`size.iconBox` square, `accentSoft`, `radius.sm`, emoji centred at `typeScale.title`): at the left of
-  every row, top-aligned, on open and paid trips alike. All text moves into a column to its right. The name still
+  every row, top-aligned, on open and paid groups alike. All text moves into a column to its right. The name still
   wraps to at most 2 lines; the amount and "›" stay on the first line.
 - **Screen readers:** the icon box is hidden (`importantForAccessibility="no-hide-descendants"`,
   `aria-hidden`). The row gets the label "{category label}, {name}, {amount}", e.g. "Transport, Taxi to Porto
   airport, 31,50 €".
-- Tapping a row: unchanged (opens "Edit expense" on an open trip, nothing on a paid trip).
+- Tapping a row: unchanged (opens "Edit expense" on an open group, nothing on a paid group).
 - **Empty / loading / error states:** unchanged.
 
 ### Add and edit expense (`AddExpenseScreen`, changed)
@@ -106,10 +106,10 @@ The code → emoji map lives in one app file (`src/expenses/categories.ts`); it 
   errors: unchanged from epic 4, plus the field error under the chips for `422 category`.
 - **Suggestion request fails** (API unreachable or any error): the selection stays as it is, with no message. Saving
   shows the existing form error card, as today.
-- **Paid trip:** unchanged; the form cannot be opened (`409 trip_paid` behaviour of epic 4 still applies).
+- **Paid group:** unchanged; the form cannot be opened (`409 trip_paid` behaviour of epic 4 still applies).
 - The tab bar stays hidden, as in epic 4.
 
-No other screen changes: Balances, My trips, the Mark as paid confirmation and the paid card stay as they are. There
+No other screen changes: Balances, My groups, the Mark as paid confirmation and the paid card stay as they are. There
 are no totals per category.
 
 ## Data
@@ -122,7 +122,7 @@ are no totals per category.
   their rows. New `CREATE TABLE` statements include it too. The API always writes a category; `NULL` only exists
   between adding the column and the backfill.
 - **Backfill:** `bin/init-db.php`, after `Schema::apply` and the seed, gives every expense whose `category` is `NULL`
-  the keyword guess for its name (keywords only, no trip learning), in id order. The seeder's expenses go through
+  the keyword guess for its name (keywords only, no group learning), in id order. The seeder's expenses go through
   `ExpenseService::create` without a category, so a fresh seed gets the same guesses directly. Money figures do not
   change.
 - `v_expense_list` exposes `COALESCE(e.category, 'other') AS category`.
@@ -134,7 +134,7 @@ are no totals per category.
 1. **Name key**, used for learning: lowercase (`mb_strtolower`), accents stripped (`Transliterator` from `intl` when
    loaded, else `iconv` `ASCII//TRANSLIT`), `ß` → `ss`, every character that is not a letter or digit becomes a
    space, spaces collapsed and trimmed. "Gasolina  Repsol!" and "gasolina repsol" share the key `gasolina repsol`.
-2. **Trip learning:** if an expense on the same trip has the same name key, the suggestion is its category (highest
+2. **Group learning:** if an expense on the same group has the same name key, the suggestion is its category (highest
    expense id wins; on `PUT` the expense being edited is skipped). `source: "trip"`.
 3. **Keywords**, on the name key split into words, with filler words dropped (en: a, an, and, at, for, from, in, of,
    on, the, to, with; de: am, an, auf, das, der, die, für → fur, im, in, mit, und, vom, zum, zur; es: a, al, con, de,
@@ -154,7 +154,7 @@ they must include at least the words the seed table and the checks below rely on
 
 **Writes:**
 
-- `POST …/expenses`: `category` from the body, or the guess (trip learning included) when it is missing.
+- `POST …/expenses`: `category` from the body, or the guess (group learning included) when it is missing.
 - `PUT …/expenses/{expenseId}`: `category` from the body; when it is missing, the stored category is kept.
 - The epic 4 snapshot gains `category` (`{ name, date, amount_cents, category, paid_by, split }`), so changing only
   the category writes one `expense_changes` row and makes the expense `edited: true`. Snapshots written before this
@@ -170,25 +170,25 @@ Errors keep the existing shapes. All money is integer `_cents` (nothing new abou
 
 | Request | Response |
 |---|---|
-| `GET /trips/{id}/category-suggestion?name={text}` | `200 { category, source }`, `source` ∈ `trip`, `keywords`, `none`. A missing or blank `name` gives `{ "category": "other", "source": "none" }`. Read-only: also answers on a paid trip. |
+| `GET /trips/{id}/category-suggestion?name={text}` | `200 { category, source }`, `source` ∈ `trip`, `keywords`, `none`. A missing or blank `name` gives `{ "category": "other", "source": "none" }`. Read-only: also answers on a paid group. |
 | `POST /trips/{id}/expenses` (and `?dry_run=1`) | Body as today plus optional `category`. Missing → the guess is stored. |
 | `PUT /trips/{id}/expenses/{expenseId}` | Body as today plus optional `category`. Missing → unchanged. |
 | `GET /trips/{id}/expenses`, and `expense` in `POST` / `PUT` responses | Each expense gets `category` (a code from the list). |
 
-Errors, in the existing order (401 → 404 trip → 403 → 404 expense → 409 → 422):
+Errors, in the existing order (401 → 404 group → 403 → 404 expense → 409 → 422):
 
-- `GET …/category-suggestion`: `401 unauthenticated`, `404 not_found` for an unknown trip, `403 not_a_member`.
+- `GET …/category-suggestion`: `401 unauthenticated`, `404 not_found` for an unknown group, `403 not_a_member`.
 - `POST` / `PUT`: as in epic 4, plus `422` field `category`, code `invalid_category`, message "Choose one of the
   categories." for any value that is not one of the 11 codes (wrong type included). It is reported together with the
   other field errors.
 
 ## Seed data
 
-No seed changes: trips 1–8, their expenses and the 10 accounts stay as they are, so every epic 1–4 figure holds and the
-first trip created after the seed is still trip 9. The seed expenses get these categories from the guess (this table
+No seed changes: groups 1–8, their expenses and the 10 accounts stay as they are, so every epic 1–4 figure holds and the
+first group created after the seed is still group 9. The seed expenses get these categories from the guess (this table
 is the contract; the PHP fixture test pins it):
 
-| Trip | Expense | Category | Decided by |
+| Group | Expense | Category | Decided by |
 |---|---|---|---|
 | 1 Lisbon & Porto | Airport taxi to Alfama | transport 🚕 | "taxi" ("airport" is in no list) |
 | 1 | Pastéis de Belém breakfast | food 🍴 | "breakfast" |
@@ -222,7 +222,7 @@ is the contract; the PHP fixture test pins it):
 | 7 | Prado Museum tickets | activities 🎟️ | "museum" |
 | 8 Ski week | Ski passes | activities 🎟️ | "ski" (exact) |
 
-**Money in the checks.** Trip 7 "Madrid weekend" as seeded: total `78,30 €`, Ana pays Chloé `9,15 €`. Changing only
+**Money in the checks.** Group 7 "Madrid weekend" as seeded: total `78,30 €`, Ana pays Chloé `9,15 €`. Changing only
 a category (check 8) changes no figure. Adding "Dinner and wine" `20,00 €` on 14 Sep 2026, paid by Ana, split equally
 between Ana and Chloé (check 5) gives, calculated with the current API code on a fresh in-memory database after the
 seed:
@@ -238,13 +238,13 @@ seed:
     exact. It covers English, German and Spanish, brands, typos ("gasolne", "restaruant", "Abendesen"), phrases, the
     explicit decisions in Data (gas, bar, car, tickets, Ryanair tickets, airport, port, boat), names that give `other`,
     the 120-character name, accents and `ß` in the name key, and every row of the seed table.
-  - Learning: the same name key on the same trip returns that expense's category with `source: "trip"` (highest id
-    wins); another trip is not affected; `PUT` skips the edited expense.
+  - Learning: the same name key on the same group returns that expense's category with `source: "trip"` (highest id
+    wins); another group is not affected; `PUT` skips the edited expense.
   - Schema: applying the schema to a database created without the column adds it and keeps every row; the backfill
     sets the seed table's categories; applying twice changes nothing.
   - Writes: `POST` with and without `category`; `PUT` without `category` keeps it; `invalid_category` with the other
     field errors; changing only the category writes one change record with `category` in both snapshots and sets
-    `edited`; the endpoint's 401 / 404 / 403 and its answer on a paid trip; `category` in list, create and edit
+    `edited`; the endpoint's 401 / 404 / 403 and its answer on a paid group; `category` in list, create and edit
     responses.
   - Existing tests still pass, apart from the new field.
 - **TypeScript (`tests/unit`):** the form state: a new form starts on `other` and not picked; a suggestion replaces
@@ -258,7 +258,7 @@ seed:
 Viewport 390x844. Freshly seeded database. App at http://localhost:8081. Every demo password is `travel-demo-2026`.
 Run the checks in order: checks 5–10 build on each other.
 
-1. 📸 **Icons on the trip view.** Log in as `ana@example.com` and open "Lisbon & Porto". Every expense row starts with
+1. 📸 **Icons on the group view.** Log in as `ana@example.com` and open "Lisbon & Porto". Every expense row starts with
    an icon box. "Taxi to Porto airport `31,50 €`" shows 🚕, "Airbnb Porto, 3 nights" 🏨, "Groceries at Pingo Doce" 🛒,
    "Fado night drinks" 🍺, "Dinner at the harbour" 🍴 and "Azulejo tile souvenir" 🛍️. The amounts and "›" still sit
    on the first line of each row, and the page does not scroll sideways.
@@ -272,11 +272,11 @@ Run the checks in order: checks 5–10 build on each other.
    "🚕 Transport"; "Xyzzy" selects "🧾 Other"; clearing the name selects "🧾 Other" and shows the empty-name hint.
 5. 📸 **A tapped category sticks, then save.** Type "Dinner": "🍴 Food" is selected. Tap "🍺 Drinks", then complete the
    name to "Dinner and wine" and wait a second: "🍺 Drinks" stays selected. Enter date `2026-09-14`, amount `20,00`,
-   "Paid by" Ana, and tap "Save expense". The trip view shows total `98,30 €`, "Chloé pays Ana `0,85 €`", and the row
+   "Paid by" Ana, and tap "Save expense". The group view shows total `98,30 €`, "Chloé pays Ana `0,85 €`", and the row
    "Dinner and wine `20,00 €`" with 🍺.
-6. **The trip learns.** Tap "+ Add expense" and type "dinner and WINE": "🍺 Drinks" is selected (from the expense of
+6. **The group learns.** Tap "+ Add expense" and type "dinner and WINE": "🍺 Drinks" is selected (from the expense of
    check 5). Tap "Cancel": the total is still `98,30 €`.
-7. **Learning stays in its trip.** Go to "‹ My trips", open "Lisbon & Porto", tap "+ Add expense" and type "Dinner and
+7. **Learning stays in its group.** Go to "‹ My groups", open "Lisbon & Porto", tap "+ Add expense" and type "Dinner and
    wine": "🍴 Food" is selected. Tap "Cancel".
 8. 📸 **Change only the category.** Open "Madrid weekend" and tap "Tapas at Mercado de San Miguel". "Edit expense" shows
    "🍴 Food" selected. Tap "🍺 Drinks" and "Save changes". The row shows 🍺 and "Edited"; the total is still `98,30 €`
@@ -284,9 +284,9 @@ Run the checks in order: checks 5–10 build on each other.
 9. **The edit form never re-suggests.** Tap "Prado Museum tickets": "🎟️ Activities" is selected. Change the name to
    "Prado dinner" and wait a second: "🎟️ Activities" stays selected. Tap "Cancel": the row still reads "Prado Museum
    tickets" with 🎟️ and no "Edited".
-10. **Paid trip keeps its icons.** Tap "Mark as paid" and confirm. The paid view shows the rows with their icons:
+10. **Paid group keeps its icons.** Tap "Mark as paid" and confirm. The paid view shows the rows with their icons:
     "Dinner and wine" 🍺, "Prado Museum tickets" 🎟️ and "Tapas at Mercado de San Miguel" 🍺, without "›".
-11. 📸 **Long name and very large amount.** Log in as `noah@example.com` and open the long-name trip. The 120-character
+11. 📸 **Long name and very large amount.** Log in as `noah@example.com` and open the long-name group. The 120-character
     sleeper train row shows 🚕, its name wraps to 2 lines right of the icon, and its amount `345.678,91 €` stays on the
     first line. "Private jet charter `1.000.000,00 €`" shows ✈️ and "Yacht week" 🎟️. The total still reads `2,34 M €`
     and the page does not scroll sideways.
@@ -300,8 +300,8 @@ Run the checks in order: checks 5–10 build on each other.
     answers `{ "category": "fuel", "source": "keywords" }`; `GET /trips/7/category-suggestion?name=Dinner%20and%20wine`
     answers `{ "category": "drinks", "source": "trip" }` (Madrid is paid since check 10: still `200`);
     `?name=Xyzzy` and a missing `name` answer `{ "category": "other", "source": "none" }`. Without a token: `401`.
-    `GET /trips/999/category-suggestion?name=x`: `404 not_found`. With Ben's token on trip 7: `403 not_a_member`.
-15. **Categories on write.** With Hugo's token (`hugo@example.com`, trip 3 "Even split"): `POST /trips/3/expenses`
+    `GET /trips/999/category-suggestion?name=x`: `404 not_found`. With Ben's token on group 7: `403 not_a_member`.
+15. **Categories on write.** With Hugo's token (`hugo@example.com`, group 3 "Even split"): `POST /trips/3/expenses`
     with a valid body and `"category": "pets"` answers `422` with `errors.category.code` `invalid_category`. The same
     body without `category` and with the name "Taxi" answers `201` with `expense.category` `transport`. `PUT` of that
     expense with only `"category": "other"` changed answers `200` with `category` `other` and `edited: true`; a `PUT`
@@ -314,11 +314,11 @@ Run the checks in order: checks 5–10 build on each other.
 ## Out of scope
 
 Excluded in the rounds: icons only without a way to change them, a manual picker without suggestions, categories that
-trip members define, an external AI model or any service outside the app, a sound-alike (`metaphone`) match, learning
-across trips or users, more languages than English, German and Spanish, a separate corrections table, a separate
+group members define, an external AI model or any service outside the app, a sound-alike (`metaphone`) match, learning
+across groups or users, more languages than English, German and Spanish, a separate corrections table, a separate
 category picker screen or a scrolling chip row, re-suggesting in the edit form or after a chip was tapped, a message
-when the suggestion request fails, totals or charts per category (Balances, My trips), a monochrome or SVG icon set
-(new dependency), new seed trips, and a hit-rate target instead of an exact fixture list. Also not included: showing
+when the suggestion request fails, totals or charts per category (Balances, My groups), a monochrome or SVG icon set
+(new dependency), new seed groups, and a hit-rate target instead of an exact fixture list. Also not included: showing
 the category in the change history (still never shown in the app), filtering or sorting expenses by category.
 
 ## Check on iOS and Android

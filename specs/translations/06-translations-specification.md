@@ -35,7 +35,7 @@ service or dependency.
 
 All buttons are at least `size.tapMin` (48 px) high. Primary buttons are `size.tapPrimary` (56 px) high and sit at the
 bottom. Every screen except the first "Loading…" gets the app bar on top; below it, the layout changes only on Login,
-Sign up, the "My trips" header and "Settings", plus the new "Discard your changes?" dialog. Every other screen shows
+Sign up, the "My groups" header and "Settings", plus the new "Discard your changes?" dialog. Every other screen shows
 its text in the chosen language with no other layout change.
 
 **Language control** (`LanguagePicker`, `src/components`): a dropdown, used in "Settings". A bordered button
@@ -55,7 +55,7 @@ the language rows.
 ┌──────────────────────────────────────┐
 │                        [English  ▾] │  app bar, 56 high, every screen
 ├──────────────────────────────────────┤  but the first "Loading…"
-│ My trips                             │  the screen's own header below
+│ My groups                            │  the screen's own header below
 │ ...                                  │
 ```
 
@@ -88,9 +88,9 @@ Open, logged in:
 - **A language:** switches every text on screen at once, without a reload; field values and errors already on screen
   stay. Before login it works as described for Login; logged in it is saved as described under "Saving the language".
   A language switch never asks "Discard your changes?".
-- **Settings:** opens "Settings" from any screen (on the web the `?trip=` in the URL is cleared). Its "‹ My trips"
-  leads to "My trips", as today.
-- **Log out:** as in `specs/accounts/02-login-and-my-trips-specification.md`: `POST /auth/logout`, the app forgets
+- **Settings:** opens "Settings" from any screen (on the web the `?trip=` in the URL is cleared). Its "‹ My groups"
+  leads to "My groups", as today.
+- **Log out:** as in `specs/accounts/02-login-and-my-groups-specification.md`: `POST /auth/logout`, the app forgets
   the token and shows Login, also when the request fails.
 - **Unsaved input:** when "Settings" or "Log out" is tapped on a screen with unsaved input, "Discard your changes?"
   appears first (see below).
@@ -100,7 +100,7 @@ Open, logged in:
 A language picked in the menu or in Settings' dropdown is shown at once and sent with `PATCH /me { language }`. Both
 controls stay usable while the request runs. When it fails because the API cannot be reached (network error or a
 `5xx`), **nothing is undone and no message is shown**: the app keeps the language and marks it pending. It sends the
-pending language again at every screen change (any change of route in `App.tsx`, including opening a trip, a form or
+pending language again at every screen change (any change of route in `App.tsx`, including opening a group, a form or
 "Settings") until a save works. A newer switch replaces the pending one. A `401` ends the session as everywhere and
 drops what is pending. A pending language is not kept beyond the running app: after a reload or a new start, the
 language stored in the database applies.
@@ -126,11 +126,11 @@ language stored in the database applies.
 └──────────────────────────────────────┘
 ```
 
-- **When:** only after "Settings" or "Log out" in the menu, on the add or edit expense form, "New trip" or "Settings",
+- **When:** only after "Settings" or "Log out" in the menu, on the add or edit expense form, "New group" or "Settings",
   and only when the input differs from how the screen opened: any field of the form (name, amount, date, category,
-  "Paid by" and its amounts, the split type and its values, the trip's dates and people, the name in Settings).
+  "Paid by" and its amounts, the split type and its values, the group's dates and people, the name in Settings).
   Changing a field and changing it back counts as unchanged. An untouched form, a language switch, "Cancel" and
-  "‹ My trips" never ask.
+  "‹ My groups" never ask.
 - **Discard and log out / Discard and open Settings** (`size.tapPrimary`): drops the input and does what was tapped.
 - **Keep editing** (`size.tapMin`), tapping outside the card or Escape (Android: back): closes the dialog; the input
   stays as it was.
@@ -143,7 +143,7 @@ language stored in the database applies.
 │                        [English  ▾] │  app bar: the menu, languages
 ├──────────────────────────────────────┤  only
 │ Travel expenses                      │
-│ Log in to see your trips.            │
+│ Log in to see your groups.           │
 │                                      │
 │ Email                                │
 │ ┌──────────────────────────────────┐ │
@@ -171,13 +171,13 @@ language stored in the database applies.
   after login and is copied to the device.
 - Loading and error states: as today, translated ("Could not reach the API at {url}.", "Email or password is wrong.").
 
-### My trips header (`MyTripsScreen`, changed)
+### My groups header (`MyTripsScreen`, changed)
 
 ```
 ┌──────────────────────────────────────┐
 │                        [English  ▾] │  app bar
 ├──────────────────────────────────────┤
-│ My trips                             │  title 20 bold, no buttons
+│ My groups                            │  title 20 bold, no buttons
 │ Logged in as Ana                     │
 ```
 
@@ -189,12 +189,12 @@ language stored in the database applies.
 ┌──────────────────────────────────────┐
 │                        [English  ▾] │  app bar; its menu has no
 ├──────────────────────────────────────┤  "Settings" row here
-│ ‹ My trips                           │
+│ ‹ My groups                          │
 │ Settings                             │  title 20 bold
 ├──────────────────────────────────────┤
 │ Name                                 │
 │ This is how you appear on all your   │
-│ trips.                               │
+│ groups.                              │
 │ ┌──────────────────────────────────┐ │
 │ │ Ana                              │ │
 │ └──────────────────────────────────┘ │
@@ -210,10 +210,10 @@ language stored in the database applies.
 ```
 
 - **Name and Save:** exactly as "Your name" today (`PATCH /me { display_name }`, "Saving…", field errors, back to My
-  trips on success).
+  groups on success).
 - **Language:** tapping a language switches the app at once and saves it without "Save", as described under "Saving
   the language". It always shows the same language as the menu button.
-- **‹ My trips:** back without saving the name, without asking.
+- **‹ My groups:** back without saving the name, without asking.
 
 ### Text that must fit at 390 px
 
@@ -224,31 +224,33 @@ shorter. The French and Spanish texts the checks rely on are fixed below; the bu
 | Key | English | Español | Français |
 |---|---|---|---|
 | `auth.appName` | Travel expenses | Gastos de viaje | Frais de voyage |
-| `auth.loginIntro` | Log in to see your trips. | Inicia sesión para ver tus viajes. | Connectez-vous pour voir vos voyages. |
+| `auth.loginIntro` | Log in to see your groups. | Inicia sesión para ver tus grupos. | Connectez-vous pour voir vos groupes. |
 | `auth.logIn` | Log in | Iniciar sesión | Se connecter |
 | `auth.toSignUp` | No account yet? Sign up | ¿Aún no tienes cuenta? Regístrate | Pas encore de compte ? S’inscrire |
-| `trips.title` | My trips | Mis viajes | Mes voyages |
+| `trips.title` | My groups | Mis grupos | Mes groupes |
+| `trips.newTrip` / `newTrip.name` / `newTrip.create` | + New group / Group name / Create group | + Nuevo grupo / Nombre del grupo / Crear grupo | + Nouveau groupe / Nom du groupe / Créer le groupe |
+| `newTrip.datesOptional` | Dates (optional) | Fechas (opcional) | Dates (facultatif) |
 | `menu.logOut` | Log out | Cerrar sesión | Déconnexion |
 | `menu.button` (menu button's accessible name) | Menu, language: {language} | Menú, idioma: {language} | Menu, langue : {language} |
 | `discard.title` | Discard your changes? | ¿Descartar los cambios? | Abandonner les modifications ? |
 | `discard.body` | What you entered on this screen will be lost. | Lo que has escrito en esta pantalla se perderá. | Ce que vous avez saisi sur cet écran sera perdu. |
 | `discard.logOut` / `discard.openSettings` | Discard and log out / Discard and open Settings | Descartar y cerrar sesión / Descartar y abrir Ajustes | Abandonner et se déconnecter / Abandonner et ouvrir les Paramètres |
 | `discard.keep` | Keep editing | Seguir editando | Continuer la saisie |
-| `trip.back` | ‹ My trips | ‹ Mis viajes | ‹ Mes voyages |
+| `trip.back` | ‹ My groups | ‹ Mis grupos | ‹ Mes groupes |
 | `common.markPaid` | Mark as paid | Marcar pagado | Marquer payé |
 | `common.cancel` / `common.save` / `common.saving` | Cancel / Save / Saving… | Cancelar / Guardar / Guardando… | Annuler / Enregistrer / Enregistrement… |
-| `trip.totalSpend` | Total trip spend | Gasto total del viaje | Total des dépenses |
+| `trip.totalSpend` | Total spent | Gasto total | Total des dépenses |
 | `trip.expenseCount` (0 / 1 / 20) | 0 expenses / 1 expense / 20 expenses | 0 gastos / 1 gasto / 20 gastos | 0 dépense / 1 dépense / 20 dépenses |
 | `trip.peopleCount` (4) | 4 people | 4 personas | 4 personnes |
 | `balances.transfers` | Who owes whom | Quién debe a quién | Qui doit à qui |
 | `balances.pays` | {from} pays {to} | {from} paga a {to} | {from} paie {to} |
 | `common.balances` (tab and heading) | Balances | Saldos | Soldes |
-| `tabs.trip` / `tabs.add` | Trip / + Add expense | Viaje / + Gasto | Voyage / + Dépense |
+| `tabs.trip` / `tabs.add` | Group / + Add expense | Grupo / + Gasto | Groupe / + Dépense |
 | `add.title` / `edit.title` | Add expense / Edit expense | Nuevo gasto / Editar gasto | Nouvelle dépense / Modifier la dépense |
 | `add.save` / `edit.save` | Save expense / Save changes | Guardar gasto / Guardar cambios | Enregistrer / Enregistrer les modifications |
 | `add.fixErrors` | Please fix the fields marked in red. | Corrige los campos marcados en rojo. | Corrigez les champs en rouge. |
 | `common.paid` / `trip.paidBy` | ✓ Paid / Marked as paid by {name} on {date}. | ✓ Pagado / Marcado como pagado por {name} el {date}. | ✓ Payé / Marqué comme payé par {name} le {date}. |
-| `markPaid.title` | Mark this trip as paid? | ¿Marcar este viaje como pagado? | Marquer ce voyage comme payé ? |
+| `markPaid.title` | Mark this group as paid? | ¿Marcar este grupo como pagado? | Marquer ce groupe comme payé ? |
 | `settings.title` (title and menu row) / `settings.language` | Settings / Language | Ajustes / Idioma | Paramètres / Langue |
 | `settings.languageCurrent` (dropdown's accessible name) | Language: {language} | Idioma: {language} | Langue : {language} |
 | `common.loadFailed` | Could not reach the API at {url}. | No se pudo conectar con la API en {url}. | Impossible de joindre l’API à {url}. |
@@ -260,7 +262,7 @@ The English wording of some errors becomes the shared one; "Was" lists the texts
 
 | Key | English | Español | Français | Was |
 |---|---|---|---|---|
-| `error.required` | Fill in this field. | Rellena este campo. | Remplissez ce champ. | Enter a name for the expense. / … for the trip. / Enter a name. / Enter your name. / Enter your email. |
+| `error.required` | Fill in this field. | Rellena este campo. | Remplissez ce champ. | Enter a name for the expense. / … for the group. / Enter a name. / Enter your name. / Enter your email. |
 | `error.choosePerson` | Choose at least one person. | Elige al menos una persona. | Choisissez au moins une personne. | Choose who paid. / Choose who shares this expense. / Choose a person. |
 | `error.tooLong` | Use at most {max} characters. | Usa como máximo {max} caracteres. | {max} caractères maximum. | 4 texts (120, 80, 60, 200) |
 | `error.tooShort` | Use at least {min} characters. | Usa al menos {min} caracteres. | {min} caractères minimum. | Use at least 8 characters. |
@@ -270,16 +272,16 @@ The English wording of some errors becomes the shared one; "Was" lists the texts
 | `error.tooLarge` | The amount is too large. | El importe es demasiado alto. | Le montant est trop élevé. | — |
 | `error.invalidEmail` | Enter an email like {example}. | Escribe un correo como {example}. | Saisissez un e-mail comme {example}. | 2 identical texts |
 | `error.taken` | This email already has an account. | Este correo ya tiene una cuenta. | Cet e-mail a déjà un compte. | — |
-| `error.alreadyOnTrip` | This is already on the trip. | Ya está en el viaje. | Déjà dans ce voyage. | This name is … / This email is already on the trip. |
+| `error.alreadyOnTrip` | This is already on the group. | Ya está en el grupo. | Déjà dans ce groupe. | This name is … / This email is already on the group. |
 | `error.tooFew` | Add at least one more person. | Añade al menos una persona más. | Ajoutez au moins une autre personne. | — |
-| `error.tooMany` | A trip can have at most {max} people. | Un viaje puede tener como máximo {max} personas. | Un voyage peut compter {max} personnes au maximum. | — |
+| `error.tooMany` | A group can have at most {max} people. | Un grupo puede tener como máximo {max} personas. | Un groupe peut compter {max} personnes au maximum. | — |
 | `error.sumMismatch` | Amounts add up to {sum} but the expense is {amount}. | Los importes suman {sum} pero el gasto es de {amount}. | Les montants font {sum} mais la dépense est de {amount}. | Paid amounts … / Split amounts … |
 | `error.percentMismatch` | Percentages add up to {sum} instead of {total}. | Los porcentajes suman {sum} en lugar de {total}. | Les pourcentages font {sum} au lieu de {total}. | — |
 | `error.invalid` | Check this field. | Revisa este campo. | Vérifiez ce champ. | codes the screens cannot cause (`not_a_member`, expense `duplicate`, `invalid_type`, `invalid_category`, `invalid_language`) |
 
 Errors that already have an app text keep it, with no new key: `invalid_credentials` → `auth.wrongCredentials`,
 `trip_paid` → `add.tripPaid`, split `invalid_value` → `error.invalidAmount` / `add.invalidPercent` /
-`add.invalidShares` (by split type). `already_paid` and `already_open` show no text (the trip view reloads).
+`add.invalidShares` (by split type). `already_paid` and `already_open` show no text (the group view reloads).
 
 French uses a narrow no-break space before "?" and ":" where typography requires it ("compte ? S’inscrire").
 
@@ -337,7 +339,7 @@ where needed, its field) into one of the `error.*` keys in the Screens table, fi
   `error.choosePerson`;
 - `too_long` → `error.tooLong` with `{max}`; `too_short` → `error.tooShort` with `{min}`; `too_many` →
   `error.tooMany` with `{max}` (all from `params`);
-- `duplicate` and `duplicate_email` on a trip's people → `error.alreadyOnTrip`;
+- `duplicate` and `duplicate_email` on a group's people → `error.alreadyOnTrip`;
 - `sum_mismatch` → `error.sumMismatch` with `{sum}` and `{amount}` formatted by `formatCents`, or, for a percentage
   split, `error.percentMismatch` with `{sum}` and `{total}` formatted by `formatBasisPoints`;
 - `invalid_email` → `error.invalidEmail` with `{example}` = "ana@example.com";
@@ -357,7 +359,7 @@ itself does not depend on the app's language.
 **The database decides at start.** Every switch made while logged in is sent to `users.language` at once; a switch
 that could not be saved stays on screen as the pending language (kept in memory by the language store in `index.ts`)
 and is sent again at every screen change while the app runs (see "Saving the language" in Screens). At every start
-with a session, the app loads `GET /me` and switches to the account's language before showing "My trips" or a trip,
+with a session, the app loads `GET /me` and switches to the account's language before showing "My groups" or a group,
 so a pending language is lost with a reload or a new start. The device copy only covers the moments without an
 account:
 
@@ -385,15 +387,15 @@ any value that is not `en`, `es` or `fr` (on `PATCH /me` and `POST /auth/signup`
 
 ## Seed data
 
-No seed changes: trips 1–8, their expenses and the 10 accounts stay as they are, and every account starts in English.
+No seed changes: groups 1–8, their expenses and the 10 accounts stay as they are, and every account starts in English.
 The checks switch languages through the app. The figures they use are the existing ones (pinned by `FixtureTest`):
 
-- Trip 1 "Lisbon & Porto": total `1.915,57 €`, 20 expenses, 4 people; Ana pays Ben `63,75 €`, David pays Ben `27,65
+- Group 1 "Lisbon & Porto": total `1.915,57 €`, 20 expenses, 4 people; Ana pays Ben `63,75 €`, David pays Ben `27,65
   €`, David pays Chloé `27,07 €`.
-- Trip 7 "Madrid weekend": total `78,30 €`; Ana paid `30,00 €`, share `39,15 €`, net `-9,15 €`; Chloé paid `48,30 €`,
+- Group 7 "Madrid weekend": total `78,30 €`; Ana paid `30,00 €`, share `39,15 €`, net `-9,15 €`; Chloé paid `48,30 €`,
   share `39,15 €`, net `+9,15 €`; Ana pays Chloé `9,15 €`.
-- Trip 2 "Empty weekend" (Eva): `0,00 €`, 0 expenses, 3 people. Trip 4 "Three-way taxi" (Jon): 1 expense.
-- The `sum_mismatch` check enters an expense of `50,00 €` paid by Ana `20,00 €` and Ben `25,00 €` on trip 1, which is
+- Group 2 "Empty weekend" (Eva): `0,00 €`, 0 expenses, 3 people. Group 4 "Three-way taxi" (Jon): 1 expense.
+- The `sum_mismatch` check enters an expense of `50,00 €` paid by Ana `20,00 €` and Ben `25,00 €` on group 1, which is
   refused, so no figure changes.
 
 ## Tests
@@ -418,8 +420,8 @@ The checks switch languages through the app. The figures they use are the existi
   "Paid by", "Recorded by", "Who owes whom", "Balances", "expenses", "people", "Settings", "Log out", "Mark as paid",
   "Add expense". Earlier suites change only where they pinned a replaced text: epic 4 check 17 and epic 5 check 13 now
   expect "Could not reach the API at {url}." in the expense form; "Enter a name for the expense.", "Enter a name for
-  the trip." and "Enter your name." become "Fill in this field."; "This name is already on the trip." and "This email
-  is already on the trip." become "This is already on the trip.". Texts whose words stay the same through a
+  the group." and "Enter your name." become "Fill in this field."; "This name is already on the group." and "This email
+  is already on the group." become "This is already on the group.". Texts whose words stay the same through a
   placeholder ("Use at most 80 characters.", "Use at least 8 characters.") are unchanged. Every suite that logs out
   or opens "Settings" does it through the menu (a shared helper in `tests/e2e`), and the epic 1 check "The total and
   all three transfers are visible without scrolling" still passes with the app bar.
@@ -431,21 +433,21 @@ Viewport 390x844. Freshly seeded database. App at http://localhost:8081. Every d
 other. "{today}" is the local date of the check in the language shown ("28 oct. 2026", "28 oct 2026").
 
 1. 📸 **Login starts in English.** Fresh browser, open the app. Login reads "Travel expenses", "Log in to see your
-   trips." and shows the app bar with the menu button "English ▾" at the top right, above the title, at least 48 px
+   groups." and shows the app bar with the menu button "English ▾" at the top right, above the title, at least 48 px
    high. Opened, the menu lists only "English", "Español", "Français", each at least 48 px high, with "English"
    selected, and no "Settings" or "Log out"; Escape closes it. The page's `lang` is `en`.
 2. 📸 **Switch Login to French.** Tap "Français". Without a reload the screen reads "Frais de voyage", "Connectez-vous
-   pour voir vos voyages.", "Se connecter" and "Pas encore de compte ? S’inscrire"; "Français" is selected and the page's
+   pour voir vos groupes.", "Se connecter" and "Pas encore de compte ? S’inscrire"; "Français" is selected and the page's
    `lang` is `fr`. Reload the page: it is still French.
-3. **Log in in French.** Log in as `ana@example.com`. "Mes voyages" shows no header buttons, the menu button
+3. **Log in in French.** Log in as `ana@example.com`. "Mes groupes" shows no header buttons, the menu button
    "Français ▾", and the cards "Madrid weekend" and "Lisbon & Porto" with their totals. The open menu lists
    "English", "Español", "Français", then "Paramètres" and "Déconnexion". In the console, `GET /me`
    answers `language: "fr"` (the pick on Login was saved to the account).
-4. 📸 **Trip view in French.** Open "Lisbon & Porto". The app bar with "Français ▾" is on top; below it the header
-   shows "‹ Mes voyages" and "Marquer payé" on one row.
+4. 📸 **Group view in French.** Open "Lisbon & Porto". The app bar with "Français ▾" is on top; below it the header
+   shows "‹ Mes groupes" and "Marquer payé" on one row.
    The screen reads "Total des dépenses", `1.915,57 €`, "1 juin 2026 – 7 juin 2026 · 20 dépenses", "4 personnes", "Qui
    doit à qui", "Ana paie Ben `63,75 €`", "David paie Ben `27,65 €`", "David paie Chloé `27,07 €`"; the tab bar reads
-   "Voyage", "Soldes" and "+ Dépense". The row "Taxi to Porto airport" reads "7 juin 2026 · Payé par David" and its
+   "Groupe", "Soldes" and "+ Dépense". The row "Taxi to Porto airport" reads "7 juin 2026 · Payé par David" and its
    accessible name starts with "Transport, Taxi to Porto airport". None of the English texts listed in Tests appear,
    and the page does not scroll sideways.
 5. 📸 **Add form and field errors in French.** Open "Madrid weekend" and tap "+ Dépense". The form reads "Nouvelle
@@ -456,10 +458,10 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
 6. **Edit form in French.** Tap "Tapas at Mercado de San Miguel": "Modifier la dépense" opens with "Enregistrer les
    modifications" at the bottom and "Repas" selected. Tap "Annuler": the total is still `78,30 €`.
 7. 📸 **Balances and Mark as paid in French.** Tap "Soldes": Ana shows `-9,15 €` with "Payé `30,00 €`" and "Part
-   `39,15 €`", Chloé `+9,15 €`, and "Ana paie Chloé `9,15 €`". Tap "Voyage", then "Marquer payé": the confirmation reads
-   "Marquer ce voyage comme payé ?" and lists "Ana paie Chloé `9,15 €`". Confirm: the card reads "✓ Payé" and "Marqué
+   `39,15 €`", Chloé `+9,15 €`, and "Ana paie Chloé `9,15 €`". Tap "Groupe", then "Marquer payé": the confirmation reads
+   "Marquer ce groupe comme payé ?" and lists "Ana paie Chloé `9,15 €`". Confirm: the card reads "✓ Payé" and "Marqué
    comme payé par Ana le {today}.", and the header shows the French for "Reopen".
-8. 📸 **Settings in French, switch to Spanish.** Tap "‹ Mes voyages", open the menu and tap "Paramètres". The screen
+8. 📸 **Settings in French, switch to Spanish.** Tap "‹ Mes groupes", open the menu and tap "Paramètres". The screen
    reads "Paramètres", the name field with "Ana", "Langue" with "Français" selected, and "Enregistrer"; the menu here
    lists the languages and "Déconnexion", without "Paramètres". In the dropdown under "Langue", tap "Español": without
    "Enregistrer" the screen reads "Ajustes", "Idioma" and "Guardar", the menu button reads "Español ▾", and in the
@@ -467,24 +469,24 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
    still Spanish. **The database decides at start:** in the console, with Ana's token, `PATCH /me { "language": "fr" }`,
    then reload: the app starts in French although this browser last showed Spanish. `PATCH /me { "language": "es" }`
    and reload: Spanish again.
-9. **The account's language follows Ana.** Fresh browser: Login is in English. Log in as Ana: "Mis viajes" appears
+9. **The account's language follows Ana.** Fresh browser: Login is in English. Log in as Ana: "Mis grupos" appears
    in Spanish. Log out ("Cerrar sesión"): Login now reads "Iniciar sesión" (the account's language was copied to the
    device).
 10. **A pick on Login wins.** Fresh browser, tap "Français" on Login and log in as Ana (account in Spanish): the app is
     French, and `GET /me` answers `language: "fr"`.
 11. 📸 **Spanish walk with a sum error.** Fresh browser, tap "Español" and log in as `ben@example.com`. Open "Lisbon &
-    Porto": "Gasto total del viaje", `1.915,57 €`, "Ana paga a Ben `63,75 €`". Tap "+ Gasto", enter the name "Cena",
+    Porto": "Gasto total", `1.915,57 €`, "Ana paga a Ben `63,75 €`". Tap "+ Gasto", enter the name "Cena",
     the amount `50,00`, choose Ana and Ben under "Pagado por" with `20,00` and `25,00`, and tap "Guardar gasto": "Los
     importes suman `45,00 €` pero el gasto es de `50,00 €`." appears and nothing is saved. Tap "Cancelar", then
     open "Ajustes" from the menu: "Español" is selected.
 12. **Sign up in French.** Fresh browser, tap "Français", then "Pas encore de compte ? S’inscrire". The sign-up form is
-    French. Sign up as "Lena" with `lena@example.com` and `travel-demo-2026`: "Mes voyages" appears in French and `GET
+    French. Sign up as "Lena" with `lena@example.com` and `travel-demo-2026`: "Mes groupes" appears in French and `GET
     /me` answers `language: "fr"`. Log out, open sign-up again and use `ana@example.com`: "Cet e-mail a déjà un
     compte." appears.
 13. **Plurals.** As `eva@example.com` in French (switch on Login), "Empty weekend" reads "0 dépense" and "3
     personnes"; in Spanish (switch in the menu) it reads "0 gastos" and "3 personas". As `jon@example.com` in French,
     "Three-way taxi" reads "1 dépense".
-14. 📸 **Saving the language fails, the app keeps it and retries.** As `hugo@example.com` (English) on "My trips",
+14. 📸 **Saving the language fails, the app keeps it and retries.** As `hugo@example.com` (English) on "My groups",
     block the API. Tap "Français" in the menu: the screen is French, the menu button reads "Français ▾" and no error
     appears. Unblock the API and open "Even split": in the console `GET /me` answers `language: "fr"` (sent again at the
     screen change). Block the API again, open "Paramètres" and tap "English" in its dropdown: the screen is English with
@@ -515,17 +517,17 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
     `error.*` keys of the Screens table, and the 7 groups of duplicate texts in today's `en.ts` are merged into
     `common.*` keys.
 20. 📸 **The menu on every screen.** Fresh seed, log in as `noah@example.com` (English). The app bar with "English ▾"
-    is on top of "My trips", the trip view (Trip and Balances tabs), "+ Add expense", "+ New trip" and "Settings", and
-    none of these screens has a "Log out" button of its own. On the trip view the open menu lists "English", "Español",
-    "Français", "Settings" and "Log out" (screenshot). Tap "Settings": "Settings" opens; "‹ My trips" leads to "My
-    trips".
-21. 📸 **Discard your changes? on Log out.** As Noah, open his trip, tap "+ Add expense" and type the name "Taxi". In
+    is on top of "My groups", the group view (Group and Balances tabs), "+ Add expense", "+ New group" and "Settings", and
+    none of these screens has a "Log out" button of its own. On the group view the open menu lists "English", "Español",
+    "Français", "Settings" and "Log out" (screenshot). Tap "Settings": "Settings" opens; "‹ My groups" leads to "My
+    groups".
+21. 📸 **Discard your changes? on Log out.** As Noah, open his group, tap "+ Add expense" and type the name "Taxi". In
     the menu, tap "Español": the form is Spanish, "Taxi" stays, and no dialog appears; tap "English". In the menu, tap
     "Log out": "Discard your changes?", "What you entered on this screen will be lost.", "Discard and log out" and
     "Keep editing" appear (screenshot). Tap "Keep editing": the form still shows "Taxi". Tap "Log out" in the menu
     again, then "Discard and log out": Login appears.
-22. **Discard your changes? on Settings, only with changes.** Log in as Noah and tap "+ New trip". Without typing,
-    open "Settings" from the menu: it opens without a dialog. Tap "‹ My trips", then "+ New trip", type the trip name
+22. **Discard your changes? on Settings, only with changes.** Log in as Noah and tap "+ New group". Without typing,
+    open "Settings" from the menu: it opens without a dialog. Tap "‹ My groups", then "+ New group", type the group name
     "Rome", and open "Settings" from the menu: the dialog shows "Discard and open Settings". Press Escape: the form
     still shows "Rome". Open "Settings" again and tap "Discard and open Settings": "Settings" opens. Change the name to
     "Noah B" and tap "Log out" in the menu: the dialog appears; tap outside the card: the name field still shows
@@ -537,10 +539,10 @@ Excluded in the rounds: more languages, following the device's language, API-sid
 English API errors shown as they are, menu or language buttons inside each screen's own header, a language code or
 icon instead of the language name on the menu button, a message that the language is not saved yet, keeping an
 unsaved language after a reload or a new start, retrying in the background, asking "Discard your changes?" on
-"Cancel" or "‹ My trips", saving the language with "Save",
+"Cancel" or "‹ My groups", saving the language with "Save",
 `adjustsFontSizeToFit`, a `user_settings` table, a separate language endpoint, `params` on every error, seeding an
 account in another language, a storage dependency for iOS and Android (`AsyncStorage`), and the full walk in Spanish.
-Also not included: translating what people typed (trip, expense and people's names), language-specific money formats
+Also not included: translating what people typed (group, expense and people's names), language-specific money formats
 (French "1 234,56 €"), right-to-left languages, and translating API responses used by tools (`message` stays English).
 **Release step, not a build step:** a Spanish and a French speaker review `es.ts` and `fr.ts` before release; the
 build's texts are a draft (checks that pin a text are updated with the review).

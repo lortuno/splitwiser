@@ -1,6 +1,6 @@
-# Epic 1: Trip at a glance — specification
+# Epic 1: Group at a glance — specification
 
-Source: `specs/roadmap.md` (epic 1) and the decisions in `specs/trips/01-trip-at-a-glance-brainstorming.md`.
+Source: `specs/roadmap.md` (epic 1) and the decisions in `specs/groups/01-group-at-a-glance-brainstorming.md`.
 Boundaries: `specs/guidelines/architecture.md` and `specs/guidelines/ui.md` apply unchanged.
 
 ## Estimate
@@ -26,19 +26,19 @@ endpoint and no new calculation, and all money still comes from the API as integ
 
 ### App shell (`App.tsx`)
 
-- **Which trip is opened:** on the web, `?trip={id}` in the URL opens that trip. Without the parameter, and always on
-  iOS and Android, the first trip from `GET /trips` opens. That is "Lisbon & Porto" after a fresh seed.
+- **Which group is opened:** on the web, `?trip={id}` in the URL opens that group. Without the parameter, and always on
+  iOS and Android, the first group from `GET /trips` opens. That is "Lisbon & Porto" after a fresh seed.
 - **Loading state:** unchanged. A centred spinner with "Loading…".
 - **Error state (API unreachable):** unchanged. A centred "Could not reach the API at {url}." with a "Try again" button
   (at least 48 px high) that repeats the load.
-- **Not-found state (new):** shown when the trip id is not a positive whole number (no request is sent) or the API
-  answers 404. A centred "This trip does not exist." with an "Open the demo trip" button (at least 48 px high). The button
-  removes `?trip=` from the URL and loads the first trip.
-- **Header:** trip name, one line, cut off with "…" when too long. Unchanged.
-- **Tab bar:** **Trip** (renamed from "Expenses") | **Balances** | **+ Add expense**. The add button stays 56 px high at
+- **Not-found state (new):** shown when the group id is not a positive whole number (no request is sent) or the API
+  answers 404. A centred "This group does not exist." with an "Open the demo group" button (at least 48 px high). The button
+  removes `?trip=` from the URL and loads the first group.
+- **Header:** group name, one line, cut off with "…" when too long. Unchanged.
+- **Tab bar:** **Group** (renamed from "Expenses") | **Balances** | **+ Add expense**. The add button stays 56 px high at
   the bottom of the screen, in thumb reach.
 
-### Trip view (hero, `TripScreen`)
+### Group view (hero, `TripScreen`)
 
 Layout at 390 px, top to bottom, as agreed in the brainstorming (Q2):
 
@@ -47,7 +47,7 @@ Layout at 390 px, top to bottom, as agreed in the brainstorming (Q2):
 │ Lisbon & Porto                       │  header (title 20, 1 line, …)
 ├──────────────────────────────────────┤
 │ ┌──────────────────────────────────┐ │
-│ │ Total trip spend                 │ │  body, inkMuted
+│ │ Total spent                 │ │  body, inkMuted
 │ │ 1.915,57 €                       │ │  hero 44, bold
 │ │ 1 Jun 2026 – 7 Jun 2026 · 20 exp…│ │  caption, inkMuted
 │ │ 4 people                         │ │  caption, inkMuted
@@ -71,14 +71,15 @@ Layout at 390 px, top to bottom, as agreed in the brainstorming (Q2):
 │ └──────────────────────────────────┘ │
 │   …                                  │
 ├──────────────────────────────────────┤
-│ [  Trip  ] [Balances] [+ Add expense]│
+│ [ Group  ] [Balances] [+ Add expense]│
 └──────────────────────────────────────┘
 ```
 
 The whole screen is one vertical scrolling list (`FlatList` with a header). It never scrolls sideways.
 
 **Total card**
-- "Total trip spend", then the total, then "{start} – {end} · {n} expenses", then "{n} people".
+- "Total spent", then the total, then "{start} – {end} · {n} expenses" ("{n} expenses" alone for a group without
+  dates, see epic 3), then "{n} people".
 - Total format: below `1.000.000,00 €` it is shown in full with `formatCents` (`1.915,57 €`, `999.999,99 €`). From
   `1.000.000,00 €` up it is shown in millions with `formatCentsCompact`: two decimals, cut off rather than rounded, and a
   trailing `,00` dropped (`100000000` → `1 M €`, `234567891` → `2,34 M €`, `2000000000` → `20 M €`). The short form is
@@ -86,7 +87,7 @@ The whole screen is one vertical scrolling list (`FlatList` with a header). It n
 - Counts: "1 expense" / "{n} expenses" and "1 person" / "{n} people".
 
 **Who owes whom**
-- Not shown at all when the trip has no expenses (`expense_count = 0`).
+- Not shown at all when the group has no expenses (`expense_count = 0`).
 - When there are expenses but `transfers` is empty: one line, "Everyone is settled up."
 - Otherwise the first 3 transfers in the order the API returns them, one `Card` each: "{from} pays {to}" on the left
   (wraps when long) and the amount on the right, in full, on one line. These rows are plain text and do nothing when
@@ -105,12 +106,12 @@ Unchanged. It keeps every per-person balance and the full "Who owes whom" list. 
 
 ### Add expense (`AddExpenseScreen`)
 
-Unchanged, including `decimal-pad` / `inputMode="decimal"` for amounts. After saving, the trip view shows the new
+Unchanged, including `decimal-pad` / `inputMode="decimal"` for amounts. After saving, the group view shows the new
 expense and updates the total and transfers from the summary the save returns (no second request), as it does today.
 
 ## Data
 
-**Reads:** trip (name, dates, members), expenses (newest first), summary (`total_cents`, `expense_count`, `transfers`).
+**Reads:** group (name, dates, members), expenses (newest first), summary (`total_cents`, `expense_count`, `transfers`).
 The app only formats these values. It never adds, subtracts or divides amounts (architecture rule 6).
 **Writes:** none new. Only the existing `POST /trips/{id}/expenses` from the add form.
 **Schema:** no change.
@@ -122,23 +123,23 @@ cents.
 
 | Request | Response |
 |---|---|
-| `GET /trips` | `200 [{ id, name, start_date, end_date, total_cents }]`, first trip = default |
+| `GET /trips` | `200 [{ id, name, start_date, end_date, total_cents }]`, first group = default |
 | `GET /trips/{id}` | `200 { id, name, start_date, end_date, total_cents, members: [{ id, name }] }`; unknown or non-numeric id → `404 { error: { code: "not_found", message } }` |
 | `GET /trips/{id}/expenses` | `200 [{ id, trip_id, name, date, amount_cents, split_type, recorded_by: { id, name }, paid_by: [{ person_id, name, amount_cents }], split_between: [{ person_id, name, split_value, share_cents }] }]`, date desc, id desc |
 | `GET /trips/{id}/summary` | `200 { trip_id, currency: "EUR", total_cents, expense_count, balances: [{ person_id, name, paid_cents, share_cents, net_cents }], transfers: [{ from: { id, name }, to: { id, name }, amount_cents }] }`; unknown id → `404` |
 | `POST /trips/{id}/expenses` | Unchanged: `201 { expense, summary }`, `422` with field errors |
 
-The functional tests pin this contract for the seeded trips, so the hero cannot drift from it unnoticed.
+The functional tests pin this contract for the seeded groups, so the hero cannot drift from it unnoticed.
 
 ## Seed data
 
-The existing demo trip stays exactly as it is and is still created first. Five fixed test trips are added after it,
+The existing demo group stays exactly as it is and is still created first. Five fixed test groups are added after it,
 through `ExpenseService` like the demo expenses, with no random values or dates (architecture rule 9). `GET /trips`
-lists trips by start date, newest first, so the test trips are dated before the demo trip (January to May 2026) to
+lists groups by start date, newest first, so the test groups are dated before the demo group (January to May 2026) to
 keep "Lisbon & Porto" first. After a fresh
 database (`docker compose down -v && docker compose up`) the ids are:
 
-| id | Trip | Dates | People | Expenses | Expected on the hero |
+| id | Group | Dates | People | Expenses | Expected on the hero |
 |---|---|---|---|---|---|
 | 1 | Lisbon & Porto | 2026-06-01 – 06-07 | Ana, Ben, Chloé, David | the existing 20 | Total `1.915,57 €`; Ana pays Ben `63,75 €`, David pays Ben `27,65 €`, David pays Chloé `27,07 €` |
 | 2 | Empty weekend | 2026-01-10 – 01-12 | Eva, Finn, Greta | none | `0,00 €`, "0 expenses", no transfers section |
@@ -148,11 +149,11 @@ database (`docker compose down -v && docker compose up`) the ids are:
 | 6 | Big group | 2026-05-01 – 05-03 | Olga, Paul, Quinn, Rosa, Sam, Tara | Group dinner `60,00 €` paid by Olga, split equally between all six; Boat tickets `30,00 €` paid by Paul, split equally between Paul, Quinn, Rosa | `90,00 €`; Quinn pays Olga `20,00 €`, Rosa pays Olga `20,00 €`, Sam pays Olga `10,00 €`, "Show all 4"; Balances also lists Tara pays Paul `10,00 €` |
 
 The figures above were calculated with the current API on an in-memory database. The seed test keeps checking that
-the demo trip has 4 people and 20 expenses; a new test pins the five test trips.
+the demo group has 4 people and 20 expenses; a new test pins the five test groups.
 
 ## Tests
 
-- **PHP (`packages/api/tests`, run through `tests/functional`):** summaries for trips 1–6 return exactly the totals,
+- **PHP (`packages/api/tests`, run through `tests/functional`):** summaries for groups 1–6 return exactly the totals,
   counts and transfers in the seed table; a fresh seed creates the same ids every time; `GET /trips/999`,
   `/trips/abc` and `/trips/999/summary` return 404 with `code: "not_found"`.
 - **TypeScript (`tests/unit`):** `formatCentsCompact` for `99999999` → `999.999,99 €`, `100000000` → `1 M €`,
@@ -166,26 +167,26 @@ the demo trip has 4 people and 20 expenses; a new test pins the five test trips.
 Viewport 390x844, freshly seeded database (`docker compose down -v && docker compose up`), app at
 http://localhost:8081. Run check 15 last, because it adds an expense.
 
-1. 📸 **Trip view, demo trip.** Open `/`. The header shows "Lisbon & Porto". The total card shows "Total trip spend",
+1. 📸 **Group view, demo group.** Open `/`. The header shows "Lisbon & Porto". The total card shows "Total spent",
    `1.915,57 €` in large bold type, "1 Jun 2026 – 7 Jun 2026 · 20 expenses" and "4 people". Below it "Who owes whom" lists
    exactly: "Ana pays Ben `63,75 €`", "David pays Ben `27,65 €`", "David pays Chloé `27,07 €`". There is no "Show all".
    The total and all three transfers are visible without scrolling.
-2. **Trip view, demo trip, expenses.** Scroll down. "Expenses" lists 20 rows, newest first, starting with "Taxi to
+2. **Group view, demo group, expenses.** Scroll down. "Expenses" lists 20 rows, newest first, starting with "Taxi to
    Porto airport `31,50 €`" (7 Jun 2026, paid by David). The page never scrolls sideways.
-3. **Tab bar.** The tabs read "Trip", "Balances" and "+ Add expense". "Trip" is selected. "+ Add expense" is the
+3. **Tab bar.** The tabs read "Group", "Balances" and "+ Add expense". "Group" is selected. "+ Add expense" is the
    tallest button and sits at the bottom edge.
-4. **Transfer rows are not buttons.** On the demo trip, tap "Ana pays Ben". Nothing happens and the screen stays on
-   Trip.
+4. **Transfer rows are not buttons.** On the demo group, tap "Ana pays Ben". Nothing happens and the screen stays on
+   Group.
 5. **Balances unchanged.** Tap "Balances". It shows Ana `-63,75 €`, Ben `+91,40 €`, Chloé `+27,07 €`, David `-54,72 €`
    and the same three transfers as check 1.
-6. 📸 **Empty trip.** Open `/?trip=2`. The header shows "Empty weekend". The total shows `0,00 €`, "10 Jan 2026 – 12 Jan
+6. 📸 **Empty group.** Open `/?trip=2`. The header shows "Empty weekend". The total shows `0,00 €`, "10 Jan 2026 – 12 Jan
    2026 · 0 expenses", "3 people". There is no "Who owes whom" heading. Under "Expenses": "No expenses yet. Tap + Add
    expense to record the first one."
 7. 📸 **Everyone even.** Open `/?trip=3`. The total shows `80,00 €`, "2 expenses". "Who owes whom" shows only "Everyone is
    settled up." Both expenses are listed with `40,00 €`.
 8. **Uneven cents.** Open `/?trip=4`. The total shows `10,00 €` and "1 expense" (singular). "Who owes whom" shows "Kim
    pays Jon `3,33 €`" and "Lea pays Jon `3,33 €`". On Balances, Jon shows `+6,66 €`, Kim `-3,33 €`, Lea `-3,33 €` (`formatSignedCents` prints a plain hyphen-minus).
-9. 📸 **Very large amount and long names.** Open `/?trip=5`. The header shows the trip name on one line, ending in "…".
+9. 📸 **Very large amount and long names.** Open `/?trip=5`. The header shows the group name on one line, ending in "…".
    The total shows `2,34 M €` on one line, "1 Apr 2026 – 30 Apr 2026 · 3 expenses", "2 people". The transfer row reads
    "Maximiliane Alexandra von Hohenzollern-Sigmaringen pays Noah": the names wrap and `1.172.839,46 €` stays on one line,
    right-aligned. The 120-character expense name is cut off after two lines with "…", with `345.678,91 €` beside it. The
@@ -194,29 +195,30 @@ http://localhost:8081. Run check 15 last, because it adds an expense.
     Olga `20,00 €`", "Rosa pays Olga `20,00 €`" and "Sam pays Olga `10,00 €`", followed by "Show all 4".
 11. **Show all.** On `/?trip=6`, tap "Show all 4". The Balances tab opens and lists all four transfers, including "Tara
     pays Paul `10,00 €`".
-12. 📸 **Unknown trip.** Open `/?trip=999`. The screen shows "This trip does not exist." and an "Open the demo trip"
-    button. Tap it: the URL no longer has `?trip=` and the demo trip from check 1 is shown.
-13. **Invalid trip id.** Open `/?trip=abc`, then `/?trip=0`. Both show "This trip does not exist." The browser's network
+12. 📸 **Unknown group.** Open `/?trip=999`. The screen shows "This group does not exist." and an "Open the demo group"
+    button. Tap it: the URL no longer has `?trip=` and the demo group from check 1 is shown.
+13. **Invalid group id.** Open `/?trip=abc`, then `/?trip=0`. Both show "This group does not exist." The browser's network
     tab shows no request to `/trips/abc` or `/trips/0`.
 14. 📸 **API unreachable.** Run `docker compose stop api`, then reload `/`. The screen shows "Could not reach the API at
-    http://localhost:8080." and "Try again". Run `docker compose start api` and tap "Try again": the demo trip from
+    http://localhost:8080." and "Try again". Run `docker compose start api` and tap "Try again": the demo group from
     check 1 is shown.
 15. **The hero updates after adding.** Open `/?trip=4` and tap "+ Add expense". Pick Kim under "Recorded by", enter "Coffee", amount `3,00`, paid by Kim,
-    split equally between Jon, Kim and Lea, and save. Back on Trip, the total shows `13,00 €`, "2 expenses", and "Who owes
+    split equally between Jon, Kim and Lea, and save. Back on Group, the total shows `13,00 €`, "2 expenses", and "Who owes
     whom" shows "Lea pays Jon `4,33 €`" and "Kim pays Jon `1,33 €`". The page was not reloaded.
 
 The Playwright suite (`tests/e2e/trip-view.test.ts`) runs every check. It starts its own seeded API and a web export of the app, so it does not need
 `docker compose up`. Check 14 blocks the API inside the browser instead of stopping the Docker service. Screenshots
 go to `test-results/e2e/`, which is not committed.
 
-## Out of scope (from the roadmap)
+## Out of scope
 
-Login, the trip list, creating trips, editing expenses, marking a trip as paid (and how a paid trip looks), changes to
-per-person balances, any new calculation or endpoint, pull-to-refresh, and changes to the add-expense form.
+Taken from the roadmap: login, the group list, creating groups, editing expenses, marking a group as paid (and how a
+paid group looks), changes to per-person balances, any new calculation or endpoint, pull-to-refresh, and changes to the
+add-expense form.
 
-## Check on iOS and Android (not visible in the browser)
+## Check on iOS and Android
 
-- `?trip=` does not exist on native apps: they always open the first trip. Check that the app starts on "Lisbon & Porto".
+- `?trip=` does not exist on native apps: they always open the first group. Check that the app starts on "Lisbon & Porto".
 - Status bar: on a notched iPhone and on Android the header must not sit under the status bar (`statusBarInsetIos`,
   `StatusBar.currentHeight`).
 - The `2,34 M €` total and the `1.172.839,46 €` transfer amount stay on one line with the system font and with the

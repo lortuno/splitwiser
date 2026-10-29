@@ -1,11 +1,11 @@
-# 01-trip-at-a-glance: test plan
+# 01-group-at-a-glance: test plan
 
-Browser steps that prove each acceptance check in `specs/trips/01-trip-at-a-glance-specification.md`.
+Browser steps that prove each acceptance check in `specs/groups/01-group-at-a-glance-specification.md`.
 
 **Setup.** Chromium, viewport 390x844 (repeat the 📸 checks at 1440x900 for the wide layout). Freshly seeded database
 (`docker compose down -v && docker compose up`), app at http://localhost:8081, API at http://localhost:8080. Open the
 browser's network tab before starting. Run the checks in order; check 15 must run last because it adds an expense.
-Screenshots go to `specs/trips/01-trip-at-a-glance-screenshots/`, named `{check}-{screen}-{width}.png`.
+Screenshots go to `specs/groups/01-group-at-a-glance-screenshots/`, named `{check}-{screen}-{width}.png`.
 
 ## 1. 📸 Trip view, demo trip
 1. Open http://localhost:8081/.
@@ -105,8 +105,8 @@ Screenshots go to `specs/trips/01-trip-at-a-glance-screenshots/`, named `{check}
 
 All 15 checks pass at 390x844 and at 1440x900 on a fresh seed (check 14 by stopping the API process). The ui.md rule
 checks pass: no raw hex, no off-scale values, no gradient, centring only where allowed, every pressable ≥ `tapMin`.
-Screenshots before the review are in `01-trip-at-a-glance-screenshots/before-review/`, after it in
-`01-trip-at-a-glance-screenshots/`.
+Screenshots before the review are in `01-group-at-a-glance-screenshots/before-review/`, after it in
+`01-group-at-a-glance-screenshots/`.
 
 Five things a senior designer changed:
 1. **The hero reads as a list row.** The total card had the same padding as every expense card. It now has
