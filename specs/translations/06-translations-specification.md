@@ -277,7 +277,6 @@ The English wording of some errors becomes the shared one; "Was" lists the texts
 | `error.invalidAmount` | Enter an amount greater than 0. | Escribe un importe mayor que 0. | Saisissez un montant supérieur à 0. | 3 identical texts |
 | `error.tooLarge` | The amount is too large. | El importe es demasiado alto. | Le montant est trop élevé. | — |
 | `error.invalidEmail` | Enter an email like {example}. | Escribe un correo como {example}. | Saisissez un e-mail comme {example}. | 2 identical texts |
-| `error.taken` | This email already has an account. | Este correo ya tiene una cuenta. | Cet e-mail a déjà un compte. | — |
 | `error.alreadyOnTrip` | This is already on the group. | Ya está en el grupo. | Déjà dans ce groupe. | This name is … / This email is already on the group. |
 | `error.tooFew` | Add at least one more person. | Añade al menos una persona más. | Ajoutez au moins une autre personne. | — |
 | `error.tooMany` | A group can have at most {max} people. | Un grupo puede tener como máximo {max} personas. | Un groupe peut compter {max} personnes au maximum. | — |
@@ -486,9 +485,10 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
     importes suman `45,00 €` pero el gasto es de `50,00 €`." appears and nothing is saved. Tap "Cancelar", then
     open "Ajustes" from the menu: "Español" is selected.
 12. **Sign up in French.** Fresh browser, tap "Français", then "Pas encore de compte ? S’inscrire". The sign-up form is
-    French. Sign up as "Lena" with `lena@example.com` and `travel-demo-2026`: "Mes groupes" appears in French and `GET
-    /me` answers `language: "fr"`. Log out, open sign-up again and use `ana@example.com`: "Cet e-mail a déjà un
-    compte." appears.
+    French. Sign up as "Lena" with `lena@example.com` and `travel-demo-2026`: "Consultez vos e-mails" appears in French
+    and the email in Mailpit is French; with its code, "Mes groupes" appears in French and `GET /me` answers
+    `language: "fr"`. Log out, open sign-up again and use `ana@example.com`: "Consultez vos e-mails" appears as for any
+    email, and Mailpit has "Vous avez déjà un compte" for Ana.
 13. **Plurals.** As `eva@example.com` in French (switch on Login), "Empty weekend" reads "0 dépense" and "3
     personnes"; in Spanish (switch in the menu) it reads "0 gastos" and "3 personas". As `jon@example.com` in French,
     "Three-way taxi" reads "1 dépense".
@@ -504,8 +504,8 @@ other. "{today}" is the local date of the check in the language shown ("28 oct. 
     repeat on "Even split": "Impossible de joindre l’API à http://localhost:8080.".
 16. **API.** In the console with Olga's token (`olga@example.com`): `PATCH /me { "language": "de" }` answers `422` with
     `errors.language.code` `invalid_language`; `{ "language": "es" }` answers `200` with `language: "es"` and the name
-    unchanged; `{}` answers `422` with `errors.display_name.code` `required`. `POST /auth/signup` with `language: "fr"`
-    returns a user with `language: "fr"`, without it `language: "en"`. With Ana's token, `POST /trips/1/expenses` with
+    unchanged; `{}` answers `422` with `errors.display_name.code` `required`. `POST /auth/signup` with `language: "fr"`,
+    then `POST /auth/verify` with the code, returns a user with `language: "fr"`, without it `language: "en"`. With Ana's token, `POST /trips/1/expenses` with
     `amount_cents` 5000 paid `2000` + `2500` answers `422` with `errors.paid_by.params` `{ "sum_cents": 4500,
     "amount_cents": 5000 }`; a percentage split of 50 % + 40 % answers `errors.split.params` `{ "sum_basis_points": 9000,
     "total_basis_points": 10000 }`. With Olga's token, `PATCH /me` with a 61-character `display_name` answers

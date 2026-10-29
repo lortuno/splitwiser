@@ -29,7 +29,8 @@ No new screens. Login, "My groups" and every other screen stay as they are. The 
 - **My groups, empty state:** after the first login the admin sees "Logged in as Admin", the existing empty card "You
   are not on any group yet. Start one with "+ New group", or ask a friend to add you with your email." and "+ New
   group" at the bottom.
-- **Sign up:** the admin email is taken like any other: "This email already has an account.".
+- **Sign up:** the admin email is treated like any email that has an account: "Check your email" opens and the email
+  "You already have an account" is sent (`specs/accounts/08-security-specification.md`); nothing changes.
 - **Loading / error states:** unchanged.
 
 ## Data
@@ -38,7 +39,7 @@ No schema change. The admin login lives in one constant, `Seeder::ADMIN` (`packa
 display name `Admin`, email `admin@travel.local`, password `admin123`, language `en`.
 
 **Writes:** a new `Seeder::ensureAdmin(): bool` creates the account with `UserRepository::create` (password hashed with
-`password_hash`, bcrypt, like the demo accounts) when no user has that email, and returns whether it did. It never
+`password_hash`, bcrypt, like the demo accounts), verified like them, when no user has that email, and returns whether it did. It never
 updates an existing account: a changed name, language or password stays. It creates no person and no group membership,
 so the account is on no group.
 
@@ -77,7 +78,8 @@ No changes to groups, people or expenses. After a fresh start (`init-db`):
   `Seeder::ADMIN`, a bcrypt hash that verifies `admin123`, no linked person and no group; logging in through the API
   works with any case of the email; an existing account with that email (other name and password) is left unchanged
   and `admin123` fails for it; a rename and a language change survive a second `ensureAdmin`; the demo accounts keep
-  ids 1–10 and every seeded figure is unchanged; signing up with the admin email gives `422 taken`. Existing tests
+  ids 1–10 and every seeded figure is unchanged; signing up with the admin email answers `202`, sends "You already
+  have an account" and leaves the password `admin123`. Existing tests
   still pass.
 - **Playwright (`tests/e2e/admin.test.ts`, 390x844):** one screenshot per 📸 check, on a fresh seed, in the order of
   the checks. "Restart" runs `php bin/init-db.php` again against the test database while the API keeps running.
@@ -95,7 +97,8 @@ other.
    appears.
 3. **Wrong password and taken email.** Log out. Log in with `admin@travel.local` and `admin1234`: "Email or password is
    wrong." appears. Open "No account yet? Sign up", enter "Someone", `admin@travel.local` and `travel-demo-2026`, and
-   tap "Create account": "This email already has an account." appears under the email.
+   tap "Create account": "Check your email" opens as for any email, Mailpit has "You already have an account" for
+   `admin@travel.local` and no code, and `admin123` still logs in.
 4. 📸 **The admin creates a group with Ana.** Log in as admin, tap "+ New group", enter "Team lunch", start and end date
    `2026-11-03`, and the person "Ana" with the email `ana@example.com`, then tap "Create group". The group view shows
    "Team lunch", `0,00 €`, "3 Nov 2026 – 3 Nov 2026 · 0 expenses" and "2 people"; the address bar shows `?trip=9`.

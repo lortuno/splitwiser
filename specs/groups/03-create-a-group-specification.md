@@ -18,7 +18,8 @@ Anyone logged in can start a group: a name, optional start and end dates, and th
 group can be a trip, a collection for gifts or any other shared expenses; every group works the same way, with no
 kind of group. The creator is added
 automatically and linked to their account. Everyone else is a name, with an optional email. If that email belongs to
-an account, now or at a later sign-up, the person is linked to it and the group shows up in that person's "My groups".
+an account, now or at a later sign-up once its email code is confirmed, the person is linked to it and the group shows
+up in that person's "My groups".
 `people.user_id` is a nullable foreign key to `users`, and `people` never holds an email. A pending email lives in
 `group_invites` until it is linked. The database says "group" everywhere (`groups`, `group_members`, `group_invites`,
 `group_status_changes`, `group_id`); the API paths, JSON fields, the `?trip=` link and the code names keep "trip", and
@@ -238,8 +239,9 @@ name" sets the display name.
   `user_id` = the user) as the first member. For each other person, insert the person (typed name) and the member row.
   With an email that belongs to an account, set `user_id`. With an email that has no account, insert a `group_invites`
   row.
-- `POST /auth/signup`, in its transaction: create the user and session, then for every `group_invites` row with the
-  same email, set `people.user_id` to the new user and delete the invite.
+- `POST /auth/verify` (the code that confirms a sign-up, `specs/accounts/08-security-specification.md`), in its
+  transaction: mark the user verified and create the session, then for every `group_invites` row with the same email,
+  set `people.user_id` to the user and delete the invite. Sign-up alone links nothing.
 - `POST /auth/login`: sets `last_login_at`. `PATCH /me`: updates `display_name`.
 
 **Reads:** `GET /trips` lists the user's groups with dates by newest `start_date` first, then the groups without dates
@@ -262,7 +264,7 @@ message } } }`. All money is integer `_cents`. CORS `Access-Control-Allow-Method
 | `POST /trips` `{ name, start_date?, end_date?, people: [{ name, email? }] }` | `201 { trip: { id, name, start_date, end_date, total_cents: 0, members: [{ id, name }] }, summary }`. A missing, `null` or empty date is no date; the response then has `start_date: null, end_date: null`. `members` starts with the creator. `summary` has the shape of `GET /trips/{id}/summary` (`total_cents: 0`, `expense_count: 0`, every balance `0`, `transfers: []`). The creator is never in `people`. A `people` entry with the creator's email is a `duplicate_email`. |
 | `PATCH /me` `{ display_name }` | `200 { id, display_name, email }`. `422` `display_name`: `required` ("Enter your name."), `too_long` ("Use at most 60 characters."), checked after trimming. Names may repeat (Round 2 Q5). |
 | `GET /me` | `200 { id, display_name, email }` (was `name`). |
-| `POST /auth/signup` `{ display_name, email, password }` | `201 { token, user: { id, display_name, email } }`. The field `name` becomes `display_name`, with the same rules and messages as before. Pending invites for the email are linked (see Data). |
+| `POST /auth/signup` `{ display_name, email, password }` | `202` and a code by email (spec 08). The field `name` becomes `display_name`, with the same rules and messages as before. Pending invites for the email are linked when the code is confirmed (`POST /auth/verify`, see Data). |
 | `POST /auth/login` | `200 { token, user: { id, display_name, email } }`. Sets `last_login_at`. |
 | `GET /trips`, `GET /trips/{id}`, `/expenses`, `/summary` | Unchanged shapes; `start_date` and `end_date` are `null` for a group without dates. `GET /trips` uses the order in Data. Every person `name` is the shown name. |
 
@@ -332,8 +334,9 @@ database after the existing seed.
   - linking at creation: an email of an existing account (also `  BEN@Example.com `) sets `user_id`, writes no invite,
     and the group is in that user's `GET /trips`. An email without an account writes an invite, and the group is in nobody
     else's list.
-  - linking at sign-up: signing up as `ines@example.com` links Inés on group 8, deletes the invite, and lists group 8 in
-    the new user's `GET /trips`. The members of group 8 then show the new display name.
+  - linking at sign-up: signing up as `ines@example.com` links nothing; confirming the code links Inés on group 8,
+    deletes the invite, and lists group 8 in the new user's `GET /trips`. The members of group 8 then show the new
+    display name.
   - expenses for name-only members: on a created group, an expense paid by and split with a name-only member is saved,
     and the figures match the seed section (`1000` → `334/333/333`, two transfers of `333`).
   - display name: `PATCH /me` changes the name shown in members, balances, transfers and `recorded_by` on every group,
@@ -398,10 +401,10 @@ that checks 5 and 6 use, and check 12 renames Ana.
    name wraps to at most 2 lines with "…" on "My groups", and shows on 1 line with "…" in the group header, and nothing
    scrolls sideways.
 10. 📸 **Pending invite linked at sign-up.** Log out, tap "No account yet? Sign up", and sign up as "Inés García",
-    `ines@example.com`, `long-enough-1`. "My groups" opens with "Logged in as Inés García" and the card "Ski week",
-    "19 Dec 2026 – 26 Dec 2026", `300,00 €`. Opening it shows "Inés García pays Pia `100,00 €`" and "Grandpa pays Pia
-    `100,00 €`".
-11. **Empty list text.** Sign up as `zoe@example.com` (any name, `long-enough-1`). The card reads "You are not on any group
+    `ines@example.com`, `long-enough-1`, and enter the code from the email on "Check your email". "My groups" opens with
+    "Logged in as Inés García" and the card "Ski week", "19 Dec 2026 – 26 Dec 2026", `300,00 €`. Opening it shows "Inés
+    García pays Pia `100,00 €`" and "Grandpa pays Pia `100,00 €`".
+11. **Empty list text.** Sign up as `zoe@example.com` (any name, `long-enough-1`) and enter the code from the email. The card reads "You are not on any group
     yet. Start one with "+ New group", or ask a friend to add you with your email." "+ New group" is at the bottom.
 12. 📸 **The display name.** Log in as Ana and open "Settings" from the menu. The field shows "Ana". Clear it and tap
     "Save": "Fill in this field." under the field. Enter "Ana María" and tap "Save": "My groups" shows "Logged in as Ana María". Open "Lisbon & Porto":

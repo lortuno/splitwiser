@@ -111,7 +111,7 @@ dependency.
 │ ┌──────────────────────────────────┐ │
 │ │ ana@example.com                  │ │
 │ └──────────────────────────────────┘ │
-│ This email already has an account.   │  FieldError under the field
+│ Enter an email like ana@example.com. │  FieldError under the field
 │ Password (at least 8 characters)     │
 │ ┌──────────────────────────────────┐ │
 │ │ ••••••••                         │ │
@@ -126,9 +126,10 @@ dependency.
 
 - **‹ Log in** (`size.tapMin`): back to Login. Nothing is sent.
 - **Create account** (`size.tapPrimary`, bottom): `POST /auth/signup`. While the request runs: "Creating account…",
-  disabled. `201` → token stored, "My groups" opens (empty for a new account). `422` → the API message for each field
-  appears under that field (`FieldError`), and the form keeps its values. The API is unreachable → the error card from
-  Login above the button.
+  disabled. `202` → "Check your email" opens; after the code from the email, "My groups" opens (empty for a new
+  account), see `specs/accounts/08-security-specification.md`. `422` → the API message for each field appears under
+  that field (`FieldError`), and the form keeps its values. The API is unreachable → the error card from Login above
+  the button.
 - Email field: `email-address` keyboard, no autocapitalise, no autocorrect. Password: `secureTextEntry`.
 
 ### My groups (`MyTripsScreen`)
@@ -294,8 +295,8 @@ message } } }`. All money is in integer `_cents`.
 | Request | Response |
 |---|---|
 | `GET /health` | `200 { ok: true }`. No token. The Docker health check of `api` uses it instead of `GET /trips`. |
-| `POST /auth/signup` `{ name, email, password }` | `201 { token, user: { id, name, email } }`. `422` field errors: `name` `required` ("Enter your name.") / `too_long` (> 60 characters after trimming, "Use at most 60 characters."); `email` `required` / `invalid_email` (not `x@y.z` after trimming, "Enter an email like ana@example.com.") / `taken` ("This email already has an account."); `password` `too_short` (< 8 characters, "Use at least 8 characters.") / `too_long` (> 200 characters). Names may repeat. |
-| `POST /auth/login` `{ email, password }` | `200 { token, user: { id, name, email } }`. The email is trimmed and lowercased before the lookup. An unknown email, a wrong password or an empty field → `401 { error: { code: "invalid_credentials", message: "Email or password is wrong." } }`. |
+| `POST /auth/signup` `{ name, email, password }` | `202` and a code by email (`specs/accounts/08-security-specification.md`); the session comes from `POST /auth/verify`. `422` field errors: `name` `required` ("Enter your name.") / `too_long` (> 60 characters after trimming, "Use at most 60 characters."); `email` `required` / `invalid_email` (not `x@y.z` after trimming, "Enter an email like ana@example.com."); `password` `too_short` (< 8 characters, "Use at least 8 characters.") / `too_long` (> 200 characters). Names may repeat. An email that already has an account gets the same `202`. |
+| `POST /auth/login` `{ email, password }` | `200 { token, user: { id, name, email } }`. The email is trimmed and lowercased before the lookup. An unknown email, a wrong password or an empty field → `401 { error: { code: "invalid_credentials", message: "Email or password is wrong." } }`. Unverified accounts, the lock after 3 failures and the other limits: see spec 08. |
 | `POST /auth/logout` | `204`. Deletes the session for this token. Without a valid token → `401 unauthenticated`. |
 | `GET /me` | `200 { id, name, email }` |
 | `GET /trips` | `200 [{ id, name, start_date, end_date, total_cents, paid }]`. Only groups the user is a member of, in the order of `specs/groups/03-create-a-group-specification.md` (dated groups by `start_date` desc, then groups without dates by `id` desc). `[]` when there are none. |
@@ -376,9 +377,9 @@ These figures were calculated with the current API code (`SummaryService`, `Trip
 ## Tests
 
 - **PHP (`packages/api/tests`, run through `tests/functional`):**
-  - sign-up: success returns a token and the user; a duplicate email (also with different case or spaces) gives
-    `taken`; an empty name, a 61-character name, a bad email, a 7-character and a 201-character password each give
-    their code; a repeated name is allowed.
+  - sign-up: success answers `202`, and the code from the email returns a token and the user; an empty name, a
+    61-character name, a bad email, a 7-character and a 201-character password each give their code; a repeated name
+    is allowed (the rest of sign-up is tested in spec 08).
   - login: the right password works; a trimmed and uppercased email works; a wrong password and an unknown email both
     give `401 invalid_credentials` with the same message.
   - sessions: a missing or unknown token and an expired session (`expires_at` in the past) give `401 unauthenticated`
@@ -439,12 +440,14 @@ because it adds an expense.
 9. **Email typed loosely.** On Login, enter `  ANA@Example.com ` (with spaces) and `travel-demo-2026`. "My groups" opens
    with Ana's two groups.
 10. 📸 **Sign-up errors.** Log out. Tap "No account yet? Sign up". Enter name `Zoe`, email `ana@example.com` and password
-    `short`, then tap "Create account". "This email already has an account." shows under Email, and "Use at least 8
-    characters." shows under Password. The fields keep their values. Clear the name and tap again: "Enter your name."
-    shows under the name. Enter `zoe` as the email: "Enter an email like ana@example.com." shows under Email.
+    `short`, then tap "Create account". "Use at least 8 characters." shows under Password and nothing shows under Email
+    (sign-up never tells whether an email has an account). The fields keep their values. Clear the name and tap again:
+    "Enter your name." shows under the name. Enter `zoe` as the email: "Enter an email like ana@example.com." shows
+    under Email.
 11. 📸 **Sign-up, empty list.** On Sign-up enter `Zoe`, `zoe@example.com`, `long-enough-1`, then tap "Create account".
-    "My groups" opens with "Logged in as Zoe" and the card "You are not on any group yet. When someone adds you to a group
-    with your email, it shows up here." Log out, then log in as `zoe@example.com` / `long-enough-1`: the same empty list.
+    "Check your email" opens; enter the code from the email (Mailpit) and tap "Confirm". "My groups" opens with "Logged
+    in as Zoe" and the card "You are not on any group yet. Start one with "+ New group", or ask a friend to add you with
+    your email." Log out, then log in as `zoe@example.com` / `long-enough-1`: the same empty list.
 12. 📸 **Long name and large total in the list.** Log in as `noah@example.com`. One card: the group name "Great tour of
     every UNESCO world heritage site in southern Europe by sleeper train" wraps to at most 2 lines and ends in "…" if it
     does not fit. "1 Apr 2026 – 30 Apr 2026". The total reads `2.345.678,91 €` on one line, right-aligned, and nothing
@@ -504,7 +507,8 @@ because it adds an expense.
     Tap it: the card for "Great tour of every UNESCO world heritage site in southern Europe by sleeper train" (2 lines,
     "…") has one row "Maximiliane Alexandra von Hohenzollern-Sigmaringen pays you" (at most 2 lines, "…") with
     `1.172.839,46 €` on one line, right-aligned. Nothing scrolls sideways.
-30. **No groups, no summary.** Sign up as `yara@example.com` (any name, `long-enough-1`): "My groups" shows the empty
+30. **No groups, no summary.** Sign up as `yara@example.com` (any name, `long-enough-1`) and enter the code from the
+    email: "My groups" shows the empty
     list card and no "I owe" / "I'm owed".
 31. 📸 **API unreachable.** As Ana on "My groups", block the API (`docker compose stop api`, or the e2e suite blocking
     it) and reload: "Could not reach the API at http://localhost:8080." with "Try again". With only `GET /me/debts`
@@ -517,8 +521,9 @@ change Ana's groups. Screenshots go to `test-results/e2e/`.
 
 ## Out of scope
 
-From the roadmap: password reset, email verification, social login, creating groups, editing expenses, and roles beyond
-"member of the group". Excluded in the rounds: rate limiting or lockout after failed logins, staying logged in on iOS and
+From the roadmap: password reset, social login, creating groups, editing expenses, and roles beyond "member of the
+group". Email verification and the lock after failed logins are specified in
+`specs/accounts/08-security-specification.md`. Excluded in the rounds: staying logged in on iOS and
 Android after the app is closed (no `expo-secure-store`), sliding session expiry, a "Repeat password" field, returning
 to the open group after a session ends, linking accounts to group members by email (epic 3), and changing your name,
 email or password. For "I owe" / "I'm owed" and the paid section: a net of the two totals, adding up debts per person
