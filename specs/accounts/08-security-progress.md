@@ -8,7 +8,7 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 - [x] Data
 - [x] API
 - [x] Seed data
-- [x] Tests
+- [ ] Tests
 
 ## Acceptance checks
 
@@ -26,4 +26,4 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 - [x] 12. **Security headers and CORS.** In the console, a response of `GET /health`, of `GET /trips` without a token (`401`) and of an `OPTIONS` request each have `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer` and `Cache-Control: no-store`; `Access-Control-Allow-Origin` is `http://localhost:8081` for requests from the app and missing for `Origin: https://example.org`. On the web app, injecting an inline `<script>` with the dev tools is refused with a Content-Security-Policy error in the console.
 - [x] 13. **Earlier features still hold.** With a fresh seed, every demo account and `admin@travel.local` log in as before, and the checks of features 1–7 pass, with the code step where they sign up.
 - [x] 14. **Rules checked in PHP only (clock and limits).** `bun test tests/functional` passes the tests listed in Tests for the lock window and end, other IPs, code expiry, the per-hour limits (`429 too_many_requests`) and the security log (expected events, no password, code or token).
-- [ ] 15. **Dependency audits.** `bun test` runs `composer audit` and `bun audit`, and both report no vulnerability.
+- [ ] 15. **Dependency audits.** `bun test` runs `composer audit` and `bun audit`; `composer audit` reports nothing; `bun audit` reports nothing except the advisories listed under accepted exceptions (API section), each with its reason, acceptance, sign-off and review date, and the run prints "Waiting for Domain Lead approval" for each one without an approval link. A new advisory, a stale entry or a passed review date fails the run.

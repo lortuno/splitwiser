@@ -243,8 +243,23 @@ server header and is left for deployment.
 
 **Dependencies and services:** `symfony/mailer` (exact version, `packages/api/composer.json`, the first PHP
 dependency) and the image `axllent/mailpit` (exact tag) as service `mailpit` (SMTP 1025, inbox and API 8025), started
-before `api` and the test runs. Both under Inventory in `specs/guidelines/architecture.md`. `bun test` also runs
-`composer audit` and `bun audit`, and fails on a reported vulnerability.
+before `api` and the test runs. Both under Inventory in `specs/guidelines/architecture.md`.
+
+**Dependency audits:** `bun test` also runs `composer audit` and `bun audit` (`tests/functional/audit.test.ts`).
+`composer audit` must report nothing. `bun audit` must report nothing except the accepted exceptions below, each passed
+as one `--ignore={id}`; any other advisory, of any severity and in any package, fails the run. The list lives in
+`tests/functional/audit.test.ts`, one entry per advisory with every column of the table. The run also fails when an
+entry is stale (`bun audit --json` without the ignores no longer reports that id: remove the entry) and on or after
+its review date. While an entry has no Domain Lead approval link, the audit passes and prints "Waiting for Domain Lead
+approval: {id}"; on the review date a missing link fails the run like any other entry. Entries record roles, never
+names (personal data).
+
+**Accepted audit exceptions:**
+
+| Advisory | Package (severity) | Comes from | Why accepted | Accepted | Domain Lead approval | Review date |
+|---|---|---|---|---|---|---|
+| `GHSA-mrhx-c7xc-m3w5` | `zod` 3.25.76 (high) | `expo > @expo/cli` | Runs only in Expo's command-line tool on developer machines, on the project's own files; not in the shipped app and no user input reaches it. The fix, `zod` 4.6.6, is a major version no Expo 58 release accepts. In `bun.lock` since the first commit. | feature owner, 2026-10-29 | pending (issue or PR link) | 2027-01-31 |
+| `GHSA-gcqx-w48m-w2h4` | `deepmerge` 4.3.1 (low) | `expo > @expo/config` | Build-time configuration merging of the project's own files; not in the shipped app. Blocked by `@expo/config`'s `^4.3.1`. In `bun.lock` since the first commit. | feature owner, 2026-10-29 | pending (issue or PR link) | 2027-01-31 |
 
 ## Seed data
 
@@ -289,7 +304,9 @@ in-memory database.
 - **Playwright (`tests/e2e`, 390x844):** a new `security.test.ts` with one screenshot per 📸 check, run with the short
   durations of the API section and reading codes from Mailpit's API. The suites of features 2, 3, 6 and 7 enter the
   code where they sign up.
-- **Audits:** `composer audit` and `bun audit` run in `bun test`.
+- **Audits:** `composer audit` and `bun audit` run in `bun test`, with the accepted exceptions of the API section; the
+  test also checks each entry: all its fields filled, its id still reported without the ignores (else stale), today
+  before its review date, and a "Waiting for Domain Lead approval" line for each entry without a link.
 
 ## Acceptance checks
 
@@ -346,7 +363,10 @@ durations (`AUTH_CODE_TTL=60`, `AUTH_LOCK=60`, `AUTH_RESEND_GAP=5`).
 14. **Rules checked in PHP only (clock and limits).** `bun test tests/functional` passes the tests listed in Tests for
     the lock window and end, other IPs, code expiry, the per-hour limits (`429 too_many_requests`) and the security log
     (expected events, no password, code or token).
-15. **Dependency audits.** `bun test` runs `composer audit` and `bun audit`, and both report no vulnerability.
+15. **Dependency audits.** `bun test` runs `composer audit` and `bun audit`; `composer audit` reports nothing; `bun
+    audit` reports nothing except the advisories listed under accepted exceptions (API section), each with its
+    reason, acceptance, sign-off and review date, and the run prints "Waiting for Domain Lead approval" for each one
+    without an approval link. A new advisory, a stale entry or a passed review date fails the run.
 
 ## Out of scope
 
@@ -354,7 +374,8 @@ A code at every login (two-step login), codes for new devices, verification link
 and changing the email or password, "log out everywhere" and ending sessions on a password change, longer passwords or
 a common-password list, a clean-up of accounts that never confirm, trusting `X-Forwarded-For` before a proxy exists,
 `frame-ancestors` and HTTPS (deployment), CAPTCHAs, HTML emails, a live countdown on the lock message, and storing the
-values of `.env` files in the repository.
+values of `.env` files in the repository. For the audit: replacing Expo or forcing `zod` 4 with an override, ignoring
+whole packages or severities, and obtaining the Domain Lead approval itself (the entry only records its link).
 
 ## Check on iOS and Android
 

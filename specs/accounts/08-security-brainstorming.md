@@ -273,3 +273,48 @@ The screens say "valid for 15 minutes" and "Try again in {minutes} minutes"; the
 - Edited elsewhere (and unticked in their progress files): spec 02 checks 10, 11, 30 plus its sign-up screen, API rows,
   tests and out of scope; spec 03 checks 10, 11 plus invite linking at `POST /auth/verify`; spec 06 checks 12, 16 and
   the `error.taken` row; spec 07 check 3, its sign-up line, data and tests.
+
+# Change: a documented, time-limited exception in the dependency audit
+
+## What the specification says today
+
+- API section: "`bun test` also runs `composer audit` and `bun audit`, and fails on a reported vulnerability."
+- Check 15: "**Dependency audits.** `bun test` runs `composer audit` and `bun audit`, and both report no vulnerability."
+- Since the build, `bun audit` fails on two advisories that were in `bun.lock` since the first commit (`b94a7be`), both
+  from Expo's build tooling, not from the shipped app and not from feature 8:
+  - `GHSA-mrhx-c7xc-m3w5`, high: `zod` 3.25.76 (via `expo > @expo/cli`), memory exhaustion on oversized arrays; fixed in
+    `zod` 4.6.6, which no Expo 58 release accepts (`@expo/cli` needs `zod ^3.25.76`).
+  - `GHSA-gcqx-w48m-w2h4`, low: `deepmerge` 4.3.1 (via `@expo/config`, which needs `^4.3.1`), prototype poisoning.
+- `composer audit` is clean. In the chat you accepted an exception for these two; your security policy asks a Domain
+  Lead sign-off for accepting a High risk.
+
+No new screens.
+
+## Round 5
+
+### Q1. Where is the exception recorded?
+- [x] In one list in `tests/functional/audit.test.ts`: per advisory its id, package, severity, where it comes from, why it is accepted, who accepted it and when, the sign-off and the review date; `bun audit` gets one `--ignore` per entry; spec 08 shows the same list (Recommended)
+- [ ] Only as `--ignore` flags in a `package.json` script, with the reasons in spec 08
+- [ ] In a separate `security/audit-exceptions.json` file read by the test
+
+### Q2. Which findings does it cover?
+- [x] Exactly these two advisory ids; any other advisory, of any severity and in any package, still fails the run (Recommended)
+- [ ] Every advisory in `@expo/cli` and `@expo/config`
+- [ ] Every low and moderate advisory, plus the zod one
+
+### Q3. The sign-off (your policy: Domain Lead approval for a High risk)
+Names are personal data in this pilot, so the entry records roles, not people.
+- [x] Recorded as accepted by the feature owner on 2026-10-29; the Domain Lead approval is a link (issue or PR) added to the entry; until it is there the audit passes but prints "Waiting for Domain Lead approval", and on the review date it fails if the link is still missing (Recommended)
+- [ ] The audit fails until the Domain Lead approval link is in the entry (check 15 stays open until then)
+- [ ] Only the feature owner's acceptance; no Domain Lead step
+
+### Q4. When does the exception end?
+- [x] Both ways: the run fails as soon as an excepted advisory no longer shows up (the entry is stale: remove it, e.g. after an Expo update to `zod` 4.6.6 or later), and it fails on the review date, 2027-01-31, so the exception is looked at again (Recommended)
+- [ ] Only when the advisory is gone (no review date)
+- [ ] Only on the review date
+
+### Q5. Check 15 afterwards
+- [x] "`bun test` runs `composer audit` and `bun audit`; `composer audit` reports nothing; `bun audit` reports nothing except the advisories listed under accepted exceptions, each with its reason, acceptance, sign-off and review date; a new advisory, a stale entry or a passed review date fails the run" (Recommended)
+- [ ] Keep check 15 as it is and add a new check 16 for the exception
+
+- [x] Round 5 answered (tick this when you have answered every question above)
