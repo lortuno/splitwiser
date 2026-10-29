@@ -187,7 +187,8 @@ bottom. There are no browser dialogs: the confirmation is an in-app screen.
 ```
 
 - A paid group shows the "✓ Paid" chip (caption bold, `accent` on `accentSoft`, `radius.pill`) to the right of the
-  name. The name still wraps to at most 2 lines. The order is unchanged (newest start date first).
+  name. The name still wraps to at most 2 lines. Paid groups sit in the "Paid groups" section at the bottom of the
+  list, closed by default (`specs/accounts/02-login-and-my-groups-specification.md`).
 
 ## Data
 
@@ -335,8 +336,8 @@ Run the checks in order: checks 4–14 build on each other. "{today}" is the loc
 9. 📸 **Balances of a paid group.** Tap "Balances". Ana shows Paid `30,00 €` and Share `46,01 €`, and Chloé shows Paid
    `50,01 €` and Share `34,00 €`. Both show "Settled" instead of a net amount. "Everyone is settled up." replaces the
    transfers, and no `16,01 €` appears.
-10. **My groups shows paid.** Tap "‹ My groups". "Madrid weekend" shows "✓ Paid" and `80,01 €`. "Lisbon & Porto" shows no
-    chip.
+10. **My groups shows paid.** Tap "‹ My groups". "Madrid weekend" is not in the list; "Lisbon & Porto" shows no chip.
+    Tap "Paid groups (1) ▸": "Madrid weekend" shows "✓ Paid" and `80,01 €`.
 11. **Another member sees it.** Log in as `chloe@example.com` and open "Madrid weekend": the same paid view, with "Marked
     as paid by Ana on {today}." and "Reopen".
 12. **The API locks a paid group.** In the console with Chloé's token, `POST /trips/7/expenses` (any valid body), the
@@ -372,8 +373,8 @@ Run the checks in order: checks 4–14 build on each other. "{today}" is the loc
 From the roadmap: showing the change history in the app, deleting expenses, recording individual settle-up payments,
 partial settlement, and notifications. Excluded in the rounds: changing "Recorded by" on an edit (it stays the first
 recorder), editing a paid group without reopening it, a confirmation before "Reopen", only the marker being able to
-reopen, `PATCH` or a status endpoint instead of `PUT` and the two `POST` actions, moving paid groups to the bottom of
-"My groups", amounts with thousands separators in input fields, and new seed data (paid groups or change records).
+reopen, `PATCH` or a status endpoint instead of `PUT` and the two `POST` actions, amounts with thousands separators in
+input fields, and new seed data (paid groups or change records).
 
 ## Check on iOS and Android
 

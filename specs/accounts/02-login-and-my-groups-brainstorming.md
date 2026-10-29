@@ -280,3 +280,190 @@ Names are display only. Only email must be unique.
 - Existing dev databases need `docker compose down -v` once. There is no schema migration.
 - The epic 1 e2e suite logs in as each fixture trip's owner. Its add-expense check records as Jon.
 - The `localStorage` key is `travel-expenses.token`.
+
+# Change: paid groups folded away, and what I owe and am owed
+
+## What the specification says today
+
+- "My groups" (`MyTripsScreen`, wireframe in `specs/groups/03-create-a-group-specification.md`) is one list: groups with
+  dates by newest start date first, then groups without dates, newest first. Each card shows the name, the date line
+  (if any), "Total" and the total. "+ New group" is fixed at the bottom.
+- A group marked as paid shows the chip "✓ Paid" on its card and stays in its place in the list
+  (`specs/expenses/04-edit-expenses-and-mark-as-paid-specification.md`, check 10). That spec lists "moving paid groups to
+  the bottom of My groups" and "new seed data (paid groups …)" as out of scope.
+- A card shows no money per person: who owes whom is only visible inside a group ("Who owes whom", Balances).
+- `GET /trips` returns per group `id, name, start_date, end_date, total_cents, paid`. The suggested transfers come from
+  `SettlementService` per group (`GET /trips/{id}/summary`).
+- Seed figures for the people with accounts (open groups, today's transfers): Ana pays Ben `63,75 €` (Lisbon & Porto)
+  and Chloé `9,15 €` (Madrid weekend); David pays Ben `27,65 €` and Chloé `27,07 €` (Lisbon & Porto). No seeded group
+  is paid.
+
+## Round 4
+
+### Q1. Which groups go into the folded section?
+- [x] Only groups marked as paid (Recommended)
+- [ ] Groups marked as paid, and also open groups where everyone is already settled
+- [ ] Groups marked as paid, and groups whose end date is in the past
+
+### Q2. How does the folded section behave?
+- [x] Below the open groups, one row "Paid groups (3) ▸", 48 px high, closed every time "My groups" opens; tapping it shows the paid cards below it and turns into "Paid groups (3) ▾"; hidden when there are no paid groups (Recommended)
+- [ ] The same, but the device remembers whether it was open
+- [ ] The same, but the row is still shown with "(0)" when there are no paid groups
+
+### Q3. What does "I owe" / "I am owed" look like?
+- [x] A summary card at the top of "My groups" with two totals, "I owe" and "I'm owed"; tapping one of them is a filter: it shows only the groups where that applies, each with the people involved; tapping it again shows all groups (Recommended)
+- [ ] Three filter chips above the list, "All", "I owe", "I'm owed", and the totals only inside the filtered views
+- [ ] A separate "Debts" screen opened from "My groups" or the menu
+
+### Q4. How are the people I owe (or who owe me) worked out and listed?
+- [x] From each group's suggested transfers, the same as "Who owes whom": only the transfers where I pay or am paid, listed per group ("Lisbon & Porto · You pay Ben 63,75 €") (Recommended)
+- [ ] My net balance per group only ("Lisbon & Porto · You owe 63,75 €"), without naming people
+- [ ] Added up per person across all groups ("Ben · You owe 63,75 €"), a name-only member counting as a different person in each group
+
+### Q5. Do debts in paid groups count?
+- [x] No: a paid group counts as settled, so it adds nothing to "I owe" or "I'm owed" (Recommended)
+- [ ] Yes, they still count until the numbers are zero
+
+### Q6. Does every group card show my own position, also without a filter?
+- [x] Yes, one line under the total: "You owe 72,90 €" (owes colour), "You're owed 9,15 €" (gets colour) or "Settled" (muted); paid cards show no such line (Recommended)
+- [ ] No, cards stay as they are; the money per person appears only in the filtered view
+
+### Q7. "I owe" and "I'm owed" at the same time (I owe in one group and am owed in another)?
+- [x] Both totals are shown separately and never netted against each other, because they are different people and groups (Recommended)
+- [ ] Also show the difference as "Net"
+
+### Q8. Wireframe: "My groups" as Ana, no filter, paid section closed (correct anything you want changed)
+
+Assumes "Madrid weekend" was marked as paid; the figures are Ana's today.
+
+```
+┌──────────────────────────────────────┐
+│                        [English  ▾] │  app bar (unchanged)
+├──────────────────────────────────────┤
+│ My groups                            │  header (unchanged)
+│ Logged in as Ana                     │
+│ ┌────────────────┐┌────────────────┐ │  summary: two halves, each a
+│ │ I owe          ││ I'm owed       │ │  filter button ≥ 48 high;
+│ │       63,75 €  ││        0,00 €  │ │  owes / gets colours
+│ └────────────────┘└────────────────┘ │
+│ ┌──────────────────────────────────┐ │
+│ │ Lisbon & Porto                   │ │  open groups, same order
+│ │ 1 Jun 2026 – 7 Jun 2026          │ │  as today
+│ │ Total                 1.915,57 € │ │
+│ │ You owe                  63,75 € │ │  new line, owes colour
+│ └──────────────────────────────────┘ │
+│ Paid groups (1)                   ▸  │  row, 48 high, closed
+│            (list scrolls)            │
+├──────────────────────────────────────┤
+│ ┌──────────────────────────────────┐ │
+│ │           + New group            │ │  unchanged, fixed
+│ └──────────────────────────────────┘ │
+└──────────────────────────────────────┘
+```
+- [x] Like this (Recommended)
+- [ ] Changes (write them under this question)
+
+### Q9. Wireframe: "I owe" tapped (filter on)
+
+```
+┌──────────────────────────────────────┐
+│ My groups                            │
+│ Logged in as Ana                     │
+│ ┌────────────────┐┌────────────────┐ │  "I owe" selected: accent
+│ │ I owe        ✓ ││ I'm owed       │ │  border + ✓; tap again
+│ │       63,75 €  ││        0,00 €  │ │  to show all groups
+│ └────────────────┘└────────────────┘ │
+│ Groups where you owe money           │  caption, inkMuted
+│ ┌──────────────────────────────────┐ │
+│ │ Lisbon & Porto                   │ │  card opens the group
+│ │ You pay Ben              63,75 € │ │  one row per transfer
+│ └──────────────────────────────────┘ │  that involves me
+│                                      │  no paid section while
+│                                      │  a filter is on
+└──────────────────────────────────────┘
+```
+With nothing to show: a card "You don't owe anyone." / "Nobody owes you."
+- [x] Like this (Recommended)
+- [ ] Changes (write them under this question)
+
+### Q10. Where does the API give the app these numbers? (all calculated in the API)
+- [ ] `GET /trips` adds per group `my_net_cents` and `my_transfers: [{ direction: "pay" | "receive", person: { id, name }, amount_cents }]` (empty for paid groups), plus nothing else; the app adds no money, so the two totals come from the API too: `GET /trips` becomes `{ trips: [...], owe_cents, owed_cents }` (Recommended)
+- [x] A separate `GET /me/debts` with the totals and the transfers; `GET /trips` stays as it is
+- [ ] `GET /trips` stays a list, and the totals come from a new `GET /me/debts/summary`
+
+- [x] Round 4 answered (tick this when you have answered every question above)
+
+## Round 5
+
+Figures per demo account on a fresh seed, from the current API code (`SummaryService` on an in-memory seeded
+database), open groups only:
+
+| Account | I owe | I'm owed | From |
+|---|---|---|---|
+| Ana | `72,90 €` | `0,00 €` | pays Ben `63,75 €` (Lisbon & Porto), pays Chloé `9,15 €` (Madrid weekend) |
+| Ben | `0,00 €` | `91,40 €` | Ana `63,75 €`, David `27,65 €` (Lisbon & Porto) |
+| Chloé | `0,00 €` | `36,22 €` | Ana `9,15 €` (Madrid weekend), David `27,07 €` (Lisbon & Porto) |
+| David | `54,72 €` | `0,00 €` | pays Ben `27,65 €`, Chloé `27,07 €` (Lisbon & Porto) |
+| Eva, Hugo | `0,00 €` | `0,00 €` | Empty weekend / Even split: settled |
+| Jon | `0,00 €` | `6,66 €` | Kim `3,33 €`, Lea `3,33 €` (Three-way taxi) |
+| Noah | `0,00 €` | `1.172.839,46 €` | Maximiliane Alexandra von Hohenzollern-Sigmaringen (Great tour …) |
+| Olga | `0,00 €` | `50,00 €` | Quinn `20,00 €`, Rosa `20,00 €`, Sam `10,00 €` (Big group) |
+| Pia | `0,00 €` | `200,00 €` | Inés `100,00 €`, Grandpa `100,00 €` (Ski week) |
+
+Nobody both owes and is owed today, and no seeded group is paid.
+
+### Q1. Shape of `GET /me/debts` (you chose a separate endpoint in Round 4 Q10)
+The cards need my position in every open group ("You owe …" / "You're owed …" / "Settled"), so the endpoint lists all
+of them, not only the ones with money.
+- [ ] `200 { owe_cents, owed_cents, groups: [{ trip_id, my_net_cents, transfers: [{ direction: "pay" | "receive", person: { id, name }, amount_cents }] }] }` with every open group I am on (settled ones with `my_net_cents: 0` and `transfers: []`), in the order of `GET /trips`; paid groups are left out; `401` without a token (Recommended)
+- [x] The same, but only groups with at least one transfer; a card without an entry shows "Settled"
+- [ ] Only the two totals and the transfers, and the cards show no position line (drops Round 4 Q6)
+
+### Q2. Loading and errors on "My groups" (now two requests)
+- [x] Both requests run at once; the spinner shows until both answer; if either fails, the existing "Could not reach the API at {url}." with "Try again", which repeats both (Recommended)
+- [ ] The list shows as soon as `GET /trips` answers; the summary card shows its own small error with "Try again" if `GET /me/debts` fails
+- [ ] The list shows as soon as `GET /trips` answers; the summary and position lines are left out silently if `GET /me/debts` fails
+
+### Q3. The summary card when I am on no group at all (e.g. a new account)
+- [x] Hidden: only the existing empty-list card shows (Recommended)
+- [ ] Shown with `0,00 €` and `0,00 €`
+
+### Q4. How long does a filter stay on?
+- [x] Until it is tapped again or "My groups" is left (opening a group and coming back shows all groups again) (Recommended)
+- [ ] Until it is tapped again, also after opening a group and coming back, while the app runs
+
+### Q5. Seed data for the paid section
+The paid section needs a paid group; today's seed has none and spec 04 kept it that way.
+- [x] No seed change: the checks mark "Madrid weekend" as paid through the app first (as spec 04 does), so every other check and id stays the same (Recommended)
+- [ ] Seed one more paid group for Ana (gets id 9, so the groups created in spec 03's checks become 10, 11, 12 and those checks change)
+- [ ] Seed "Madrid weekend" as paid (spec 04's mark-as-paid checks would then start by reopening it)
+
+### Q6. Edge cases to turn into acceptance checks (untick any you do not want)
+- [x] Ana, fresh seed: "I owe" `72,90 €`, "I'm owed" `0,00 €`; Lisbon & Porto "You owe 63,75 €", Madrid weekend "You owe 9,15 €"; no "Paid groups" row
+- [x] Ana marks "Madrid weekend" as paid: "I owe" becomes `63,75 €`, Madrid moves into the closed "Paid groups (1) ▸"; opening it shows the card with "✓ Paid" and no position line; reopening Madrid brings it back to the open list and `72,90 €`
+- [x] "I owe" filter as Ana: only Lisbon & Porto with "You pay Ben 63,75 €"; "I'm owed" filter: "Nobody owes you."
+- [x] Owing and owed at once: Ana creates a group with Ben ("Coffee club"), records `10,00 €` paid by Ana split equally: "I owe" stays `72,90 €`, "I'm owed" becomes `5,00 €`, never netted
+- [x] Three people owe me in one group: Olga's "I'm owed" filter lists Big group with Quinn `20,00 €`, Rosa `20,00 €`, Sam `10,00 €`, total `50,00 €`
+- [x] Uneven cents: Jon is owed `6,66 €` (Kim `3,33 €`, Lea `3,33 €`)
+- [x] Everyone settled: Hugo sees `0,00 €` / `0,00 €` and "Settled" on Even split; both filters show their empty text
+- [x] Long name, very large amount: Noah's "I'm owed" filter shows `1.172.839,46 €` from "Maximiliane Alexandra von Hohenzollern-Sigmaringen" on one row without sideways scrolling (the name wraps or ends in "…", the amount stays on one line)
+- [x] No groups: a new account sees no summary card, only the empty-list text
+- [x] API unreachable: "My groups" shows the error and "Try again"; `GET /me/debts` without a token answers `401`
+
+### Q7. A name in a transfer row that is too long for one line
+- [x] The name wraps to at most 2 lines and ends in "…"; the amount stays on one line, right-aligned (same rule as the group names on the cards) (Recommended)
+- [ ] One line with "…"
+
+- [x] Round 5 answered (tick this when you have answered every question above)
+
+## Decisions made while writing the specification (rounds 4–5)
+
+- Each group in `GET /me/debts` carries `owe_cents` and `owed_cents` instead of `my_net_cents`, so the card's "You owe
+  …" / "You're owed …" amount comes straight from the API and the app never negates a cent (architecture rule 6).
+- Check 24 runs after check 23 has reopened "Madrid weekend", so the "I owe" filter lists both Madrid (`9,15 €`) and
+  Lisbon (`63,75 €`); the Round 5 example with Lisbon only described the state while Madrid was paid.
+- The "owing and owed at once" case uses a group created in the app ("Coffee club", group 9 on a fresh seed), so the
+  seed and every other check keep their ids. Checks 22–31 run on their own fresh seed in a new `my-groups.test.ts`.
+- The empty state and "+ New group" in spec 02's "My groups" now point to epic 3's texts, which already applied.
+- Touched elsewhere: spec 04 check 10 (Madrid is found under "Paid groups") and its out-of-scope line; spec 03's
+  "My groups" wireframe; spec 06's text table (11 new keys).

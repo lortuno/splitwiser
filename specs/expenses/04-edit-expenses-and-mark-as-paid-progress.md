@@ -4,7 +4,7 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 
 ## Steps
 
-- [x] Screens
+- [ ] Screens
 - [x] Data
 - [x] API
 - [x] Seed data
@@ -21,7 +21,7 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 - [x] 7. 📸 **Mark as paid, confirmation.** Tap "Mark as paid". The screen shows "Mark this group as paid?", "These payments will be treated as done:", "Ana pays Chloé `16,01 €`", "Nobody can add or change expenses until the group is reopened.", "Mark as paid" at the bottom and "Cancel". Tap "Cancel": the group view is unchanged. Tap "Mark as paid" again.
 - [x] 8. 📸 **Paid group view.** On the confirmation, tap "Mark as paid". The group view shows the card "✓ Paid", "Marked as paid by Ana on {today}.", and total `80,01 €`. It shows no "Who owes whom", the header shows "Reopen", and the tab bar has only "Group" and "Balances". Tapping "Tapas at Mercado de San Miguel" opens nothing, and "Edited" still shows on both rows.
 - [x] 9. 📸 **Balances of a paid group.** Tap "Balances". Ana shows Paid `30,00 €` and Share `46,01 €`, and Chloé shows Paid `50,01 €` and Share `34,00 €`. Both show "Settled" instead of a net amount. "Everyone is settled up." replaces the transfers, and no `16,01 €` appears.
-- [x] 10. **My groups shows paid.** Tap "‹ My groups". "Madrid weekend" shows "✓ Paid" and `80,01 €`. "Lisbon & Porto" shows no chip.
+- [ ] 10. **My groups shows paid.** Tap "‹ My groups". "Madrid weekend" is not in the list; "Lisbon & Porto" shows no chip. Tap "Paid groups (1) ▸": "Madrid weekend" shows "✓ Paid" and `80,01 €`.
 - [x] 11. **Another member sees it.** Log in as `chloe@example.com` and open "Madrid weekend": the same paid view, with "Marked as paid by Ana on {today}." and "Reopen".
 - [x] 12. **The API locks a paid group.** In the console with Chloé's token, `POST /trips/7/expenses` (any valid body), the same with `?dry_run=1`, and `PUT /trips/7/expenses/{Tapas id}` each answer `409` with code `trip_paid`. `POST /trips/7/paid` answers `409 already_paid`.
 - [x] 13. 📸 **Paid while editing.** Log in as Ben in one browser tab, open "Lisbon & Porto" and open "Taxi to Porto airport". In a second tab, log in as Ana, open "Lisbon & Porto", and mark it as paid. In Ben's tab, change the amount to `32,00` and tap "Save changes". The card "This group is marked as paid. Reopen it to make changes." shows above the button, and the amount field still reads `32,00`. Tap "Cancel": the paid view of "Lisbon & Porto" with "Marked as paid by Ana on {today}.", and the row still reads `31,50 €`.

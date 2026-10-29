@@ -41,20 +41,28 @@ name" sets the display name.
 ├──────────────────────────────────────┤  holds "Settings" and "Log out"
 │ My groups                            │  header: title 20 bold
 │ Logged in as Ana                     │  caption, inkMuted (display name)
+│ ┌────────────────┐┌────────────────┐ │  "I owe" / "I'm owed" summary
+│ │ I owe          ││ I'm owed       │ │  (spec 02)
+│ │       72,90 €  ││       20,00 €  │ │
+│ └────────────────┘└────────────────┘ │
 │ ┌──────────────────────────────────┐ │
 │ │ Madrid weekend                   │ │  groups with dates first,
 │ │ 12 Sep 2026 – 14 Sep 2026        │ │  newest start date first
 │ │ Total                    78,30 € │ │
+│ │ You owe                   9,15 € │ │  position line (spec 02)
 │ └──────────────────────────────────┘ │
 │ ┌──────────────────────────────────┐ │
 │ │ Lisbon & Porto                   │ │
 │ │ 1 Jun 2026 – 7 Jun 2026          │ │
 │ │ Total                 1.915,57 € │ │
+│ │ You owe                  63,75 € │ │
 │ └──────────────────────────────────┘ │
 │ ┌──────────────────────────────────┐ │
 │ │ Gifts for Ben                    │ │  then groups without dates,
 │ │ Total                    40,00 € │ │  newest first; no date line
-│ └──────────────────────────────────┘ │
+│ │ You're owed              20,00 € │ │
+│ └──────────────────────────────────┘ │  (no group paid: no "Paid
+│                                      │  groups" row, see spec 02)
 │            (list scrolls)            │
 ├──────────────────────────────────────┤
 │ ┌──────────────────────────────────┐ │
@@ -73,7 +81,10 @@ name" sets the display name.
   "Try again").
 - **Group cards:** the name wraps to at most 2 lines and ends in "…". A group without dates has no date line.
 - **Order:** groups with dates by newest start date first, then groups without dates, newest created first (highest
-  id first). The API sorts; the app shows the list as it comes.
+  id first). The API sorts; the app shows the list as it comes. Paid groups go into the closed "Paid groups" section
+  below, in the same order.
+- **Summary, position lines, filters and "Paid groups":** specified in
+  `specs/accounts/02-login-and-my-groups-specification.md`.
 
 ### New group (`NewTripScreen`, new)
 

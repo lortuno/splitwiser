@@ -4,11 +4,11 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 
 ## Steps
 
-- [x] Screens
-- [x] Data
-- [x] API
+- [ ] Screens
+- [ ] Data
+- [ ] API
 - [x] Seed data
-- [x] Tests
+- [ ] Tests
 
 ## Acceptance checks
 
@@ -33,3 +33,13 @@ Tick a step as soon as it is built. Tick a check only after it passes in the bro
 - [x] 19. **Deep link while logged out.** With no stored token, open `/?trip=1`. Login appears. Log in as `ben@example.com`: the "Lisbon & Porto" group view opens directly (`1.915,57 €`).
 - [x] 20. 📸 **API unreachable on Login.** With the API stopped (`docker compose stop api`), log out if needed, then on Login enter Ana's email and password and tap "Log in". The card shows "Could not reach the API at http://localhost:8080." The button reads "Log in" again and can be tapped. After `docker compose start api`, tapping "Log in" opens Ana's "My groups".
 - [x] 21. **Epic 1 still holds.** Logged in as the owner of each fixture group (Eva 2, Hugo 3, Jon 4, Noah 5, Olga 6), the epic 1 checks 6–11 show the same figures as before. The `api` container is healthy (`docker compose ps`), because the health check uses `GET /health`.
+- [ ] 22. 📸 **What I owe, at a glance.** Fresh seed. Log in as `ana@example.com`. Under "Logged in as Ana" the summary shows "I owe" `72,90 €` and "I'm owed" `0,00 €`, side by side, each at least 48 px high. The cards are "Madrid weekend" with "You owe" `9,15 €` and "Lisbon & Porto" with "You owe" `63,75 €`. There is no "Paid groups" row.
+- [ ] 23. 📸 **Paid groups fold away.** As Ana, open "Madrid weekend", tap "Mark as paid" and confirm, then tap "‹ My groups". The summary shows "I owe" `63,75 €`. The only card above is "Lisbon & Porto"; below it the row "Paid groups (1) ▸" (at least 48 px high) shows no card. Tap it: "Madrid weekend" appears below it with "✓ Paid", `78,30 €` and no "You owe" line, and the row reads "Paid groups (1) ▾" (screenshot). Tap the row again: the card is hidden. Open "Lisbon & Porto" and tap "‹ My groups": the section is closed again. Open "Madrid weekend" from the section, tap "Reopen", then "‹ My groups": "Madrid weekend" is back above "Lisbon & Porto" with "You owe" `9,15 €`, "I owe" is `72,90 €`, and there is no "Paid groups" row.
+- [ ] 24. 📸 **The "I owe" and "I'm owed" filters.** As Ana, tap "I owe": it shows "✓"; the caption reads "Groups where you owe money", followed by "Madrid weekend" with "You pay Chloé" `9,15 €` and "Lisbon & Porto" with "You pay Ben" `63,75 €` (screenshot). Tap "I'm owed": "Nobody owes you.". Tap "I'm owed" again: all groups are back. Tap "I owe", open "Lisbon & Porto" from the filtered list, and tap "‹ My groups": no filter is selected and all groups show.
+- [ ] 25. **Owing and owed at once.** As Ana, tap "+ New group", create "Coffee club" without dates with Ben (`ben@example.com`), add "Coffee" `10,00` paid by Ana, split equally between Ana and Ben, and tap "‹ My groups". The summary shows "I owe" `72,90 €` and "I'm owed" `5,00 €`; "Coffee club" (after the dated groups) shows "You're owed" `5,00 €`. "I'm owed" lists "Coffee club" with "Ben pays you" `5,00 €`. Log in as Ben: "I owe" `5,00 €`, "I'm owed" `91,40 €`.
+- [ ] 26. **Three people owe me in one group.** Log in as `olga@example.com`. "I'm owed" `50,00 €`. Tap it: "Big group" with "Quinn pays you" `20,00 €`, "Rosa pays you" `20,00 €`, "Sam pays you" `10,00 €`.
+- [ ] 27. **Uneven cents.** Log in as `jon@example.com`. "I'm owed" `6,66 €`; the filter lists "Three-way taxi" with "Kim pays you" `3,33 €` and "Lea pays you" `3,33 €`.
+- [ ] 28. **Everyone settled.** Log in as `hugo@example.com`. The summary shows `0,00 €` and `0,00 €`; "Even split" shows "Settled". "I owe" shows "You don't owe anyone."; "I'm owed" shows "Nobody owes you.".
+- [ ] 29. 📸 **Long name, very large amount.** Log in as `noah@example.com`. "I'm owed" shows `1.172.839,46 €` on one line. Tap it: the card for "Great tour of every UNESCO world heritage site in southern Europe by sleeper train" (2 lines, "…") has one row "Maximiliane Alexandra von Hohenzollern-Sigmaringen pays you" (at most 2 lines, "…") with `1.172.839,46 €` on one line, right-aligned. Nothing scrolls sideways.
+- [ ] 30. **No groups, no summary.** Sign up as `yara@example.com` (any name, `long-enough-1`): "My groups" shows the empty list card and no "I owe" / "I'm owed".
+- [ ] 31. 📸 **API unreachable.** As Ana on "My groups", block the API (`docker compose stop api`, or the e2e suite blocking it) and reload: "Could not reach the API at http://localhost:8080." with "Try again". With only `GET /me/debts` blocked, the same error shows. Unblock and tap "Try again": the summary and cards from check 22 show. In the console, `GET /me/debts` without `Authorization` answers `401` with code `unauthenticated`.

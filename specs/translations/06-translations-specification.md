@@ -230,6 +230,12 @@ shorter. The French and Spanish texts the checks rely on are fixed below; the bu
 | `trips.title` | My groups | Mis grupos | Mes groupes |
 | `trips.newTrip` / `newTrip.name` / `newTrip.create` | + New group / Group name / Create group | + Nuevo grupo / Nombre del grupo / Crear grupo | + Nouveau groupe / Nom du groupe / Créer le groupe |
 | `newTrip.datesOptional` | Dates (optional) | Fechas (opcional) | Dates (facultatif) |
+| `debts.owe` / `debts.owed` | I owe / I'm owed | Debo / Me deben | Je dois / On me doit |
+| `debts.youOwe` / `debts.youreOwed` | You owe / You're owed | Debes / Te deben | Vous devez / On vous doit |
+| `debts.youPay` / `debts.paysYou` | You pay {name} / {name} pays you | Pagas a {name} / {name} te paga | Vous payez {name} / {name} vous paie |
+| `debts.oweHeading` / `debts.owedHeading` | Groups where you owe money / Groups where you are owed money | Grupos en los que debes dinero / Grupos en los que te deben dinero | Groupes où vous devez de l’argent / Groupes où l’on vous doit de l’argent |
+| `debts.oweEmpty` / `debts.owedEmpty` | You don't owe anyone. / Nobody owes you. | No le debes nada a nadie. / Nadie te debe nada. | Vous ne devez rien à personne. / Personne ne vous doit rien. |
+| `trips.paidGroups` | Paid groups ({count}) | Grupos pagados ({count}) | Groupes payés ({count}) |
 | `menu.logOut` | Log out | Cerrar sesión | Déconnexion |
 | `menu.button` (menu button's accessible name) | Menu, language: {language} | Menú, idioma: {language} | Menu, langue : {language} |
 | `discard.title` | Discard your changes? | ¿Descartar los cambios? | Abandonner les modifications ? |
