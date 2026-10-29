@@ -155,10 +155,19 @@ export const checkSpecification = (brainstorming: string | null, after: string):
   return null;
 };
 
-// Why `git mv` of these sources to this target (relative to the project) breaks the layout, or null.
+// Why `git mv` of these sources to this target (relative to the project) breaks the layout, or null. A rename inside
+// the feature's own folder leaves the feature's other files out of the conflict check, so a feature can be renamed one
+// file at a time (01-trip-at-a-glance → 01-group-at-a-glance); another feature's number or name still conflicts, and
+// a single file moved to another folder still splits the feature.
 const checkMove = (sources: string[], target: string, files: Files): string | null => {
-  const rest = { ...files };
-  for (const source of sources) delete rest[source];
+  const into = target.endsWith(".md") ? feature(target)?.category : null;
+  const renamed = sources.map(feature).filter((f) => f !== null && f.category === into);
+  const rest = Object.fromEntries(
+    Object.entries(files).filter(([rel]) => {
+      const f = feature(rel);
+      return !sources.includes(rel) && !(f && renamed.some((m) => m!.category === f.category && m!.nr === f.nr && m!.name === f.name));
+    }),
+  );
   for (const source of sources) {
     if (!FEATURE_FILE.test(source)) continue;
     const destination = target.endsWith(".md") ? target : path.join(target, path.basename(source));
@@ -193,6 +202,8 @@ export const decide = (input: HookInput, projectDir: string, files: Files, { loo
     if (layout) return block(layout);
     if (!loop) return ALLOW;
     const target = feature(rel)!;
+    // A specification that exists without a brainstorming file was never written by /spec (the tooling estimates).
+    if (target.kind === "specification" && rel in files && !(`${folder(target)}-brainstorming.md` in files)) return ALLOW;
     const problem =
       target.kind === "brainstorming"
         ? checkBrainstorming(before, after)

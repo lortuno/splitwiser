@@ -112,6 +112,19 @@ describe("layout: shell commands", () => {
     expect(bash(relative, "/repo/specs/translations").block).toBe(false);
   });
 
+  test("renaming a feature one file at a time, inside its folder", () => {
+    expect(bash(`git mv ${SPEC} specs/translations/06-languages-specification.md`).block).toBe(false);
+    const halfway = { [BRAIN]: answered, "specs/translations/06-languages-specification.md": spec, [PROGRESS]: "" };
+    expect(bash(`git mv ${BRAIN} specs/translations/06-languages-brainstorming.md`, root, halfway).block).toBe(false);
+  });
+
+  test("a rename still cannot take another feature's number or name, or split a feature across folders", () => {
+    const other = { ...files, "specs/expenses/04-edit-expenses-specification.md": spec };
+    expect(bash(`git mv ${SPEC} specs/translations/04-translations-specification.md`, root, other).block).toBe(true);
+    expect(bash(`git mv ${SPEC} specs/translations/06-edit-expenses-specification.md`, root, other).block).toBe(true);
+    expect(bash(`git mv ${SPEC} specs/i18n/06-languages-specification.md`).block).toBe(true);
+  });
+
   test("moving a flat spec into its category folder", () => {
     expect(bash("git mv specs/08-export-specification.md specs/expenses/", root, {}).block).toBe(false);
   });
@@ -196,6 +209,12 @@ describe("loop: one round at a time while /spec runs", () => {
   test("blocks a specification before a wireframe was agreed", () => {
     const noWireframe = { ...files, [BRAIN]: `${round(1)}\n${round(2)}` };
     expect(reason(loopEdit(SPEC, "Three languages.", "Four languages.", noWireframe))).toContain("wireframe");
+  });
+
+  test("a specification /spec never wrote (no brainstorming file, the tooling estimates) is not loop-checked", () => {
+    const tooling = "specs/tooling/00-tooling-specification.md";
+    expect(loopEdit(tooling, "x", "y", { ...files, [tooling]: "# Tooling\n\nx\n" }).block).toBe(false);
+    expect(write("specs/tooling/09-new-specification.md", spec, files, true).block).toBe(true);
   });
 
   test("outside /spec the loop is not checked", () => {

@@ -14,3 +14,4 @@ Development hours only, as defined in "Estimates" in AGENTS.md. Rows are append-
 | 2026-10-27 | Estimates per specification instead of docs/estimates.md (.claude/hooks/estimate-rule.ts) | 0.5 | 0.5 |
 | 2026-10-28 | Add database move  | 0.5 | 0.05 |
 | 2026-10-28 | Spec skill: categories in folders, one living spec per feature (.claude/hooks/spec-rule.ts) | 1 | 0.25 |
+| 2026-10-28 | Spec guard: rename a feature's files one by one with git mv (.claude/hooks/spec-rule.ts) | 0.25 | |
